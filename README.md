@@ -50,6 +50,15 @@ qa_compliance_assistant/
 - Docker and Docker Compose
 - Python 3.11+ (for local development)
 
+## ⚠️ Security Notice
+
+This is a development setup with the following security considerations:
+
+- **CORS**: Currently allows all origins (*). Restrict to specific domains for production
+- **Database**: Default credentials are in docker-compose.yml. Use environment variables and secrets in production
+- **Authentication**: Not implemented. Add authentication/authorization before production deployment
+- **HTTPS**: Not configured. Use reverse proxy (nginx/traefik) with SSL certificates in production
+
 ## Getting Started
 
 ### Using Docker (Recommended)

@@ -56,6 +56,8 @@ qa_compliance_assistant/
 
 ## API Endpoints Implemented
 
+**Note**: All endpoints currently support PUT for full updates. PATCH endpoints for partial updates can be added in future iterations if needed.
+
 ### Projects
 - `POST /projects/` - Create new project
 - `GET /projects/` - List all projects
@@ -133,7 +135,8 @@ Sample evidence types include:
    - ReDoc at `/redoc`
 
 5. **CORS Support**
-   - Configured for development
+   - Configured for development (allows all origins)
+   - ⚠️ **Security Note**: Current CORS configuration allows all origins (*). This is suitable for development only. For production, restrict to specific domains in api.src.main.py
    - Ready for frontend integration
 
 ## Testing & Verification
@@ -165,7 +168,10 @@ Sample evidence types include:
 # Start all services
 docker compose up -d
 
-# Run migrations
+# Wait for services to be healthy (database needs ~10 seconds)
+sleep 15
+
+# Run migrations (ensure database is ready)
 docker compose exec -w /app/api api alembic upgrade head
 
 # Test endpoints
@@ -178,8 +184,11 @@ docker compose logs -f
 docker compose down
 ```
 
+**Note**: For production deployments, implement proper health checks and retry mechanisms before running migrations.
+
 ## Technology Stack
 
+- **Python**: 3.11
 - **Backend Framework**: FastAPI 0.104.1
 - **Database**: PostgreSQL 15
 - **ORM**: SQLAlchemy 2.0.23
