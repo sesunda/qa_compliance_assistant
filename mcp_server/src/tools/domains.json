@@ -1,0 +1,12 @@
+[
+  {"code": "IM8-01", "name": "Access & Identity Management", "description": "User accounts, roles, privileged access."},
+  {"code": "IM8-02", "name": "Network & Connectivity Security", "description": "Network segmentation, allow-by-exception."},
+  {"code": "IM8-03", "name": "Application & Data Protection", "description": "Data classification, encryption, output sanitisation."},
+  {"code": "IM8-04", "name": "Infrastructure & System Hardening", "description": "Patch management, least functionality, EOS assets."},
+  {"code": "IM8-05", "name": "Secure Development & Supply Chain", "description": "Code repository controls, dependency pinning."},
+  {"code": "IM8-06", "name": "Logging, Monitoring & Incident Response", "description": "Log aggregation, retention, alerting."},
+  {"code": "IM8-07", "name": "Third-Party & Vendor Management", "description": "Outsourcing, supply-chain governance."},
+  {"code": "IM8-08", "name": "Change, Release & Configuration Management", "description": "Change approvals, configuration drift control."},
+  {"code": "IM8-09", "name": "Governance, Risk & Compliance (GRC)", "description": "Risk registers, SSPs, residual risk acceptance."},
+  {"code": "IM8-10", "name": "Digital Service & Delivery Standards", "description": "DSS, agile delivery, lifecycle of digital services."}
+]

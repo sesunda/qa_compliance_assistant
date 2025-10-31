@@ -1,0 +1,10 @@
+{
+  "template_name": "Infra PT Template",
+  "version": "1.0",
+  "sections": [
+    {"id": "scope", "title": "Scope", "fields": ["network_ranges", "assets", "excluded_assets"]},
+    {"id": "asset_inventory", "title": "Asset Inventory", "fields": ["hostname", "ip", "os", "open_ports"]},
+    {"id": "findings", "title": "Findings", "fields": ["title", "description", "severity", "affected_asset", "remediation", "evidence_ids"]},
+    {"id": "summary", "title": "Executive Summary", "fields": ["overview", "major_issues", "recommendations"]}
+  ]
+}

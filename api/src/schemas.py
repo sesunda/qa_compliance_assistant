@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 
 # Project Schemas
@@ -106,5 +106,37 @@ class Report(ReportBase):
     generated_at: datetime
     file_path: Optional[str] = None
     
+    class Config:
+        from_attributes = True
+
+
+# Control Catalog Schemas
+class ControlCatalogCreate(BaseModel):
+    external_id: Optional[str] = None
+    title: str
+    description: Optional[str] = None
+    family: Optional[str] = None
+    raw_json: Optional[Dict[str, Any]] = None
+    proposed_domain_code: Optional[str] = None
+    proposed_confidence: Optional[float] = None
+    mapping_rationale: Optional[str] = None
+
+
+class ControlCatalog(BaseModel):
+    id: int
+    external_id: Optional[str] = None
+    title: str
+    description: Optional[str] = None
+    family: Optional[str] = None
+    raw_json: Optional[Dict[str, Any]] = None
+    proposed_domain_id: Optional[int] = None
+    proposed_confidence: Optional[str] = None
+    mapping_rationale: Optional[str] = None
+    approved_domain_id: Optional[int] = None
+    approved_by: Optional[str] = None
+    approved_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
     class Config:
         from_attributes = True

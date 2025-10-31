@@ -1,0 +1,5 @@
+[
+  {"external_id": "CTRL-001", "title": "Enforce MFA for privileged accounts", "description": "All privileged accounts must use multi-factor authentication when accessing administrative interfaces."},
+  {"external_id": "CTRL-002", "title": "Network segmentation for sensitive systems", "description": "Segment networks to isolate sensitive systems and allow access only by exception rules."},
+  {"external_id": "CTRL-003", "title": "Encrypt data at rest", "description": "All sensitive data stored in databases must be encrypted at rest using approved encryption algorithms."}
+]

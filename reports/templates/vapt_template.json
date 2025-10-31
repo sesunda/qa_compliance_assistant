@@ -1,0 +1,10 @@
+{
+  "template_name": "VAPT Template",
+  "version": "1.0",
+  "sections": [
+    {"id": "scope", "title": "Scope", "fields": ["targets", "excluded_targets", "notes"]},
+    {"id": "asset_inventory", "title": "Asset Inventory", "fields": ["hostname", "ip", "os", "services"]},
+    {"id": "findings", "title": "Findings", "fields": ["title", "description", "severity", "cve", "cvss", "remediation", "evidence_ids"]},
+    {"id": "summary", "title": "Executive Summary", "fields": ["overview", "critical_findings", "recommendations"]}
+  ]
+}

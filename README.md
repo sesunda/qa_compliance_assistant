@@ -194,7 +194,14 @@ uvicorn mcp_server.src.main:app --port 8001 --reload
 
 ### Running Tests
 ```bash
-# TODO: Add tests
+# Run the API test script
+./test_api.sh
+
+# Run unit tests (once implemented)
+pytest tests/ -v
+
+# Run MCP server tests
+python -m pytest tests/test_mcp_server.py -v
 ```
 
 ### Adding New Migrations
