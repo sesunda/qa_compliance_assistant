@@ -79,10 +79,21 @@ class Evidence(Base):
     file_path = Column(String(500))
     evidence_type = Column(String(100))
     verified = Column(Boolean, default=False)
+    
+    # File metadata (added in migration 004)
+    original_filename = Column(String(255))
+    mime_type = Column(String(100))
+    file_size = Column(Integer)
+    checksum = Column(String(64))  # SHA-256 hash
+    storage_backend = Column(String(50), default="local")
+    uploaded_by = Column(Integer, ForeignKey("users.id"))
+    uploaded_at = Column(DateTime)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     control = relationship("Control", back_populates="evidence_items")
+    uploader = relationship("User", foreign_keys=[uploaded_by])
 
 
 class Report(Base):

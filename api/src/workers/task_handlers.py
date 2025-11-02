@@ -8,6 +8,7 @@ import logging
 from typing import Dict, Any
 from sqlalchemy.orm import Session
 from api.src.workers.task_worker import update_progress
+from api.src.workers.evidence_fetcher import handle_fetch_evidence_task
 
 logger = logging.getLogger(__name__)
 
@@ -46,31 +47,11 @@ async def handle_test_task(task_id: int, payload: Dict[str, Any], db: Session) -
     return result
 
 
-async def handle_fetch_evidence_task(task_id: int, payload: Dict[str, Any], db: Session) -> Dict[str, Any]:
+async def handle_fetch_evidence_task_wrapper(task_id: int, payload: Dict[str, Any], db: Session) -> Dict[str, Any]:
     """
-    Handler for auto-fetching evidence from external sources.
-    
-    Args:
-        task_id: ID of the task
-        payload: Should contain: source_type, source_path, control_id, etc.
-        db: Database session
-        
-    Returns:
-        Result containing fetched evidence details
+    Wrapper for the evidence fetcher handler.
     """
-    logger.info(f"Evidence fetch task {task_id} started")
-    
-    # TODO: Implement actual evidence fetching logic
-    # For now, return placeholder
-    result = {
-        "status": "not_implemented",
-        "message": "Evidence fetching will be implemented in next phase",
-        "planned_sources": ["filesystem", "s3", "api"],
-        "payload": payload
-    }
-    
-    await asyncio.sleep(2)  # Simulate work
-    return result
+    return await handle_fetch_evidence_task(task_id, payload, db)
 
 
 async def handle_generate_report_task(task_id: int, payload: Dict[str, Any], db: Session) -> Dict[str, Any]:
@@ -129,7 +110,7 @@ async def handle_analyze_compliance_task(task_id: int, payload: Dict[str, Any], 
 # Map of task types to their handlers
 TASK_HANDLERS = {
     "test": handle_test_task,
-    "fetch_evidence": handle_fetch_evidence_task,
+    "fetch_evidence": handle_fetch_evidence_task_wrapper,
     "generate_report": handle_generate_report_task,
     "analyze_compliance": handle_analyze_compliance_task,
 }
