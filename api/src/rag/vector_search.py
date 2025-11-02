@@ -9,30 +9,14 @@ from api.src.config import settings
 from api.src.database import get_db
 from sqlalchemy.orm import Session
 
-# Try to import OpenAI, handle gracefully if not available
-try:
-    import openai
-    OPENAI_AVAILABLE = True
-except ImportError:
-    print("Warning: OpenAI package not available. Using mock embeddings only.")
-    OPENAI_AVAILABLE = False
-
 
 class VectorStore:
-    """Vector store for semantic search using OpenAI embeddings"""
+    """Vector store for semantic search using embeddings"""
     
     def __init__(self):
-        # Initialize OpenAI client only if available and API key is set
-        self.client = None
-        if OPENAI_AVAILABLE and settings.OPENAI_API_KEY and settings.OPENAI_API_KEY.strip():
-            try:
-                self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
-            except Exception as e:
-                print(f"Warning: Could not initialize OpenAI client: {e}")
-                print("Using mock embeddings for demo.")
-                self.client = None
-        else:
-            print("Warning: OpenAI not available or API key not set. Using mock embeddings for demo.")
+        # Import LLM service here to avoid circular imports
+        from .llm_service import llm_service
+        self.llm_service = llm_service
         
         self.embeddings_cache = {}
         self.documents = []
@@ -134,31 +118,15 @@ class VectorStore:
             self.documents.append(doc)
     
     async def get_embedding(self, text: str) -> List[float]:
-        """Get embedding for text using OpenAI API or mock embeddings"""
+        """Get embedding for text using LLM service"""
         
         if text in self.embeddings_cache:
             return self.embeddings_cache[text]
         
-        # If no API key, return mock embeddings based on text content
-        if not self.client:
-            embedding = self._generate_mock_embedding(text)
-            self.embeddings_cache[text] = embedding
-            return embedding
-        
-        try:
-            response = self.client.embeddings.create(
-                model="text-embedding-ada-002",
-                input=text
-            )
-            embedding = response.data[0].embedding
-            self.embeddings_cache[text] = embedding
-            return embedding
-        except Exception as e:
-            print(f"Error getting embedding, using mock: {e}")
-            # Return mock embedding if API fails
-            embedding = self._generate_mock_embedding(text)
-            self.embeddings_cache[text] = embedding
-            return embedding
+        # Use the multi-provider LLM service
+        embedding = await self.llm_service.get_embedding(text)
+        self.embeddings_cache[text] = embedding
+        return embedding
     
     def _generate_mock_embedding(self, text: str) -> List[float]:
         """Generate mock embeddings based on text content for demo purposes"""

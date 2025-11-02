@@ -1,6 +1,6 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useAuthStore } from './store/authStore'
+import { useAuth } from './contexts/AuthContext'
 import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
@@ -12,7 +12,11 @@ import RAGPage from './pages/RAGPage'
 import UsersPage from './pages/UsersPage'
 
 const App: React.FC = () => {
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, isLoading } = useAuth()
+
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
 
   if (!isAuthenticated) {
     return (

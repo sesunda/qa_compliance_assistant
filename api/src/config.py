@@ -11,8 +11,45 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: List[str] = ["*"]  # ⚠️ DEVELOPMENT ONLY - restrict for production
     SECRET_KEY: str = "dev-secret-key-change-in-production"
     
-    # OpenAI API settings
+    # LLM API settings - Multiple providers for flexibility
+    LLM_PROVIDER: str = "groq"  # Options: openai, groq, anthropic, ollama
+    
+    # OpenAI settings
     OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-3.5-turbo"
+    OPENAI_EMBEDDING_MODEL: str = "text-embedding-ada-002"
+    
+    # Groq Settings (Free tier: 30 req/min, 6000 req/day)
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.1-8b-instant"  # Current supported model
+    
+    # Anthropic settings
+    ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_MODEL: str = "claude-3-haiku-20240307"
+    
+    # Ollama settings (Local, completely free)
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "llama2"
+
+    # Evidence storage configuration
+    EVIDENCE_STORAGE_BACKEND: str = "local"
+    EVIDENCE_STORAGE_PATH: str = "/app/storage/evidence"
+    EVIDENCE_MAX_FILE_SIZE_MB: int = 25
+    EVIDENCE_ALLOWED_EXTENSIONS: List[str] = [
+        ".pdf",
+        ".doc",
+        ".docx",
+        ".xls",
+        ".xlsx",
+        ".csv",
+        ".ppt",
+        ".pptx",
+        ".txt",
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".zip"
+    ]
     
     class Config:
         env_file = ".env"

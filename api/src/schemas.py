@@ -62,7 +62,6 @@ class Control(ControlBase):
 class EvidenceBase(BaseModel):
     title: str
     description: Optional[str] = None
-    file_path: Optional[str] = None
     evidence_type: Optional[str] = None
     verified: bool = False
 
@@ -74,7 +73,6 @@ class EvidenceCreate(EvidenceBase):
 class EvidenceUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    file_path: Optional[str] = None
     evidence_type: Optional[str] = None
     verified: Optional[bool] = None
 
@@ -82,6 +80,15 @@ class EvidenceUpdate(BaseModel):
 class Evidence(EvidenceBase):
     id: int
     control_id: int
+    agency_id: int
+    file_path: Optional[str] = None
+    original_filename: Optional[str] = None
+    mime_type: Optional[str] = None
+    file_size: Optional[int] = None
+    checksum: Optional[str] = None
+    storage_backend: Optional[str] = None
+    uploaded_by: Optional[int] = None
+    uploaded_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
     

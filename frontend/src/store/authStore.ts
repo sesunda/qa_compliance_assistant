@@ -9,10 +9,17 @@ interface User {
   role: {
     name: string
     description: string
-    permissions: any
-  }
+    permissions: Record<string, string[]> | null
+  } | null
   agency_id: number
   is_active: boolean
+  agency?: {
+    id: number
+    name: string
+    code?: string | null
+    description?: string | null
+    contact_email?: string | null
+  } | null
 }
 
 interface AuthState {

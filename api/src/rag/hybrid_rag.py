@@ -4,35 +4,17 @@ from typing import List, Dict, Any, Optional
 import asyncio
 from .vector_search import vector_store
 from .knowledge_graph import knowledge_graph
+from .llm_service import llm_service
 from api.src.config import settings
-
-# Try to import OpenAI, handle gracefully if not available
-try:
-    import openai
-    OPENAI_AVAILABLE = True
-except ImportError:
-    print("Warning: OpenAI package not available. Using mock responses only.")
-    OPENAI_AVAILABLE = False
 
 
 class HybridRAG:
     """Hybrid RAG system combining vector search and knowledge graph"""
     
     def __init__(self):
-        # Initialize OpenAI client only if available and API key is set
-        self.client = None
-        if OPENAI_AVAILABLE and settings.OPENAI_API_KEY and settings.OPENAI_API_KEY.strip():
-            try:
-                self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
-            except Exception as e:
-                print(f"Warning: Could not initialize OpenAI client: {e}")
-                print("Using mock responses for demo.")
-                self.client = None
-        else:
-            print("Warning: OpenAI not available or API key not set. Using mock responses for demo.")
-        
         self.vector_store = vector_store
         self.knowledge_graph = knowledge_graph
+        self.llm_service = llm_service
     
     async def search(self, query: str, search_type: str = "hybrid", top_k: int = 5) -> Dict[str, Any]:
         """Perform hybrid search combining vector and graph approaches"""
@@ -99,10 +81,6 @@ class HybridRAG:
         if not search_results:
             return "I couldn't find relevant information to answer your question. Please try rephrasing or ask about specific compliance topics like controls, frameworks, or audit procedures."
         
-        # If no OpenAI client, generate a structured response from search results
-        if not self.client:
-            return self._generate_mock_answer(query, search_results, search_type)
-        
         # Prepare context from search results
         context_parts = []
         for i, result in enumerate(search_results[:3], 1):  # Use top 3 results
@@ -110,7 +88,7 @@ class HybridRAG:
         
         context = "\n".join(context_parts)
         
-        # Create prompt for GPT
+        # Create messages for LLM
         system_prompt = """You are an expert compliance and cybersecurity assistant. Use the provided context to answer questions about security controls, compliance frameworks, audit procedures, and best practices. 
 
 Guidelines:
@@ -118,32 +96,25 @@ Guidelines:
 - Reference relevant frameworks (ISO 27001, NIST, SOC 2, etc.)
 - Include implementation recommendations
 - Mention compliance requirements when applicable
-- If the context doesn't fully answer the question, acknowledge limitations and suggest related topics
-
-Context from knowledge base:"""
+- If the context doesn't fully answer the question, acknowledge limitations and suggest related topics"""
         
-        user_prompt = f"""Context:
+        user_prompt = f"""Context from knowledge base:
 {context}
 
 Question: {query}
 
 Please provide a comprehensive answer based on the context above. Include specific recommendations and reference relevant compliance frameworks where applicable."""
         
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        # Use the multi-provider LLM service
         try:
-            response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                max_tokens=500,
-                temperature=0.7
-            )
-            
-            return response.choices[0].message.content
-            
+            return await self.llm_service.generate_completion(messages, max_tokens=500)
         except Exception as e:
-            print(f"Error generating AI response, using fallback: {e}")
+            print(f"Error generating AI response: {e}")
             return self._generate_mock_answer(query, search_results, search_type)
     
     def _generate_mock_answer(self, query: str, search_results: List[Dict[str, Any]], search_type: str) -> str:
@@ -210,6 +181,10 @@ Please provide a comprehensive answer based on the context above. Include specif
     def add_document(self, document: Dict[str, Any]):
         """Add a document to the knowledge base"""
         self.vector_store.add_document(document)
+    
+    def get_provider_info(self) -> Dict[str, Any]:
+        """Get information about the current LLM provider"""
+        return self.llm_service.get_provider_info()
 
 
 # Global hybrid RAG instance

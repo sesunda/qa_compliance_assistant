@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from api.src.database import get_db
 from api.src import models
 from api.src.auth_schemas import (
-    LoginRequest, Token, User, UserCreate, UserUpdate, CurrentUser,
+    LoginRequest, Token, User, UserCreate, UserUpdate, CurrentUser, AgencySummary,
     PasswordChange, UserRole, UserRoleCreate
 )
 from api.src.auth import (
@@ -77,23 +77,38 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
                 "description": user_with_role.role.description,
                 "permissions": user_with_role.role.permissions,
                 "created_at": user_with_role.role.created_at
-            } if user_with_role.role else None
+            } if user_with_role.role else None,
+            "agency": {
+                "id": user_with_role.agency.id,
+                "name": user_with_role.agency.name,
+                "code": user_with_role.agency.code,
+                "description": user_with_role.agency.description,
+                "contact_email": user_with_role.agency.contact_email
+            } if user_with_role.agency else None
         }
     }
 
 
 @router.get("/me", response_model=CurrentUser)
-def get_current_user_info(current_user: dict = Depends(get_current_user)):
+def get_current_user_info(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """Get current user information"""
-    return CurrentUser(
-        id=current_user["id"],
-        username=current_user["username"],
-        email=current_user["email"],
-        full_name=current_user.get("full_name"),
-        role=current_user["role"],
-        agency_id=current_user["agency_id"],
-        is_active=current_user["is_active"]
-    )
+    user_record = db.query(models.User).filter(models.User.id == current_user["id"]).first()
+
+    if not user_record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    permissions = user_record.role.permissions if user_record.role else None
+
+    return {
+        **User.model_validate(user_record).model_dump(),
+        "permissions": permissions
+    }
 
 
 @router.post("/change-password")
@@ -246,6 +261,21 @@ def update_user(
     db.refresh(user)
     
     return user
+
+
+@router.get("/agencies", response_model=list[AgencySummary])
+def list_agencies(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_admin)
+):
+    """List agencies available to the current admin user"""
+    query = db.query(models.Agency)
+
+    if current_user["role"] != "super_admin":
+        query = query.filter(models.Agency.id == current_user["agency_id"])
+
+    agencies = query.order_by(models.Agency.name.asc()).all()
+    return agencies
 
 
 # Role management routes

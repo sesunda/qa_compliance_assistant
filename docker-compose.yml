@@ -29,6 +29,12 @@ services:
       - DATABASE_URL=postgresql://qca_user:qca_password@db:5432/qca_db
       - PYTHONPATH=/app
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - LLM_PROVIDER=${LLM_PROVIDER:-groq}
+      - EVIDENCE_STORAGE_BACKEND=${EVIDENCE_STORAGE_BACKEND:-local}
+      - EVIDENCE_STORAGE_PATH=${EVIDENCE_STORAGE_PATH:-/app/storage/evidence}
+      - EVIDENCE_MAX_FILE_SIZE_MB=${EVIDENCE_MAX_FILE_SIZE_MB:-25}
     depends_on:
       db:
         condition: service_healthy
@@ -36,6 +42,7 @@ services:
       - ./api:/app/api
       - ./libs:/app/libs
       - ./reports:/app/reports
+      - ./storage:/app/storage
     networks:
       - qca_network
 
@@ -64,6 +71,9 @@ services:
     environment:
       - PYTHONPATH=/app
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - LLM_PROVIDER=${LLM_PROVIDER:-groq}
     volumes:
       - ./mcp_server:/app/mcp_server
       - ./libs:/app/libs

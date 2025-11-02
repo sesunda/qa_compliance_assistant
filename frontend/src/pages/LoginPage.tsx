@@ -12,9 +12,8 @@ import {
   IconButton,
 } from '@mui/material'
 import { Visibility, VisibilityOff, Security } from '@mui/icons-material'
-import { useAuthStore } from '../store/authStore'
+import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { api } from '../services/api'
 
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('')
@@ -22,7 +21,7 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login } = useAuthStore()
+  const { login } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,19 +36,14 @@ const LoginPage: React.FC = () => {
     }
 
     try {
-      const response = await api.post('/auth/login', {
-        username,
-        password,
-      })
-
-      const { access_token, user } = response.data
-      login(access_token, user)
-      navigate('/dashboard')
+      const success = await login(username, password)
+      if (success) {
+        navigate('/dashboard')
+      } else {
+        setError('Invalid username or password')
+      }
     } catch (err: any) {
-      setError(
-        err.response?.data?.detail || 
-        'Invalid username or password'
-      )
+      setError('An unexpected error occurred')
     } finally {
       setLoading(false)
     }
@@ -142,18 +136,6 @@ const LoginPage: React.FC = () => {
               >
                 {loading ? 'Signing In...' : 'Sign In'}
               </Button>
-              
-              <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                <Typography variant="body2" color="textSecondary" align="center">
-                  Default Admin Credentials:
-                </Typography>
-                <Typography variant="body2" align="center">
-                  <strong>Username:</strong> admin
-                </Typography>
-                <Typography variant="body2" align="center">
-                  <strong>Password:</strong> admin123
-                </Typography>
-              </Box>
             </Box>
           </CardContent>
         </Card>

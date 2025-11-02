@@ -16,6 +16,7 @@ import {
   Menu,
   MenuItem,
   Avatar,
+  Divider,
 } from '@mui/material'
 import {
   Menu as MenuIcon,
@@ -29,8 +30,9 @@ import {
   AccountCircle,
   Logout,
 } from '@mui/icons-material'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuthStore } from '../store/authStore'
+import { useLocation, Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
+import QuantiqueAnalyticaLogo from './QuantiqueAnalyticaLogo'
 
 const drawerWidth = 240
 
@@ -41,9 +43,9 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
-  const navigate = useNavigate()
   const location = useLocation()
-  const { user, logout } = useAuthStore()
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
@@ -60,37 +62,57 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const handleLogout = () => {
     logout()
     handleClose()
+    navigate('/login')
   }
 
   const menuItems = [
-    { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
-    { text: 'Projects', icon: <Assignment />, path: '/projects' },
-    { text: 'Controls', icon: <Security />, path: '/controls' },
-    { text: 'Evidence', icon: <Description />, path: '/evidence' },
-    { text: 'Reports', icon: <Assessment />, path: '/reports' },
-    { text: 'AI Assistant', icon: <Psychology />, path: '/rag' },
-    { text: 'Users', icon: <People />, path: '/users' },
+    { text: 'Dashboard', icon: Dashboard, path: '/dashboard' },
+    { text: 'Projects', icon: Assignment, path: '/projects' },
+    { text: 'Controls', icon: Security, path: '/controls' },
+    { text: 'Evidence', icon: Description, path: '/evidence' },
+    { text: 'Reports', icon: Assessment, path: '/reports' },
+    { text: 'AI Assistant', icon: Psychology, path: '/rag' },
+    { text: 'Users', icon: People, path: '/users' },
   ]
 
   const drawer = (
     <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div">
-          QCA
-        </Typography>
-      </Toolbar>
+      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <QuantiqueAnalyticaLogo size="small" />
+      </Box>
+      <Divider />
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          px: 2, 
+          py: 1, 
+          textAlign: 'center',
+          fontSize: '0.9rem',
+          fontWeight: 500,
+          color: 'text.secondary'
+        }}
+      >
+        Compliance Assistant
+      </Typography>
+      <Divider />
       <List>
-        {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => navigate(item.path)}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
+                  {menuItems.map((item) => {
+            const IconComponent = item.icon;
+            return (
+              <ListItem key={item.text} disablePadding>
+                <ListItemButton
+                  component={Link}
+                  to={item.path}
+                  selected={location.pathname === item.path}
+                >
+                  <ListItemIcon>
+                    <IconComponent />
+                  </ListItemIcon>
+                  <ListItemText primary={item.text} />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
       </List>
     </div>
   )
@@ -116,7 +138,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            QA Compliance Assistant
+            Compliance Assistant
           </Typography>
           <div>
             <Button

@@ -15,8 +15,16 @@ interface User {
   role: {
     name: string
     description: string
-    permissions: Record<string, string[]>
-  }
+    permissions: Record<string, string[]> | null
+  } | null
+  agency?: {
+    id: number
+    name: string
+    code?: string | null
+    description?: string | null
+    contact_email?: string | null
+  } | null
+  permissions?: Record<string, string[]> | null
 }
 
 interface AuthContextType {
@@ -73,14 +81,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       const response = await api.post('/auth/login', { username, password })
-      const { access_token, user: userData } = response.data
+      const { access_token } = response.data
       
       setToken(access_token)
-      setUser(userData)
       
       // Save token to cookie
       Cookies.set('auth_token', access_token, { expires: 1 }) // 1 day
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
+      
+      // Fetch complete user data with permissions from /auth/me
+      try {
+        const meResponse = await api.get('/auth/me')
+        setUser(meResponse.data)
+      } catch (meError) {
+        console.error('Failed to fetch user details:', meError)
+        // Fallback to user from login response if /me fails
+        const { user: userData } = response.data
+        setUser(userData)
+      }
       
       toast.success('Login successful!')
       return true

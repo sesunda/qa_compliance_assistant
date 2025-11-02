@@ -58,6 +58,17 @@ class UserInDB(UserBase):
         from_attributes = True
 
 
+class AgencySummary(BaseModel):
+    id: int
+    name: str
+    code: Optional[str] = None
+    description: Optional[str] = None
+    contact_email: Optional[EmailStr] = None
+
+    class Config:
+        from_attributes = True
+
+
 class User(UserBase):
     id: int
     is_active: bool
@@ -66,7 +77,8 @@ class User(UserBase):
     created_at: datetime
     updated_at: datetime
     role: Optional[UserRole] = None
-    
+    agency: Optional[AgencySummary] = None
+
     class Config:
         from_attributes = True
 
@@ -103,12 +115,5 @@ class PasswordResetConfirm(BaseModel):
 
 
 # Current User Info
-class CurrentUser(BaseModel):
-    id: int
-    username: str
-    email: str
-    full_name: Optional[str]
-    role: str
-    agency_id: int
-    is_active: bool
+class CurrentUser(User):
     permissions: Optional[Dict[str, Any]] = None

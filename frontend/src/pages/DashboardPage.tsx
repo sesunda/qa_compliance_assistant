@@ -1,5 +1,5 @@
 import React from 'react'
-import { useAuthStore } from '../store/authStore'
+import { useAuth } from '../contexts/AuthContext'
 import SuperAdminDashboard from '../components/dashboards/SuperAdminDashboard'
 import AgencyAdminDashboard from '../components/dashboards/AgencyAdminDashboard'
 import AgencySeniorManagementDashboard from '../components/dashboards/AgencySeniorManagementDashboard'
@@ -12,7 +12,7 @@ import {
 } from '@mui/material'
 
 const DashboardPage: React.FC = () => {
-  const { user } = useAuthStore()
+  const { user } = useAuth()
 
   if (!user) {
     return (

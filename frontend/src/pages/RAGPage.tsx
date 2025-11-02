@@ -26,6 +26,7 @@ import {
   AccountTree,
   AutoAwesome,
 } from '@mui/icons-material'
+import { api } from '../services/api'
 
 interface Message {
   id: string
@@ -102,17 +103,23 @@ const RAGPage: React.FC = () => {
     setLoading(true)
 
     try {
-      // Simulate RAG processing
-      const response = await simulateRAGResponse(inputText, searchType)
+      // Call real RAG API
+      const response = await api.post('/rag/ask', {
+        query: inputText,
+        search_type: searchType,
+        max_results: 5
+      })
+      
+      const ragData = response.data
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: response.answer,
+        text: ragData.answer,
         sender: 'assistant',
         timestamp: new Date(),
         metadata: {
-          searchType,
-          sources: response.sources,
+          searchType: ragData.search_type,
+          sources: ragData.sources,
         },
       }
 
@@ -128,74 +135,6 @@ const RAGPage: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }
-
-  const simulateRAGResponse = async (query: string, type: 'vector' | 'graph' | 'hybrid') => {
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    // Mock response based on search type
-    const responses = {
-      vector: {
-        answer: `Based on vector similarity search, I found relevant compliance information. ${query.toLowerCase().includes('control') ? 'Security controls should be implemented according to ISO 27001 framework, including access controls, encryption, and monitoring.' : 'For compliance requirements, consider implementing regular assessments, documentation, and staff training.'}`,
-        sources: [
-          {
-            title: 'ISO 27001 Security Controls',
-            content: 'Access control and information security management...',
-            score: 0.95,
-            type: 'standard',
-          },
-          {
-            title: 'NIST Cybersecurity Framework',
-            content: 'Framework for improving critical infrastructure cybersecurity...',
-            score: 0.87,
-            type: 'framework',
-          },
-        ],
-      },
-      graph: {
-        answer: `Using graph-based knowledge retrieval, I can show you the relationships between compliance concepts. ${query.toLowerCase().includes('audit') ? 'Audit processes are connected to risk management, evidence collection, and reporting requirements through regulatory frameworks.' : 'Compliance concepts are interconnected through regulatory frameworks, policies, and implementation procedures.'}`,
-        sources: [
-          {
-            title: 'Compliance Knowledge Graph',
-            content: 'Regulatory framework connections and dependencies...',
-            score: 0.92,
-            type: 'knowledge_graph',
-          },
-          {
-            title: 'Risk Management Relationships',
-            content: 'Risk assessment connects to control implementation...',
-            score: 0.89,
-            type: 'relationship',
-          },
-        ],
-      },
-      hybrid: {
-        answer: `Using hybrid RAG (combining vector and graph search), I can provide comprehensive insights. ${query.toLowerCase().includes('evidence') ? 'Evidence management requires both semantic understanding of document content and knowledge of regulatory relationships. Documents should be categorized, tagged, and linked to specific control requirements.' : 'Compliance management benefits from both semantic search of documents and understanding regulatory relationships.'}`,
-        sources: [
-          {
-            title: 'Evidence Management Best Practices',
-            content: 'Document classification and regulatory mapping...',
-            score: 0.94,
-            type: 'best_practice',
-          },
-          {
-            title: 'Regulatory Framework Analysis',
-            content: 'Cross-reference analysis of compliance requirements...',
-            score: 0.91,
-            type: 'analysis',
-          },
-          {
-            title: 'Control Implementation Guide',
-            content: 'Step-by-step implementation procedures...',
-            score: 0.88,
-            type: 'guide',
-          },
-        ],
-      },
-    }
-
-    return responses[type]
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
