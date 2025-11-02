@@ -1,4 +1,5 @@
 import axios from 'axios'
+import Cookies from 'js-cookie'
 
 // Create axios instance with base configuration
 export const api = axios.create({
@@ -12,17 +13,10 @@ export const api = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
-    // Add auth token if available
-    const token = localStorage.getItem('auth-storage')
+    // Add auth token from cookie if available
+    const token = Cookies.get('auth_token')
     if (token) {
-      try {
-        const authData = JSON.parse(token)
-        if (authData.state?.token) {
-          config.headers.Authorization = `Bearer ${authData.state.token}`
-        }
-      } catch (e) {
-        console.warn('Error parsing auth token:', e)
-      }
+      config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },

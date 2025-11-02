@@ -57,6 +57,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const initAuth = async () => {
+      // Clean up old localStorage auth data from previous Zustand implementation
+      localStorage.removeItem('auth-storage')
+      
       const savedToken = Cookies.get('auth_token')
       if (savedToken) {
         setToken(savedToken)
