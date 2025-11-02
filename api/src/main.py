@@ -1,12 +1,57 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+import asyncio
+import logging
+
 from api.src.config import settings
 from api.src.routers import projects, controls, evidence, reports
 from api.src.routers import control_catalog
+from api.src.workers.task_worker import get_worker
+from api.src.workers.task_handlers import TASK_HANDLERS
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for startup and shutdown events.
+    Starts the background task worker on startup and stops it on shutdown.
+    """
+    # Startup
+    logger.info("Starting background task worker...")
+    worker = get_worker()
+    
+    # Register all task handlers
+    for task_type, handler in TASK_HANDLERS.items():
+        worker.register_handler(task_type, handler)
+    
+    # Start worker in background
+    worker_task = asyncio.create_task(worker.start())
+    
+    logger.info("Application startup complete")
+    
+    yield
+    
+    # Shutdown
+    logger.info("Shutting down background task worker...")
+    await worker.stop()
+    worker_task.cancel()
+    try:
+        await worker_task
+    except asyncio.CancelledError:
+        pass
+    
+    logger.info("Application shutdown complete")
+
 
 app = FastAPI(
     title=settings.API_TITLE,
-    version=settings.API_VERSION
+    version=settings.API_VERSION,
+    lifespan=lifespan
 )
 
 # Security headers middleware

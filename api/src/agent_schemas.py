@@ -16,6 +16,7 @@ class TaskStatus(str, Enum):
 
 class TaskType(str, Enum):
     """Predefined task types"""
+    TEST = "test"
     FETCH_EVIDENCE = "fetch_evidence"
     GENERATE_REPORT = "generate_report"
     ANALYZE_COMPLIANCE = "analyze_compliance"
