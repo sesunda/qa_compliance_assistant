@@ -86,10 +86,11 @@ app.include_router(reports.router)
 app.include_router(control_catalog.router)
 
 # Import and include auth router
-from api.src.routers import auth, rag, agent_tasks
+from api.src.routers import auth, rag, agent_tasks, agencies
 app.include_router(auth.router)
 app.include_router(rag.router)
 app.include_router(agent_tasks.router)
+app.include_router(agencies.router)
 
 
 @app.get("/")

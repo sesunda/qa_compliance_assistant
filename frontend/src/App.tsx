@@ -11,6 +11,7 @@ import ReportsPage from './pages/ReportsPage'
 import RAGPage from './pages/RAGPage'
 import UsersPage from './pages/UsersPage'
 import AgentTasksPage from './pages/AgentTasksPage'
+import AgenciesPage from './pages/AgenciesPage'
 
 const App: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth()
@@ -40,6 +41,7 @@ const App: React.FC = () => {
         <Route path="/rag" element={<RAGPage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/agent-tasks" element={<AgentTasksPage />} />
+        <Route path="/agencies" element={<AgenciesPage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Layout>

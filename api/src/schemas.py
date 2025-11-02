@@ -1,6 +1,35 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from typing import Optional, List, Dict, Any
+
+
+# Agency Schemas
+class AgencyBase(BaseModel):
+    name: str
+    code: Optional[str] = None
+    description: Optional[str] = None
+    contact_email: Optional[EmailStr] = None
+    active: bool = True
+
+
+class AgencyCreate(AgencyBase):
+    pass
+
+
+class AgencyUpdate(BaseModel):
+    name: Optional[str] = None
+    code: Optional[str] = None
+    description: Optional[str] = None
+    contact_email: Optional[EmailStr] = None
+    active: Optional[bool] = None
+
+
+class Agency(AgencyBase):
+    id: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
 
 
 # Project Schemas
