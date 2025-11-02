@@ -29,6 +29,7 @@ import {
   People,
   AccountCircle,
   Logout,
+  SmartToy,
 } from '@mui/icons-material'
 import { useLocation, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
@@ -72,6 +73,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { text: 'Evidence', icon: Description, path: '/evidence' },
     { text: 'Reports', icon: Assessment, path: '/reports' },
     { text: 'AI Assistant', icon: Psychology, path: '/rag' },
+    { text: 'Agent Tasks', icon: SmartToy, path: '/agent-tasks' },
     { text: 'Users', icon: People, path: '/users' },
   ]
 
