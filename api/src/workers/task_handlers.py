@@ -73,16 +73,16 @@ async def handle_fetch_evidence_task(task_id: int, payload: Dict[str, Any], db: 
         # Extract parameters
         sources = payload.get("sources", [])
         file_path = payload.get("file_path")
-        control_id = payload.get("control_id")
-        project_id = payload.get("project_id")
-        created_by = payload.get("created_by") or payload.get("current_user_id")
+        control_id = payload.get("control_id", 1)
+        project_id = payload.get("project_id", 1)
+        created_by = payload.get("created_by") or payload.get("current_user_id", 1)
         
         # If file_path is provided (from AI agent upload), create a source entry
         if file_path and not sources:
             sources = [{
-                "type": "local_file",
-                "path": file_path,
-                "control_id": control_id,
+                "type": "file",
+                "location": file_path,
+                "control_id": control_id or 1,
                 "description": payload.get("description", "Evidence document uploaded via AI Assistant")
             }]
             logger.info(f"Created source from file_path: {file_path}")

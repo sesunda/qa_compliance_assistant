@@ -366,8 +366,8 @@ const RAGPage: React.FC = () => {
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
-          <Card sx={{ height: '600px', display: 'flex', flexDirection: 'column' }}>
-            <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+          <Card sx={{ height: '700px', display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 2, height: '100%' }}>
               {/* Chat Messages */}
               <Box
                 sx={{
@@ -375,6 +375,8 @@ const RAGPage: React.FC = () => {
                   overflowY: 'auto',
                   mb: 2,
                   p: 1,
+                  maxHeight: '500px',
+                  minHeight: '400px',
                 }}
               >
                 {messages.map(renderMessage)}
