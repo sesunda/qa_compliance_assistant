@@ -88,7 +88,10 @@ const RAGPage: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState<string>('groq')
   const [isRecording, setIsRecording] = useState(false)
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
-  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [sessionId, setSessionId] = useState<string | null>(() => {
+    // Restore session from localStorage on page load
+    return localStorage.getItem('rag_session_id')
+  })
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -101,6 +104,13 @@ const RAGPage: React.FC = () => {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Save sessionId to localStorage whenever it changes
+  useEffect(() => {
+    if (sessionId) {
+      localStorage.setItem('rag_session_id', sessionId)
+    }
+  }, [sessionId])
 
   const handleSendMessage = async () => {
     // Only require document for first message (when no session exists)
@@ -357,12 +367,33 @@ const RAGPage: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        AI Compliance Assistant
-      </Typography>
-      <Typography variant="body1" color="textSecondary" paragraph>
-        Intelligent compliance assistance using RAG (Retrieval-Augmented Generation) with vector search, graph-based knowledge retrieval, and hybrid approaches.
-      </Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            AI Compliance Assistant
+          </Typography>
+          <Typography variant="body1" color="textSecondary">
+            Intelligent compliance assistance using RAG (Retrieval-Augmented Generation) with vector search, graph-based knowledge retrieval, and hybrid approaches.
+          </Typography>
+        </Box>
+        {sessionId && (
+          <Button
+            variant="outlined"
+            onClick={() => {
+              localStorage.removeItem('rag_session_id')
+              setSessionId(null)
+              setMessages([{
+                id: '1',
+                text: 'Hello! I\'m your AI Compliance Assistant. I can help you with compliance questions using advanced RAG (Retrieval-Augmented Generation) techniques. Ask me about controls, regulations, best practices, or upload documents for analysis.',
+                sender: 'assistant',
+                timestamp: new Date(),
+              }])
+            }}
+          >
+            New Conversation
+          </Button>
+        )}
+      </Box>
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
