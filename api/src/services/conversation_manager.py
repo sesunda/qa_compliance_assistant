@@ -7,6 +7,7 @@ import uuid
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy import desc
 
 from api.src.models import ConversationSession, User
@@ -93,8 +94,9 @@ class ConversationManager:
         messages = session.messages or []
         messages.append(message)
         
-        # Update session
+        # Update session - IMPORTANT: flag_modified needed for JSONB updates
         session.messages = messages
+        flag_modified(session, "messages")
         session.last_activity = datetime.utcnow()
         
         self.db.commit()
@@ -118,6 +120,7 @@ class ConversationManager:
         current_context.update(context_updates)
         
         session.context = current_context
+        flag_modified(session, "context")
         session.last_activity = datetime.utcnow()
         
         self.db.commit()
