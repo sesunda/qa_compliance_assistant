@@ -22,15 +22,15 @@ const queryClient = new QueryClient({
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#D32F2F', // Quantique Analytica red from logo
-      light: '#F44336',
+      main: '#C93E3E', // Quantique Analytica red from logo
+      light: '#E57373',
       dark: '#B71C1C',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#424242', // Dark gray for secondary elements
+      main: '#2C2C2C', // Dark gray for secondary elements (matching logo text)
       light: '#616161',
-      dark: '#212121',
+      dark: '#000000',
       contrastText: '#ffffff',
     },
     background: {
@@ -38,31 +38,69 @@ const theme = createTheme({
       paper: '#ffffff',
     },
     text: {
-      primary: '#333333', // Dark text matching logo
+      primary: '#000000', // Pure black matching logo
       secondary: '#666666',
     },
   },
   typography: {
-    fontFamily: '"Inter", "Arial", "Helvetica", sans-serif',
+    fontFamily: '"Montserrat", "Inter", "Arial", "Helvetica", sans-serif',
+    h1: {
+      fontFamily: '"Montserrat", sans-serif',
+      fontWeight: 700,
+      color: '#000000',
+    },
+    h2: {
+      fontFamily: '"Montserrat", sans-serif',
+      fontWeight: 700,
+      color: '#000000',
+    },
+    h3: {
+      fontFamily: '"Montserrat", sans-serif',
+      fontWeight: 700,
+      color: '#000000',
+    },
     h4: {
-      fontWeight: 600,
-      color: '#333333',
+      fontFamily: '"Montserrat", sans-serif',
+      fontWeight: 700,
+      color: '#000000',
     },
     h5: {
+      fontFamily: '"Montserrat", sans-serif',
       fontWeight: 600,
-      color: '#333333',
+      color: '#000000',
     },
     h6: {
+      fontFamily: '"Montserrat", sans-serif',
       fontWeight: 600,
-      color: '#333333',
+      color: '#000000',
+    },
+    subtitle1: {
+      fontFamily: '"Montserrat", sans-serif',
+      fontWeight: 400,
+    },
+    subtitle2: {
+      fontFamily: '"Montserrat", sans-serif',
+      fontWeight: 400,
+    },
+    body1: {
+      fontFamily: '"Montserrat", sans-serif',
+      fontWeight: 400,
+    },
+    body2: {
+      fontFamily: '"Montserrat", sans-serif',
+      fontWeight: 400,
+    },
+    button: {
+      fontFamily: '"Montserrat", sans-serif',
+      fontWeight: 500,
     },
   },
   components: {
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: '#D32F2F', // Match logo red
-          boxShadow: '0 2px 4px 0 rgba(211, 47, 47, 0.2)',
+          backgroundColor: '#C93E3E', // Match logo red
+          boxShadow: '0 2px 4px 0 rgba(201, 62, 62, 0.2)',
         },
       },
     },
@@ -70,7 +108,8 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           textTransform: 'none',
-          fontWeight: 500,
+          fontWeight: 600,
+          fontFamily: '"Montserrat", sans-serif',
         },
       },
     },
@@ -86,9 +125,9 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           '&.Mui-selected': {
-            backgroundColor: 'rgba(211, 47, 47, 0.08)',
+            backgroundColor: 'rgba(201, 62, 62, 0.08)',
             '&:hover': {
-              backgroundColor: 'rgba(211, 47, 47, 0.12)',
+              backgroundColor: 'rgba(201, 62, 62, 0.12)',
             },
           },
         },

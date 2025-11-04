@@ -32,6 +32,10 @@ import {
   Add,
   CheckCircle,
   HourglassEmpty,
+  RateReview,
+  Cancel,
+  ThumbUp,
+  ThumbDown,
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { useForm, Controller, Resolver } from 'react-hook-form'
@@ -44,9 +48,13 @@ import {
   uploadEvidence,
   deleteEvidence,
   downloadEvidence,
+  submitEvidenceForReview,
+  approveEvidence,
+  rejectEvidence,
   EvidenceItem,
 } from '../services/evidence'
 import { fetchControls, ControlSummary } from '../services/controls'
+import { formatSingaporeDateTime } from '../utils/datetime'
 
 type UploadFormValues = {
   control_id: number
@@ -82,11 +90,21 @@ const formatFileSize = (bytes?: number | null) => {
   return `${size.toFixed(size >= 10 || exponent === 0 ? 0 : 1)} ${units[exponent]}`
 }
 
-const formatDateTime = (value?: string | null) => {
-  if (!value) {
-    return '—'
+// Removed - now using formatSingaporeDateTime from utils
+
+const getVerificationStatusDisplay = (status: string) => {
+  switch (status) {
+    case 'pending':
+      return { label: 'Pending', color: 'default' as const, icon: <HourglassEmpty /> }
+    case 'under_review':
+      return { label: 'Under Review', color: 'info' as const, icon: <RateReview /> }
+    case 'approved':
+      return { label: 'Approved', color: 'success' as const, icon: <CheckCircle /> }
+    case 'rejected':
+      return { label: 'Rejected', color: 'error' as const, icon: <Cancel /> }
+    default:
+      return { label: 'Unknown', color: 'default' as const, icon: <HourglassEmpty /> }
   }
-  return new Date(value).toLocaleString()
 }
 
 const EvidencePage: React.FC = () => {
@@ -99,7 +117,8 @@ const EvidencePage: React.FC = () => {
   const [deletingId, setDeletingId] = useState<number | null>(null)
 
   // Simple permission checks
-  const canManageEvidence = user?.permissions?.evidence?.includes('delete') || false
+  // Allow users with 'update' permission to submit for review and manage workflow (maker-checker)
+  const canManageEvidence = user?.permissions?.evidence?.includes('update') || false
   const canUploadEvidence = user?.permissions?.evidence?.includes('create') || false
 
   const evidenceQuery = useQuery<EvidenceItem[]>(['evidence'], () => fetchEvidence())
@@ -196,8 +215,10 @@ const EvidencePage: React.FC = () => {
   const evidenceStats = useMemo(() => ({
     total: evidenceItems.length,
     withFiles: evidenceItems.filter(item => Boolean(item.file_path)).length,
-    verified: evidenceItems.filter(item => item.verified).length,
-    pending: evidenceItems.filter(item => !item.verified).length,
+    verified: evidenceItems.filter(item => item.verification_status === 'approved').length,
+    pending: evidenceItems.filter(item => item.verification_status === 'pending').length,
+    underReview: evidenceItems.filter(item => item.verification_status === 'under_review').length,
+    rejected: evidenceItems.filter(item => item.verification_status === 'rejected').length,
   }), [evidenceItems])
 
   const handleOpenUpload = (prefilledFile?: File) => {
@@ -336,7 +357,7 @@ const EvidencePage: React.FC = () => {
           <Card>
             <CardContent>
               <Typography color="text.secondary" gutterBottom>
-                Verified
+                Approved
               </Typography>
               <Typography variant="h4" color="success.main">
                 {evidenceQuery.isLoading ? <CircularProgress size={24} /> : evidenceStats.verified}
@@ -344,14 +365,38 @@ const EvidencePage: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} md={2}>
           <Card>
             <CardContent>
               <Typography color="text.secondary" gutterBottom>
-                Pending Review
+                Under Review
+              </Typography>
+              <Typography variant="h4" color="info.main">
+                {evidenceQuery.isLoading ? <CircularProgress size={24} /> : evidenceStats.underReview}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={2}>
+          <Card>
+            <CardContent>
+              <Typography color="text.secondary" gutterBottom>
+                Pending
               </Typography>
               <Typography variant="h4" color="warning.main">
                 {evidenceQuery.isLoading ? <CircularProgress size={24} /> : evidenceStats.pending}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={2}>
+          <Card>
+            <CardContent>
+              <Typography color="text.secondary" gutterBottom>
+                Rejected
+              </Typography>
+              <Typography variant="h4" color="error.main">
+                {evidenceQuery.isLoading ? <CircularProgress size={24} /> : evidenceStats.rejected}
               </Typography>
             </CardContent>
           </Card>
@@ -475,18 +520,93 @@ const EvidencePage: React.FC = () => {
                       </TableCell>
                       <TableCell>{controlLabel}</TableCell>
                       <TableCell>{item.evidence_type || '—'}</TableCell>
-                      <TableCell>{formatDateTime(uploadedAt)}</TableCell>
+                      <TableCell>{formatSingaporeDateTime(uploadedAt)}</TableCell>
                       <TableCell>{formatFileSize(item.file_size)}</TableCell>
                       <TableCell>
-                        <Chip
-                          label={item.verified ? 'Verified' : 'Pending Review'}
-                          color={item.verified ? 'success' : 'warning'}
-                          size="small"
-                          icon={item.verified ? <CheckCircle /> : <HourglassEmpty />}
-                        />
+                        {(() => {
+                          const statusDisplay = getVerificationStatusDisplay(item.verification_status)
+                          return (
+                            <Chip
+                              label={statusDisplay.label}
+                              color={statusDisplay.color}
+                              size="small"
+                              icon={statusDisplay.icon}
+                            />
+                          )
+                        })()}
                       </TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
+                          {/* Submit for Review button */}
+                          {item.verification_status === 'pending' && canManageEvidence && (
+                            <IconButton
+                              size="small"
+                              title="Submit for Review"
+                              onClick={() => {
+                                submitEvidenceForReview(item.id)
+                                  .then(() => {
+                                    toast.success('Evidence submitted for review')
+                                    queryClient.invalidateQueries(['evidence'])
+                                  })
+                                  .catch((err) => {
+                                    toast.error(err.response?.data?.detail || 'Failed to submit for review')
+                                  })
+                              }}
+                              color="primary"
+                            >
+                              <RateReview fontSize="small" />
+                            </IconButton>
+                          )}
+                          
+                          {/* Approve/Reject buttons for auditors */}
+                          {/* Only show if user didn't submit this evidence (segregation of duties) */}
+                          {item.verification_status === 'under_review' && 
+                           canManageEvidence && 
+                           item.submitted_by !== user?.id && (
+                            <>
+                              <IconButton
+                                size="small"
+                                title="Approve Evidence"
+                                onClick={() => {
+                                  const comments = window.prompt('Approval comments (optional):')
+                                  if (comments !== null) {
+                                    approveEvidence(item.id, comments || undefined)
+                                      .then(() => {
+                                        toast.success('Evidence approved')
+                                        queryClient.invalidateQueries(['evidence'])
+                                      })
+                                      .catch((err) => {
+                                        toast.error(err.response?.data?.detail || 'Failed to approve evidence')
+                                      })
+                                  }
+                                }}
+                                color="success"
+                              >
+                                <ThumbUp fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                title="Reject Evidence"
+                                onClick={() => {
+                                  const comments = window.prompt('Rejection reason (required):')
+                                  if (comments) {
+                                    rejectEvidence(item.id, comments)
+                                      .then(() => {
+                                        toast.success('Evidence rejected')
+                                        queryClient.invalidateQueries(['evidence'])
+                                      })
+                                      .catch((err) => {
+                                        toast.error(err.response?.data?.detail || 'Failed to reject evidence')
+                                      })
+                                  }
+                                }}
+                                color="error"
+                              >
+                                <ThumbDown fontSize="small" />
+                              </IconButton>
+                            </>
+                          )}
+
                           <IconButton
                             size="small"
                             title={hasFile ? 'Download evidence' : 'No file attached'}

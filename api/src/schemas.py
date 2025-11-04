@@ -104,6 +104,8 @@ class EvidenceUpdate(BaseModel):
     description: Optional[str] = None
     evidence_type: Optional[str] = None
     verified: Optional[bool] = None
+    verification_status: Optional[str] = None
+    review_comments: Optional[str] = None
 
 
 class Evidence(EvidenceBase):
@@ -118,6 +120,11 @@ class Evidence(EvidenceBase):
     storage_backend: Optional[str] = None
     uploaded_by: Optional[int] = None
     uploaded_at: Optional[datetime] = None
+    verification_status: str = "pending"
+    submitted_by: Optional[int] = None
+    reviewed_by: Optional[int] = None
+    reviewed_at: Optional[datetime] = None
+    review_comments: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     
@@ -176,3 +183,55 @@ class ControlCatalog(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# Conversation Session Schemas
+class ConversationMessage(BaseModel):
+    """Single message in a conversation"""
+    role: str  # 'user' or 'assistant'
+    content: str
+    timestamp: datetime
+    task_id: Optional[int] = None  # Link to created task if any
+    tool_calls: Optional[List[Dict[str, Any]]] = None  # For LLM tool executions
+
+
+class ConversationSessionCreate(BaseModel):
+    """Create new conversation session"""
+    title: Optional[str] = None
+
+
+class ConversationSessionUpdate(BaseModel):
+    """Update conversation session"""
+    title: Optional[str] = None
+    active: Optional[bool] = None
+
+
+class ConversationSession(BaseModel):
+    """Full conversation session"""
+    id: int
+    session_id: str
+    user_id: int
+    title: Optional[str]
+    messages: List[ConversationMessage]
+    context: Optional[Dict[str, Any]]
+    created_at: datetime
+    last_activity: datetime
+    active: bool
+    
+    class Config:
+        from_attributes = True
+
+
+class ConversationSessionSummary(BaseModel):
+    """Summary of conversation session (for list view)"""
+    id: int
+    session_id: str
+    title: Optional[str]
+    message_count: int
+    created_at: datetime
+    last_activity: datetime
+    active: bool
+    
+    class Config:
+        from_attributes = True
+

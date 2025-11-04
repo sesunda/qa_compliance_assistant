@@ -1,4 +1,6 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from 'react-query';
 import {
   Grid,
   Card,
@@ -19,6 +21,8 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import {
   Security,
@@ -28,17 +32,39 @@ import {
   Warning,
   Timeline,
   Visibility,
+  Description,
+  RateReview,
+  ThumbUp,
 } from '@mui/icons-material';
+import { fetchEvidence, EvidenceItem } from '../../services/evidence';
+import { formatSingaporeDateTime } from '../../utils/datetime';
 
 const AgencyUserDashboard: React.FC = () => {
+  const navigate = useNavigate();
+  
+  // Fetch real evidence data
+  const { data: evidenceItems, isLoading: isLoadingEvidence } = useQuery<EvidenceItem[]>(
+    ['evidence'],
+    fetchEvidence
+  );
+  
+  // Calculate metrics from real data
+  const pendingEvidence = evidenceItems?.filter(e => e.verification_status === 'pending') || [];
+  const underReviewEvidence = evidenceItems?.filter(e => e.verification_status === 'under_review') || [];
+  const approvedEvidence = evidenceItems?.filter(e => e.verification_status === 'approved') || [];
+  const rejectedEvidence = evidenceItems?.filter(e => e.verification_status === 'rejected') || [];
+  
   const userMetrics = {
     assignedProjects: 3,
-    completedTasks: 12,
-    pendingTasks: 5,
-    overdueTasks: 1,
-    complianceScore: 85,
+    completedTasks: approvedEvidence.length,
+    pendingTasks: pendingEvidence.length + underReviewEvidence.length,
+    overdueTasks: rejectedEvidence.length, // Rejected evidence as "overdue" items needing rework
+    complianceScore: evidenceItems && evidenceItems.length > 0 
+      ? Math.round((approvedEvidence.length / evidenceItems.length) * 100)
+      : 0,
   };
 
+  // Sample projects data (can be replaced with real API data later)
   const myProjects = [
     { 
       id: 1, 
@@ -64,19 +90,6 @@ const AgencyUserDashboard: React.FC = () => {
       progress: 90,
       dueDate: '2025-11-10'
     },
-  ];
-
-  const myTasks = [
-    { task: 'Review AC-2 Control Implementation', project: 'FISMA Assessment Q4', priority: 'High', dueDate: '2025-11-05' },
-    { task: 'Collect Network Diagrams', project: 'SOC 2 Evidence Collection', priority: 'Medium', dueDate: '2025-11-08' },
-    { task: 'Validate Encryption Controls', project: 'FISMA Assessment Q4', priority: 'High', dueDate: '2025-11-12' },
-    { task: 'Update Risk Register', project: 'Vulnerability Assessment', priority: 'Low', dueDate: '2025-11-15' },
-  ];
-
-  const recentActivities = [
-    { action: 'Completed control assessment for AC-3', time: '2 hours ago', type: 'success' },
-    { action: 'Uploaded evidence for IA-5', time: '4 hours ago', type: 'info' },
-    { action: 'Task overdue: Review security logs', time: '1 day ago', type: 'warning' },
   ];
 
   return (
@@ -197,13 +210,28 @@ const AgencyUserDashboard: React.FC = () => {
                 Quick Actions
               </Typography>
               <Box display="flex" flexDirection="column" gap={2}>
-                <Button variant="outlined" fullWidth startIcon={<Assignment />}>
-                  View My Tasks
+                <Button 
+                  variant="outlined" 
+                  fullWidth 
+                  startIcon={<Assignment />}
+                  onClick={() => navigate('/evidence')}
+                >
+                  View My Evidence
                 </Button>
-                <Button variant="outlined" fullWidth startIcon={<Assessment />}>
+                <Button 
+                  variant="outlined" 
+                  fullWidth 
+                  startIcon={<Assessment />}
+                  onClick={() => navigate('/evidence')}
+                >
                   Submit Evidence
                 </Button>
-                <Button variant="outlined" fullWidth startIcon={<Visibility />}>
+                <Button 
+                  variant="outlined" 
+                  fullWidth 
+                  startIcon={<Visibility />}
+                  onClick={() => navigate('/projects')}
+                >
                   View Projects
                 </Button>
               </Box>
@@ -270,27 +298,88 @@ const AgencyUserDashboard: React.FC = () => {
         {/* My Tasks */}
         <Grid item xs={12} md={8}>
           <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              My Pending Tasks
-            </Typography>
-            <List>
-              {myTasks.map((task, index) => (
-                <ListItem key={index}>
-                  <ListItemIcon>
-                    <Assignment color="primary" />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={task.task}
-                    secondary={`Project: ${task.project} | Due: ${task.dueDate}`}
-                  />
-                  <Chip
-                    label={task.priority}
-                    color={task.priority === 'High' ? 'error' : task.priority === 'Medium' ? 'warning' : 'default'}
-                    size="small"
-                  />
-                </ListItem>
-              ))}
-            </List>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6">
+                My Pending Tasks
+              </Typography>
+              <Button 
+                size="small" 
+                onClick={() => navigate('/evidence')}
+                endIcon={<Description />}
+              >
+                View All Evidence
+              </Button>
+            </Box>
+            
+            {isLoadingEvidence ? (
+              <Box display="flex" justifyContent="center" p={3}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <>
+                {userMetrics.pendingTasks === 0 ? (
+                  <Alert severity="info">No pending tasks at the moment</Alert>
+                ) : (
+                  <List>
+                    {/* Evidence pending submission */}
+                    {pendingEvidence.slice(0, 3).map((item) => (
+                      <ListItem 
+                        key={`pending-${item.id}`}
+                        button
+                        onClick={() => navigate('/evidence')}
+                      >
+                        <ListItemIcon>
+                          <RateReview color="primary" />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={item.title}
+                          secondary={`Uploaded: ${formatSingaporeDateTime(item.uploaded_at)} | Needs submission for review`}
+                        />
+                        <Chip
+                          label="Pending"
+                          color="warning"
+                          size="small"
+                        />
+                      </ListItem>
+                    ))}
+                    
+                    {/* Evidence awaiting review */}
+                    {underReviewEvidence.slice(0, 3).map((item) => (
+                      <ListItem 
+                        key={`review-${item.id}`}
+                        button
+                        onClick={() => navigate('/evidence')}
+                      >
+                        <ListItemIcon>
+                          <ThumbUp color="info" />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={item.title}
+                          secondary={`Submitted: ${formatSingaporeDateTime(item.uploaded_at)} | Awaiting approval`}
+                        />
+                        <Chip
+                          label="Under Review"
+                          color="info"
+                          size="small"
+                        />
+                      </ListItem>
+                    ))}
+                    
+                    {(pendingEvidence.length + underReviewEvidence.length) > 6 && (
+                      <ListItem>
+                        <ListItemText 
+                          primary={
+                            <Typography variant="body2" color="textSecondary" align="center">
+                              + {(pendingEvidence.length + underReviewEvidence.length) - 6} more tasks
+                            </Typography>
+                          }
+                        />
+                      </ListItem>
+                    )}
+                  </List>
+                )}
+              </>
+            )}
           </Paper>
         </Grid>
 
@@ -298,23 +387,56 @@ const AgencyUserDashboard: React.FC = () => {
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
-              Recent Activities
+              Recent Evidence Activity
             </Typography>
-            <List dense>
-              {recentActivities.map((activity, index) => (
-                <ListItem key={index}>
-                  <ListItemIcon>
-                    {activity.type === 'success' && <CheckCircle color="success" />}
-                    {activity.type === 'info' && <Security color="info" />}
-                    {activity.type === 'warning' && <Warning color="warning" />}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={activity.action}
-                    secondary={activity.time}
-                  />
-                </ListItem>
-              ))}
-            </List>
+            {isLoadingEvidence ? (
+              <Box display="flex" justifyContent="center" p={2}>
+                <CircularProgress size={24} />
+              </Box>
+            ) : (
+              <List dense>
+                {/* Show most recent evidence items */}
+                {evidenceItems && evidenceItems.slice(0, 5).map((item) => {
+                  let icon = <Description color="info" />;
+                  let statusText = '';
+                  
+                  if (item.verification_status === 'approved') {
+                    icon = <CheckCircle color="success" />;
+                    statusText = 'Approved';
+                  } else if (item.verification_status === 'rejected') {
+                    icon = <Warning color="error" />;
+                    statusText = 'Rejected';
+                  } else if (item.verification_status === 'under_review') {
+                    icon = <Assessment color="info" />;
+                    statusText = 'Under Review';
+                  } else {
+                    icon = <Description color="action" />;
+                    statusText = 'Uploaded';
+                  }
+                  
+                  return (
+                    <ListItem key={item.id}>
+                      <ListItemIcon>
+                        {icon}
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={`${statusText}: ${item.title.substring(0, 30)}${item.title.length > 30 ? '...' : ''}`}
+                        secondary={formatSingaporeDateTime(item.created_at)}
+                      />
+                    </ListItem>
+                  );
+                })}
+                
+                {(!evidenceItems || evidenceItems.length === 0) && (
+                  <ListItem>
+                    <ListItemText 
+                      primary="No recent activity"
+                      secondary="Upload evidence to get started"
+                    />
+                  </ListItem>
+                )}
+              </List>
+            )}
           </Paper>
         </Grid>
       </Grid>

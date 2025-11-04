@@ -10,17 +10,19 @@ const QuantiqueAnalyticaLogo: React.FC<QuantiqueAnalyticaLogoProps> = ({
   className = "", 
   size = "default" 
 }) => {
-  const logoHeight = size === 'small' ? 32 : size === 'large' ? 48 : 40;
+  // Responsive heights based on size prop
+  const logoHeight = size === 'small' ? 40 : size === 'large' ? 80 : 60;
 
   return (
-    <Box className={className} sx={{ display: 'flex', alignItems: 'center' }}>
+    <Box className={className} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <img 
-        src="/quantique-analytica-logo.svg" 
+        src="/assets/logo.svg" 
         alt="Quantique Analytica" 
         style={{ 
           height: logoHeight,
           width: 'auto',
-          objectFit: 'contain'
+          objectFit: 'contain',
+          maxWidth: '100%'
         }}
       />
     </Box>

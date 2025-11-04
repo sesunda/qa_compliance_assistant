@@ -31,14 +31,20 @@ const DashboardPage: React.FC = () => {
     switch (roleName) {
       case 'super_admin':
         return <SuperAdminDashboard />
+      case 'admin':
+        return <AgencyAdminDashboard />
       case 'agency_admin':
         return <AgencyAdminDashboard />
       case 'agency_senior_management':
         return <AgencySeniorManagementDashboard />
-      case 'agency_user':
+      case 'auditor':
         return <AgencyUserDashboard />
       case 'analyst':
         return <AnalystDashboard />
+      case 'agency_user':
+        return <AgencyUserDashboard />
+      case 'viewer':
+        return <AgencyUserDashboard />
       default:
         return (
           <Box sx={{ p: 3 }}>

@@ -89,11 +89,21 @@ class Evidence(Base):
     uploaded_by = Column(Integer, ForeignKey("users.id"))
     uploaded_at = Column(DateTime)
     
+    # Maker-Checker workflow fields (added in migration 007)
+    verification_status = Column(String(50), default="pending", nullable=False)
+    # Values: 'pending', 'under_review', 'approved', 'rejected'
+    submitted_by = Column(Integer, ForeignKey("users.id"))
+    reviewed_by = Column(Integer, ForeignKey("users.id"))
+    reviewed_at = Column(DateTime)
+    review_comments = Column(Text)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     control = relationship("Control", back_populates="evidence_items")
     uploader = relationship("User", foreign_keys=[uploaded_by])
+    submitter = relationship("User", foreign_keys=[submitted_by])
+    reviewer = relationship("User", foreign_keys=[reviewed_by])
 
 
 class Report(Base):
@@ -226,3 +236,20 @@ class AgentTask(Base):
     completed_at = Column(DateTime, nullable=True)
     
     creator = relationship("User", foreign_keys=[created_by])
+
+
+class ConversationSession(Base):
+    __tablename__ = "conversation_sessions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String(255), unique=True, nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(500), nullable=True)
+    messages = Column(JSON, nullable=False, default=list)  # List of message dicts
+    context = Column(JSON, nullable=True)  # Store extracted entities, control IDs, etc
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_activity = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, index=True)
+    active = Column(Boolean, default=True, index=True)
+    
+    user = relationship("User", foreign_keys=[user_id])
+

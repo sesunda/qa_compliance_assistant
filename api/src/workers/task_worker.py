@@ -146,16 +146,27 @@ class TaskWorker:
             # Execute the handler
             result = await handler(task_id, payload, db)
             
-            # Update task with success
+            # Update task based on result status
             task = db.query(AgentTask).filter(AgentTask.id == task_id).first()
-            task.status = TaskStatus.COMPLETED.value
+            
+            # Check if handler returned an error status
+            result_status = result.get("status", "success") if isinstance(result, dict) else "success"
+            
+            if result_status == "error":
+                # Handler returned error - mark as FAILED
+                task.status = TaskStatus.FAILED.value
+                task.error_message = result.get("message", "Task failed")
+                logger.error(f"Task {task_id} failed: {task.error_message}")
+            else:
+                # Handler succeeded or partially succeeded
+                task.status = TaskStatus.COMPLETED.value
+                logger.info(f"Task {task_id} completed successfully")
+            
             task.progress = 100
             task.result = result
             task.completed_at = datetime.utcnow()
             task.updated_at = datetime.utcnow()
             db.commit()
-            
-            logger.info(f"Task {task_id} completed successfully")
         
         except asyncio.CancelledError:
             # Task was cancelled

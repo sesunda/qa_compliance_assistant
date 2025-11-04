@@ -16,6 +16,11 @@ export interface EvidenceItem {
   storage_backend?: string | null
   uploaded_by?: number | null
   uploaded_at?: string | null
+  verification_status: string  // 'pending', 'under_review', 'approved', 'rejected'
+  submitted_by?: number | null
+  reviewed_by?: number | null
+  reviewed_at?: string | null
+  review_comments?: string | null
   created_at: string
   updated_at: string
 }
@@ -96,4 +101,38 @@ export const downloadEvidence = async (
   }
 
   return { blob: response.data, filename }
+}
+
+// Maker-Checker workflow functions
+export const submitEvidenceForReview = async (
+  evidenceId: number,
+  comments?: string
+): Promise<EvidenceItem> => {
+  const response = await api.post<EvidenceItem>(
+    `/evidence/${evidenceId}/submit-for-review`,
+    { comments }
+  )
+  return response.data
+}
+
+export const approveEvidence = async (
+  evidenceId: number,
+  comments?: string
+): Promise<EvidenceItem> => {
+  const response = await api.post<EvidenceItem>(
+    `/evidence/${evidenceId}/approve`,
+    { comments }
+  )
+  return response.data
+}
+
+export const rejectEvidence = async (
+  evidenceId: number,
+  comments: string
+): Promise<EvidenceItem> => {
+  const response = await api.post<EvidenceItem>(
+    `/evidence/${evidenceId}/reject`,
+    { comments }
+  )
+  return response.data
 }

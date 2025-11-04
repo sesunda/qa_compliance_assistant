@@ -27,6 +27,7 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://qca_user:qca_password@db:5432/qca_db
+      - MCP_SERVER_URL=http://mcp_server:8001
       - PYTHONPATH=/app
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GROQ_API_KEY=${GROQ_API_KEY}
@@ -38,6 +39,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mcp_server:
+        condition: service_started
     volumes:
       - ./api:/app/api
       - ./libs:/app/libs
@@ -69,14 +72,20 @@ services:
     ports:
       - "8001:8001"
     environment:
+      - DATABASE_URL=postgresql://qca_user:qca_password@db:5432/qca_db
+      - EVIDENCE_STORAGE_PATH=/app/storage/evidence
       - PYTHONPATH=/app
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GROQ_API_KEY=${GROQ_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - LLM_PROVIDER=${LLM_PROVIDER:-groq}
+    depends_on:
+      db:
+        condition: service_healthy
     volumes:
       - ./mcp_server:/app/mcp_server
       - ./libs:/app/libs
+      - ./storage:/app/storage
     networks:
       - qca_network
 

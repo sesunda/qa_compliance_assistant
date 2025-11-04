@@ -141,7 +141,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+          
+          {/* Show logo on mobile when drawer is closed */}
+          <Box sx={{ display: { xs: 'flex', sm: 'none' }, mr: 2 }}>
+            <QuantiqueAnalyticaLogo size="small" />
+          </Box>
+          
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
             Compliance Assistant
           </Typography>
           <div>

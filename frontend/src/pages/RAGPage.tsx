@@ -25,6 +25,9 @@ import {
   ExpandMore,
   AccountTree,
   AutoAwesome,
+  AttachFile,
+  Mic,
+  Stop,
 } from '@mui/icons-material'
 import { api } from '../services/api'
 
@@ -34,13 +37,16 @@ interface Message {
   sender: 'user' | 'assistant'
   timestamp: Date
   metadata?: {
-    searchType?: 'vector' | 'graph' | 'hybrid'
-    sources?: Array<{
-      title: string
-      content: string
-      score: number
-      type: string
-    }>
+    searchType?: string
+    sources?: any[]
+    taskCreated?: boolean
+    taskId?: number
+    taskType?: string
+  }
+  attachedFile?: {
+    name: string
+    size: number
+    type: string
   }
 }
 
@@ -78,7 +84,15 @@ const RAGPage: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [selectedTab, setSelectedTab] = useState(0)
   const [searchType, setSearchType] = useState<'vector' | 'graph' | 'hybrid'>('hybrid')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [selectedModel, setSelectedModel] = useState<string>('groq')
+  const [isRecording, setIsRecording] = useState(false)
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
+  const [sessionId, setSessionId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -89,41 +103,107 @@ const RAGPage: React.FC = () => {
   }, [messages])
 
   const handleSendMessage = async () => {
-    if (!inputText.trim()) return
+    // Only require document for first message (when no session exists)
+    if (!sessionId && !selectedFile) {
+      alert('⚠️ Please upload a document to start the conversation. Click 📎 to attach a file.')
+      return
+    }
+    
+    if (!inputText.trim() && !selectedFile) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: inputText,
+      text: inputText || (selectedFile ? `📎 Uploaded: ${selectedFile.name}` : ''),
       sender: 'user',
       timestamp: new Date(),
+      attachedFile: selectedFile ? {
+        name: selectedFile.name,
+        size: selectedFile.size,
+        type: selectedFile.type
+      } : undefined
     }
 
     setMessages((prev) => [...prev, userMessage])
+    const currentInput = inputText
+    const currentFile = selectedFile
     setInputText('')
+    setSelectedFile(null)
     setLoading(true)
 
     try {
-      // Call real RAG API
-      const response = await api.post('/rag/ask', {
-        query: inputText,
-        search_type: searchType,
-        max_results: 5
-      })
-      
-      const ragData = response.data
-      
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: ragData.answer,
-        sender: 'assistant',
-        timestamp: new Date(),
-        metadata: {
-          searchType: ragData.search_type,
-          sources: ragData.sources,
-        },
-      }
+      if (currentFile) {
+        const formData = new FormData()
+        formData.append('file', currentFile)
+        formData.append('query', currentInput || `Uploading evidence document: ${currentFile.name}`)
+        formData.append('search_type', searchType)
+        formData.append('enable_task_execution', 'true')
+        formData.append('model_provider', selectedModel)
+        
+        if (sessionId) {
+          formData.append('session_id', sessionId)
+        }
+        
+        const response = await api.post('/rag/ask-with-file', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+        
+        const ragData = response.data
+        
+        if (ragData.session_id) {
+          setSessionId(ragData.session_id)
+          console.log('📝 Session ID stored:', ragData.session_id)
+        }
+        
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: ragData.answer,
+          sender: 'assistant',
+          timestamp: new Date(),
+          metadata: {
+            searchType: ragData.search_type,
+            sources: ragData.sources,
+            taskCreated: ragData.task_created,
+            taskId: ragData.task_id,
+            taskType: ragData.task_type,
+          },
+        }
 
-      setMessages((prev) => [...prev, assistantMessage])
+        setMessages((prev) => [...prev, assistantMessage])
+      } else {
+        const response = await api.post('/rag/ask', {
+          query: currentInput,
+          search_type: searchType,
+          max_results: 5,
+          enable_task_execution: true,
+          model_provider: selectedModel,
+          session_id: sessionId
+        })
+        
+        const ragData = response.data
+        
+        if (ragData.session_id) {
+          setSessionId(ragData.session_id)
+          console.log('📝 Session ID stored:', ragData.session_id)
+        }
+        
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: ragData.answer,
+          sender: 'assistant',
+          timestamp: new Date(),
+          metadata: {
+            searchType: ragData.search_type,
+            sources: ragData.sources,
+            taskCreated: ragData.task_created,
+            taskId: ragData.task_id,
+            taskType: ragData.task_type,
+          },
+        }
+
+        setMessages((prev) => [...prev, assistantMessage])
+      }
     } catch (error) {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -134,6 +214,76 @@ const RAGPage: React.FC = () => {
       setMessages((prev) => [...prev, errorMessage])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setSelectedFile(file)
+      console.log('📎 File selected:', file.name)
+    }
+  }
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        setAudioBlob(audioBlob)
+        await transcribeAudio(audioBlob)
+        stream.getTracks().forEach(track => track.stop())
+      }
+
+      mediaRecorder.start()
+      setIsRecording(true)
+    } catch (error: any) {
+      console.error('❌ Error accessing microphone:', error)
+      alert(`Could not access microphone: ${error.message}`)
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    try {
+      setLoading(true)
+      const formData = new FormData()
+      formData.append('audio', audioBlob, 'recording.webm')
+      
+      const response = await api.post('/rag/transcribe', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      
+      const transcribedText = response.data.text || ''
+      setInputText(prev => {
+        console.log('✅ Transcription:', transcribedText)
+        return transcribedText
+      })
+    } catch (error: any) {
+      console.error('❌ Transcription error:', error)
+      setInputText('⚠️ Transcription failed - please type your message')
+    } finally {
+      setLoading(false)
+      setAudioBlob(null)
     }
   }
 
@@ -242,26 +392,87 @@ const RAGPage: React.FC = () => {
               </Box>
 
               {/* Input Area */}
-              <Box display="flex" gap={2}>
+              <Box display="flex" gap={1} alignItems="flex-end">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
+                  accept=".txt,.pdf,.doc,.docx,.json"
+                />
+                <Button
+                  variant="outlined"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading}
+                  sx={{ minWidth: 'auto', px: 2 }}
+                  title="Attach file"
+                >
+                  <AttachFile />
+                </Button>
+                <Button
+                  variant={isRecording ? 'contained' : 'outlined'}
+                  color={isRecording ? 'error' : 'primary'}
+                  onClick={isRecording ? stopRecording : startRecording}
+                  disabled={loading}
+                  sx={{ minWidth: 'auto', px: 2 }}
+                  title={isRecording ? 'Stop recording' : 'Voice input'}
+                >
+                  {isRecording ? <Stop /> : <Mic />}
+                </Button>
                 <TextField
                   fullWidth
                   multiline
                   maxRows={3}
-                  placeholder="Ask about compliance, controls, regulations, or upload documents..."
+                  placeholder={
+                    isRecording 
+                      ? "🎤 Recording... Click stop when done" 
+                      : sessionId
+                        ? "Continue the conversation..." 
+                        : selectedFile 
+                          ? "Describe your document or ask questions..." 
+                          : "First, click 📎 to upload a document to start"
+                  }
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  disabled={loading}
+                  disabled={loading || isRecording}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      bgcolor: isRecording ? 'error.50' : selectedFile ? 'success.50' : 'background.paper'
+                    }
+                  }}
                 />
                 <Button
                   variant="contained"
                   onClick={handleSendMessage}
-                  disabled={loading || !inputText.trim()}
+                  disabled={loading || (!sessionId && !selectedFile) || !inputText.trim()}
                   sx={{ minWidth: 'auto', px: 2 }}
+                  title={
+                    !sessionId && !selectedFile 
+                      ? "Please attach a document to start" 
+                      : !inputText.trim()
+                        ? "Please type a message"
+                        : "Send message"
+                  }
                 >
                   <Send />
                 </Button>
               </Box>
+              
+              {selectedFile && (
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  📎 File attached: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)} KB)
+                  <Button size="small" onClick={() => setSelectedFile(null)} sx={{ ml: 2 }}>
+                    Remove
+                  </Button>
+                </Alert>
+              )}
+              
+              {sessionId && (
+                <Alert severity="success" sx={{ mt: 1 }}>
+                  💬 Conversation active (Session: {sessionId.substring(0, 8)}...)
+                </Alert>
+              )}
             </CardContent>
           </Card>
         </Grid>

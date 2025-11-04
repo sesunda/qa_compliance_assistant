@@ -26,8 +26,14 @@ import { useQuery } from 'react-query'
 import { api } from '../services/api'
 
 const ControlsPage: React.FC = () => {
-  const { data: controls, isLoading } = useQuery('controls', () =>
-    api.get('/controls').then((res) => res.data)
+  const { data: controls, isLoading } = useQuery(
+    'controls',
+    () => api.get('/controls/').then((res) => res.data),
+    {
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
+      staleTime: 30000, // 30 seconds
+    }
   )
 
   const getImplementationStatusColor = (status: string) => {
@@ -73,11 +79,20 @@ const ControlsPage: React.FC = () => {
     return <Typography>Loading controls...</Typography>
   }
 
+  // Map status to implementation status for display
+  const getImplementationStatusFromControl = (control: any) => {
+    // For now, all active controls are considered "Implemented"
+    // TODO: Add implementation_status field to controls table
+    if (control.status === 'active') return 'Implemented'
+    if (control.status === 'partial') return 'Partially Implemented'
+    return 'Not Implemented'
+  }
+
   const controlStats = {
     total: controls?.length || 0,
-    implemented: controls?.filter((c: any) => c.implementation_status === 'Implemented').length || 0,
-    partial: controls?.filter((c: any) => c.implementation_status === 'Partially Implemented').length || 0,
-    notImplemented: controls?.filter((c: any) => c.implementation_status === 'Not Implemented').length || 0,
+    implemented: controls?.filter((c: any) => c.status === 'active').length || 0,
+    partial: controls?.filter((c: any) => c.status === 'partial').length || 0,
+    notImplemented: controls?.filter((c: any) => c.status === 'inactive' || c.status === 'not_implemented').length || 0,
   }
 
   const overallProgress = controlStats.total > 0 
@@ -178,67 +193,70 @@ const ControlsPage: React.FC = () => {
               <TableHead>
                 <TableRow>
                   <TableCell>Control ID</TableCell>
-                  <TableCell>Title</TableCell>
-                  <TableCell>Domain</TableCell>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Type</TableCell>
                   <TableCell>Implementation Status</TableCell>
                   <TableCell>Progress</TableCell>
                   <TableCell>Last Updated</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {controls?.map((control: any) => (
-                  <TableRow key={control.id}>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="bold">
-                        {control.control_id}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box>
-                        <Typography variant="body2">
-                          {control.title}
+                {controls?.map((control: any) => {
+                  const implementationStatus = getImplementationStatusFromControl(control)
+                  return (
+                    <TableRow key={control.id}>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="bold">
+                          {control.id}
                         </Typography>
-                        <Typography variant="caption" color="textSecondary">
-                          {control.description?.substring(0, 100)}...
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      {control.im8_domain && (
-                        <Chip
-                          label={control.im8_domain}
-                          size="small"
-                          variant="outlined"
-                        />
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        {getImplementationIcon(control.implementation_status)}
-                        <Chip
-                          label={control.implementation_status || 'Not Set'}
-                          color={getImplementationStatusColor(control.implementation_status) as any}
-                          size="small"
-                        />
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Box width={80}>
-                        <LinearProgress
-                          variant="determinate"
-                          value={getImplementationProgress(control.implementation_status)}
-                          color={getImplementationStatusColor(control.implementation_status) as any}
-                        />
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      {control.updated_at 
-                        ? new Date(control.updated_at).toLocaleDateString()
-                        : 'N/A'
-                      }
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell>
+                        <Box>
+                          <Typography variant="body2">
+                            {control.name}
+                          </Typography>
+                          <Typography variant="caption" color="textSecondary">
+                            {control.description?.substring(0, 100)}{control.description?.length > 100 ? '...' : ''}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        {control.control_type && (
+                          <Chip
+                            label={control.control_type}
+                            size="small"
+                            variant="outlined"
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          {getImplementationIcon(implementationStatus)}
+                          <Chip
+                            label={implementationStatus}
+                            color={getImplementationStatusColor(implementationStatus) as any}
+                            size="small"
+                          />
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Box width={80}>
+                          <LinearProgress
+                            variant="determinate"
+                            value={getImplementationProgress(implementationStatus)}
+                            color={getImplementationStatusColor(implementationStatus) as any}
+                          />
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        {control.updated_at 
+                          ? new Date(control.updated_at).toLocaleDateString()
+                          : 'N/A'
+                        }
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
                 {(!controls || controls.length === 0) && (
                   <TableRow>
                     <TableCell colSpan={6} align="center">

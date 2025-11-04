@@ -218,37 +218,105 @@ const AgentTasksPage: React.FC = () => {
       {stats && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={6} md={2}>
-            <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <Paper 
+              sx={{ 
+                p: 2, 
+                textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                border: filterStatus === '' ? '2px solid #1976d2' : 'none',
+                '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 }
+              }}
+              onClick={() => setFilterStatus('')}
+            >
               <Typography variant="h4">{stats.total}</Typography>
               <Typography color="text.secondary">Total</Typography>
             </Paper>
           </Grid>
           <Grid item xs={12} sm={6} md={2}>
-            <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.100' }}>
+            <Paper 
+              sx={{ 
+                p: 2, 
+                textAlign: 'center', 
+                bgcolor: 'grey.100',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                border: filterStatus === 'pending' ? '2px solid #1976d2' : 'none',
+                '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 }
+              }}
+              onClick={() => setFilterStatus('pending')}
+            >
               <Typography variant="h4">{stats.pending}</Typography>
               <Typography color="text.secondary">Pending</Typography>
             </Paper>
           </Grid>
           <Grid item xs={12} sm={6} md={2}>
-            <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light', color: 'white' }}>
+            <Paper 
+              sx={{ 
+                p: 2, 
+                textAlign: 'center', 
+                bgcolor: 'primary.light', 
+                color: 'white',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                border: filterStatus === 'running' ? '3px solid #fff' : 'none',
+                '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 }
+              }}
+              onClick={() => setFilterStatus('running')}
+            >
               <Typography variant="h4">{stats.running}</Typography>
               <Typography>Running</Typography>
             </Paper>
           </Grid>
           <Grid item xs={12} sm={6} md={2}>
-            <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light', color: 'white' }}>
+            <Paper 
+              sx={{ 
+                p: 2, 
+                textAlign: 'center', 
+                bgcolor: 'success.light', 
+                color: 'white',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                border: filterStatus === 'completed' ? '3px solid #fff' : 'none',
+                '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 }
+              }}
+              onClick={() => setFilterStatus('completed')}
+            >
               <Typography variant="h4">{stats.completed}</Typography>
               <Typography>Completed</Typography>
             </Paper>
           </Grid>
           <Grid item xs={12} sm={6} md={2}>
-            <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'error.light', color: 'white' }}>
+            <Paper 
+              sx={{ 
+                p: 2, 
+                textAlign: 'center', 
+                bgcolor: 'error.light', 
+                color: 'white',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                border: filterStatus === 'failed' ? '3px solid #fff' : 'none',
+                '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 }
+              }}
+              onClick={() => setFilterStatus('failed')}
+            >
               <Typography variant="h4">{stats.failed}</Typography>
               <Typography>Failed</Typography>
             </Paper>
           </Grid>
           <Grid item xs={12} sm={6} md={2}>
-            <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'warning.light' }}>
+            <Paper 
+              sx={{ 
+                p: 2, 
+                textAlign: 'center', 
+                bgcolor: 'warning.light',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                border: filterStatus === 'cancelled' ? '2px solid #1976d2' : 'none',
+                '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 }
+              }}
+              onClick={() => setFilterStatus('cancelled')}
+            >
               <Typography variant="h4">{stats.cancelled}</Typography>
               <Typography color="text.secondary">Cancelled</Typography>
             </Paper>
@@ -410,7 +478,30 @@ const AgentTasksPage: React.FC = () => {
               <Select
                 value={newTask.task_type}
                 label="Task Type"
-                onChange={(e) => setNewTask({ ...newTask, task_type: e.target.value })}
+                onChange={(e) => {
+                  const taskType = e.target.value;
+                  // Initialize payload based on task type
+                  let payload = {};
+                  if (taskType === 'test') {
+                    payload = { steps: 5 };
+                  } else if (taskType === 'analyze_compliance') {
+                    payload = { project_id: 1, framework: 'IM8' };
+                  } else if (taskType === 'fetch_evidence') {
+                    payload = {
+                      sources: [
+                        {
+                          type: 'file',
+                          location: '/app/storage/test_evidence/test_doc.txt',
+                          description: 'Sample evidence document',
+                          control_id: 1
+                        }
+                      ],
+                      project_id: 1,
+                      created_by: 1
+                    };
+                  }
+                  setNewTask({ ...newTask, task_type: taskType, payload });
+                }}
               >
                 <MenuItem value="test">Test Task</MenuItem>
                 <MenuItem value="fetch_evidence">Fetch Evidence</MenuItem>
@@ -444,6 +535,74 @@ const AgentTasksPage: React.FC = () => {
                   payload: { steps: parseInt(e.target.value) || 5 }
                 })}
               />
+            )}
+            {newTask.task_type === 'fetch_evidence' && (
+              <>
+                <Alert severity="info">
+                  Evidence will be fetched from test files in /app/storage/test_evidence/
+                </Alert>
+                <TextField
+                  label="Control ID"
+                  type="number"
+                  fullWidth
+                  required
+                  defaultValue={1}
+                  helperText="Enter the control ID to associate evidence with"
+                />
+                <TextField
+                  label="File Location"
+                  fullWidth
+                  defaultValue="/app/storage/test_evidence/test_doc.txt"
+                  helperText="Path to evidence file in container"
+                />
+                <FormControl fullWidth>
+                  <InputLabel>Evidence Type</InputLabel>
+                  <Select
+                    defaultValue="file"
+                    label="Evidence Type"
+                  >
+                    <MenuItem value="file">Local File</MenuItem>
+                    <MenuItem value="url">URL</MenuItem>
+                  </Select>
+                </FormControl>
+              </>
+            )}
+            {newTask.task_type === 'analyze_compliance' && (
+              <>
+                <TextField
+                  label="Project ID"
+                  type="number"
+                  fullWidth
+                  required
+                  defaultValue={1}
+                  onChange={(e) => setNewTask({
+                    ...newTask,
+                    payload: { 
+                      ...newTask.payload,
+                      project_id: parseInt(e.target.value) || 1 
+                    }
+                  })}
+                  helperText="Enter the project ID to analyze"
+                />
+                <FormControl fullWidth>
+                  <InputLabel>Framework</InputLabel>
+                  <Select
+                    defaultValue="IM8"
+                    label="Framework"
+                    onChange={(e) => setNewTask({
+                      ...newTask,
+                      payload: { 
+                        ...newTask.payload,
+                        framework: e.target.value
+                      }
+                    })}
+                  >
+                    <MenuItem value="IM8">IM8</MenuItem>
+                    <MenuItem value="ISO27001">ISO 27001</MenuItem>
+                    <MenuItem value="NIST">NIST</MenuItem>
+                  </Select>
+                </FormControl>
+              </>
             )}
           </Stack>
         </DialogContent>

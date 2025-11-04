@@ -67,12 +67,22 @@ const LoginPage: React.FC = () => {
             mb: 3,
           }}
         >
-          <Security sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
-          <Typography component="h1" variant="h4">
-            QA Compliance Assistant
+          {/* Company Logo */}
+          <Box 
+            component="img" 
+            src="/assets/logo.svg" 
+            alt="Quantique Analytica"
+            sx={{ 
+              width: '280px', 
+              height: 'auto',
+              mb: 2 
+            }}
+          />
+          <Typography component="h1" variant="h5" sx={{ fontWeight: 600, color: '#000' }}>
+            Compliance Assistant
           </Typography>
-          <Typography variant="body2" color="textSecondary">
-            Sign in to manage your compliance projects
+          <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+            Secure access to your compliance management system
           </Typography>
         </Box>
         
