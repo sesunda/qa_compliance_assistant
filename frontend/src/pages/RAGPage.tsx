@@ -112,6 +112,40 @@ const RAGPage: React.FC = () => {
     }
   }, [sessionId])
 
+  // Restore conversation history from database on page load
+  useEffect(() => {
+    const loadConversationHistory = async () => {
+      if (!sessionId) return
+      
+      try {
+        const response = await api.get(`/conversations/${sessionId}`)
+        const session = response.data
+        
+        // Convert database messages to UI messages
+        const restoredMessages: Message[] = session.messages.map((msg: any, index: number) => ({
+          id: `${index}`,
+          text: msg.content,
+          sender: msg.role === 'user' ? 'user' : 'assistant',
+          timestamp: new Date(msg.timestamp),
+          metadata: msg.tool_calls ? { taskCreated: true } : undefined
+        }))
+        
+        if (restoredMessages.length > 0) {
+          setMessages(restoredMessages)
+        }
+      } catch (error) {
+        console.error('Failed to load conversation history:', error)
+        // If session not found, clear it
+        if ((error as any).response?.status === 404) {
+          localStorage.removeItem('rag_session_id')
+          setSessionId(null)
+        }
+      }
+    }
+    
+    loadConversationHistory()
+  }, [sessionId])
+
   const handleSendMessage = async () => {
     // Only require document for first message (when no session exists)
     if (!sessionId && !selectedFile) {
