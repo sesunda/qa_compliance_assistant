@@ -7,7 +7,7 @@ variable "environment" {
 variable "location" {
   description = "Azure region for resources"
   type        = string
-  default     = "eastus2"  # Changed from eastus due to PostgreSQL quota restrictions
+  default     = "westus2"  # Changed to westus2 - eastus has PostgreSQL quota restrictions
 }
 
 variable "project_name" {
