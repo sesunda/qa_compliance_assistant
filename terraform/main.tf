@@ -69,7 +69,7 @@ resource "azurerm_subnet" "container_apps" {
   name                 = "snet-container-apps"
   resource_group_name  = azurerm_resource_group.main.name
   virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["10.0.1.0/24"]
+  address_prefixes     = ["10.0.1.0/23"]  # Changed from /24 to /23 for Container Apps
 
   delegation {
     name = "container-apps-delegation"
@@ -130,6 +130,9 @@ resource "azurerm_postgresql_flexible_server" "main" {
   storage_mb             = var.db_storage_mb
   sku_name               = var.db_sku_name
   backup_retention_days  = 7
+  
+  # Remove public_network_access_enabled as it conflicts with delegated_subnet_id
+  # public_network_access_enabled = false
 
   depends_on = [azurerm_private_dns_zone_virtual_network_link.postgres]
 
