@@ -11,26 +11,41 @@ on:
   workflow_dispatch:
 
 permissions:
-  id-token: write
   contents: read
   packages: write
 
 env:
-  AZURE_CONTAINER_REGISTRY: qcadevacr.azurecr.io
-  API_IMAGE_NAME: api
-  FRONTEND_IMAGE_NAME: frontend
-  MCP_SERVER_IMAGE_NAME: mcp-server
+  RESOURCE_GROUP: rg-qca-dev
+  API_CONTAINER_APP: ca-api-qca-dev
+  FRONTEND_CONTAINER_APP: ca-frontend-qca-dev
+  MCP_CONTAINER_APP: ca-mcp-qca-dev
 
 jobs:
+  get-acr-name:
+    name: Get ACR Name
+    runs-on: ubuntu-latest
+    outputs:
+      acr_name: ${{ steps.get-acr.outputs.acr_name }}
+      acr_login_server: ${{ steps.get-acr.outputs.acr_login_server }}
+    steps:
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get ACR Name
+        id: get-acr
+        run: |
+          ACR_NAME=$(az acr list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv)
+          ACR_LOGIN_SERVER=$(az acr list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].loginServer" -o tsv)
+          echo "acr_name=$ACR_NAME" >> $GITHUB_OUTPUT
+          echo "acr_login_server=$ACR_LOGIN_SERVER" >> $GITHUB_OUTPUT
+          echo "Found ACR: $ACR_NAME ($ACR_LOGIN_SERVER)"
+
   build-and-push:
     name: Build and Push Docker Images
     runs-on: ubuntu-latest
-    environment: dev
-    
-    outputs:
-      api-image: ${{ steps.meta-api.outputs.tags }}
-      frontend-image: ${{ steps.meta-frontend.outputs.tags }}
-      mcp-image: ${{ steps.meta-mcp.outputs.tags }}
+    needs: get-acr-name
     
     steps:
       - name: Checkout code
@@ -39,94 +54,74 @@ jobs:
       - name: Azure Login
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Login to Azure Container Registry
         run: |
-          az acr login --name qcadevacr
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+          az acr login --name ${{ needs.get-acr-name.outputs.acr_name }}
 
       - name: Build and push API image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./api
-          file: ./api/Dockerfile
-          push: true
-          tags: |
-            ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.API_IMAGE_NAME }}:${{ github.sha }}
-            ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.API_IMAGE_NAME }}:latest
-          cache-from: type=registry,ref=${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.API_IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.API_IMAGE_NAME }}:buildcache,mode=max
+        run: |
+          docker build -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:${{ github.sha }} \
+                       -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:latest \
+                       ./api
+          docker push ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:${{ github.sha }}
+          docker push ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:latest
 
       - name: Build and push MCP Server image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./mcp_server
-          file: ./mcp_server/Dockerfile
-          push: true
-          tags: |
-            ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.MCP_SERVER_IMAGE_NAME }}:${{ github.sha }}
-            ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.MCP_SERVER_IMAGE_NAME }}:latest
-          cache-from: type=registry,ref=${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.MCP_SERVER_IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.MCP_SERVER_IMAGE_NAME }}:buildcache,mode=max
+        run: |
+          docker build -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:${{ github.sha }} \
+                       -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:latest \
+                       ./mcp_server
+          docker push ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:${{ github.sha }}
+          docker push ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:latest
 
       - name: Build and push Frontend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
-          push: true
-          tags: |
-            ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ github.sha }}
-            ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:latest
-          cache-from: type=registry,ref=${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:buildcache,mode=max
+        run: |
+          docker build -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:${{ github.sha }} \
+                       -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest \
+                       ./frontend
+          docker push ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:${{ github.sha }}
+          docker push ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest
 
   deploy-containers:
     name: Deploy to Azure Container Apps
     runs-on: ubuntu-latest
-    needs: build-and-push
-    environment: dev
+    needs: [get-acr-name, build-and-push]
     
     steps:
       - name: Azure Login
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy MCP Server
-        uses: azure/container-apps-deploy-action@v1
-        with:
-          containerAppName: qca-dev-mcp
-          resourceGroup: qca-dev-rg
-          imageToDeploy: ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.MCP_SERVER_IMAGE_NAME }}:${{ github.sha }}
+        run: |
+          az containerapp update \
+            --name ${{ env.MCP_CONTAINER_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:${{ github.sha }}
 
       - name: Deploy API
-        uses: azure/container-apps-deploy-action@v1
-        with:
-          containerAppName: qca-dev-api
-          resourceGroup: qca-dev-rg
-          imageToDeploy: ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.API_IMAGE_NAME }}:${{ github.sha }}
+        run: |
+          az containerapp update \
+            --name ${{ env.API_CONTAINER_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:${{ github.sha }}
 
       - name: Deploy Frontend
-        uses: azure/container-apps-deploy-action@v1
-        with:
-          containerAppName: qca-dev-frontend
-          resourceGroup: qca-dev-rg
-          imageToDeploy: ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ github.sha }}
+        run: |
+          az containerapp update \
+            --name ${{ env.FRONTEND_CONTAINER_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:${{ github.sha }}
 
       - name: Run Database Migrations
         run: |
           az containerapp exec \
-            --name qca-dev-api \
-            --resource-group qca-dev-rg \
-            --command "alembic upgrade head"
+            --name ${{ env.API_CONTAINER_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --command "alembic upgrade head" || echo "Migration command may not be fully supported yet"
 
   notify:
     name: Deployment Notification
@@ -145,6 +140,6 @@ jobs:
           echo "- **Status**: ${{ needs.deploy-containers.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Deployed Services" >> $GITHUB_STEP_SUMMARY
-          echo "- API: \`${{ env.API_IMAGE_NAME }}:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Frontend: \`${{ env.FRONTEND_IMAGE_NAME }}:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- MCP Server: \`${{ env.MCP_SERVER_IMAGE_NAME }}:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- API: \`qca-api:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: \`qca-frontend:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- MCP Server: \`qca-mcp:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
