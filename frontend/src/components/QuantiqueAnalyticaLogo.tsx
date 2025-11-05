@@ -22,9 +22,7 @@ const QuantiqueAnalyticaLogo: React.FC<QuantiqueAnalyticaLogoProps> = ({
           height: logoHeight,
           width: 'auto',
           objectFit: 'contain',
-          maxWidth: '100%',
-          imageRendering: 'high-quality',
-          WebkitFontSmoothing: 'antialiased'
+          maxWidth: '100%'
         }}
       />
     </Box>
