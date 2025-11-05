@@ -85,39 +85,43 @@ jobs:
           docker push ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest
 
   deploy-containers:
-    name: Deploy to Azure Container Apps
+    name: Deploy to Azure Container Apps  
     runs-on: ubuntu-latest
     needs: [get-acr-name, build-and-push]
     
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy MCP Server
-        run: |
-          az containerapp update \
-            --name ${{ env.MCP_CONTAINER_APP }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:${{ github.sha }}
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.4
 
-      - name: Deploy API
+      - name: Terraform Init
         run: |
-          az containerapp update \
-            --name ${{ env.API_CONTAINER_APP }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:${{ github.sha }}
+          cd terraform
+          terraform init
 
-      - name: Deploy Frontend
+      - name: Terraform Apply to Update Container Apps
         run: |
-          az containerapp update \
-            --name ${{ env.FRONTEND_CONTAINER_APP }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:${{ github.sha }}
+          cd terraform
+          terraform apply -auto-approve \
+            -target=azurerm_container_app.mcp_server \
+            -target=azurerm_container_app.api \
+            -target=azurerm_container_app.frontend
+        env:
+          TF_VAR_location: westus2
 
       - name: Run Database Migrations
         run: |
+          echo "Waiting for API to be ready..."
+          sleep 30
           az containerapp exec \
             --name ${{ env.API_CONTAINER_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
