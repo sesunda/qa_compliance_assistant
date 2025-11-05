@@ -43,16 +43,18 @@ const AgencyUserDashboard: React.FC = () => {
   const navigate = useNavigate();
   
   // Fetch real evidence data
-  const { data: evidenceItems, isLoading: isLoadingEvidence } = useQuery<EvidenceItem[]>(
+  const { data: evidenceData, isLoading: isLoadingEvidence } = useQuery<EvidenceItem[]>(
     ['evidence'],
-    fetchEvidence
+    () => fetchEvidence()
   );
   
+  const evidenceItems = evidenceData || [];
+  
   // Calculate metrics from real data
-  const pendingEvidence = evidenceItems?.filter(e => e.verification_status === 'pending') || [];
-  const underReviewEvidence = evidenceItems?.filter(e => e.verification_status === 'under_review') || [];
-  const approvedEvidence = evidenceItems?.filter(e => e.verification_status === 'approved') || [];
-  const rejectedEvidence = evidenceItems?.filter(e => e.verification_status === 'rejected') || [];
+  const pendingEvidence = evidenceItems.filter((item: EvidenceItem) => item.verification_status === 'pending');
+  const underReviewEvidence = evidenceItems.filter((item: EvidenceItem) => item.verification_status === 'under_review');
+  const approvedEvidence = evidenceItems.filter((item: EvidenceItem) => item.verification_status === 'approved');
+  const rejectedEvidence = evidenceItems.filter((item: EvidenceItem) => item.verification_status === 'rejected');
   
   const userMetrics = {
     assignedProjects: 3,
@@ -322,7 +324,7 @@ const AgencyUserDashboard: React.FC = () => {
                 ) : (
                   <List>
                     {/* Evidence pending submission */}
-                    {pendingEvidence.slice(0, 3).map((item) => (
+                    {pendingEvidence.slice(0, 3).map((item: EvidenceItem) => (
                       <ListItem 
                         key={`pending-${item.id}`}
                         button
@@ -344,7 +346,7 @@ const AgencyUserDashboard: React.FC = () => {
                     ))}
                     
                     {/* Evidence awaiting review */}
-                    {underReviewEvidence.slice(0, 3).map((item) => (
+                    {underReviewEvidence.slice(0, 3).map((item: EvidenceItem) => (
                       <ListItem 
                         key={`review-${item.id}`}
                         button
@@ -396,7 +398,7 @@ const AgencyUserDashboard: React.FC = () => {
             ) : (
               <List dense>
                 {/* Show most recent evidence items */}
-                {evidenceItems && evidenceItems.slice(0, 5).map((item) => {
+                {evidenceItems.slice(0, 5).map((item: EvidenceItem) => {
                   let icon = <Description color="info" />;
                   let statusText = '';
                   
@@ -427,7 +429,7 @@ const AgencyUserDashboard: React.FC = () => {
                   );
                 })}
                 
-                {(!evidenceItems || evidenceItems.length === 0) && (
+                {evidenceItems.length === 0 && (
                   <ListItem>
                     <ListItemText 
                       primary="No recent activity"
