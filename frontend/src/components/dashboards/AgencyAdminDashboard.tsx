@@ -52,7 +52,7 @@ const AgencyAdminDashboard: React.FC = () => {
   return (
     <Box sx={{ flexGrow: 1, p: 3 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" gutterBottom>
+        <Typography variant="h5" gutterBottom>
           {agencyMetrics.agencyName} Dashboard
         </Typography>
         <Button variant="contained" color="primary" startIcon={<Assessment />}>

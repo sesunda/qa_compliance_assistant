@@ -119,7 +119,7 @@ const ReportsPage: React.FC = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box>
-          <Typography variant="h4" gutterBottom>
+          <Typography variant="h5" gutterBottom>
             Reports
           </Typography>
           <Typography variant="body1" color="textSecondary">

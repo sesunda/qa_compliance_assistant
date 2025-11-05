@@ -1,0 +1,41 @@
+# Example terraform.tfvars file
+# Copy this file to terraform.tfvars and update with your values
+
+environment = "dev"
+location    = "eastus"
+project_name = "qca"
+admin_email = "senthilkumar@quantiqueanalytica.com"
+
+# Database Configuration
+db_admin_username = "qcaadmin"
+db_admin_password = "CHANGE_ME_Strong_Password_123!"  # Change this!
+db_sku_name       = "B_Standard_B1ms"
+db_storage_mb     = 32768
+
+# Container Apps Configuration
+api_cpu         = 0.5
+api_memory      = "1Gi"
+api_min_replicas = 1
+api_max_replicas = 3
+
+frontend_cpu    = 0.5
+frontend_memory = "1Gi"
+
+mcp_cpu    = 0.25
+mcp_memory = "0.5Gi"
+
+# LLM Configuration
+llm_provider = "groq"
+
+# API Keys (optional - leave empty if not using)
+openai_api_key    = ""
+groq_api_key      = ""  # Add your Groq API key here
+anthropic_api_key = ""
+
+# Tags
+tags = {
+  Project     = "QA Compliance Assistant"
+  Environment = "dev"
+  ManagedBy   = "Terraform"
+  Owner       = "Quantique Analytica"
+}

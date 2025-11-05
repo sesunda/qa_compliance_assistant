@@ -48,7 +48,7 @@ const DashboardPage: React.FC = () => {
       default:
         return (
           <Box sx={{ p: 3 }}>
-            <Typography variant="h4" gutterBottom>
+            <Typography variant="h5" gutterBottom>
               Dashboard
             </Typography>
             <Alert severity="warning">

@@ -403,7 +403,7 @@ const RAGPage: React.FC = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Box>
-          <Typography variant="h4" gutterBottom>
+          <Typography variant="h5" gutterBottom>
             AI Compliance Assistant
           </Typography>
           <Typography variant="body1" color="textSecondary">

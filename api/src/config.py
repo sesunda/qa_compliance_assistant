@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     OLLAMA_MODEL: str = "llama2"
 
     # Evidence storage configuration
-    EVIDENCE_STORAGE_BACKEND: str = "local"
+    EVIDENCE_STORAGE_BACKEND: str = "local"  # Options: local, azure
     EVIDENCE_STORAGE_PATH: str = "/app/storage/evidence"
     EVIDENCE_MAX_FILE_SIZE_MB: int = 25
     EVIDENCE_ALLOWED_EXTENSIONS: List[str] = [
@@ -50,6 +50,12 @@ class Settings(BaseSettings):
         ".png",
         ".zip"
     ]
+    
+    # Azure Blob Storage configuration
+    AZURE_STORAGE_CONNECTION_STRING: str = ""
+    AZURE_STORAGE_ACCOUNT_NAME: str = ""
+    AZURE_STORAGE_CONTAINER_EVIDENCE: str = "evidence"
+    AZURE_STORAGE_CONTAINER_REPORTS: str = "reports"
     
     class Config:
         env_file = ".env"

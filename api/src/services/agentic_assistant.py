@@ -35,8 +35,8 @@ class AgenticAssistant:
                         "type": "object",
                         "properties": {
                             "control_id": {
-                                "type": "integer",
-                                "description": "The ID of the control this evidence relates to"
+                                "type": "string",
+                                "description": "The ID of the control this evidence relates to (can be numeric)"
                             },
                             "file_path": {
                                 "type": "string",
@@ -60,12 +60,12 @@ class AgenticAssistant:
                         "type": "object",
                         "properties": {
                             "control_id": {
-                                "type": "integer",
-                                "description": "The control ID to fetch evidence for"
+                                "type": "string",
+                                "description": "The control ID to fetch evidence for (can be numeric)"
                             },
                             "project_id": {
-                                "type": "integer",
-                                "description": "The project ID to fetch evidence for"
+                                "type": "string",
+                                "description": "The project ID to fetch evidence for (can be numeric)"
                             }
                         }
                     }
@@ -80,8 +80,8 @@ class AgenticAssistant:
                         "type": "object",
                         "properties": {
                             "control_id": {
-                                "type": "integer",
-                                "description": "The control ID to analyze"
+                                "type": "string",
+                                "description": "The control ID to analyze (can be numeric)"
                             },
                             "analysis_type": {
                                 "type": "string",
@@ -107,8 +107,8 @@ class AgenticAssistant:
                                 "description": "Compliance framework"
                             },
                             "project_id": {
-                                "type": "integer",
-                                "description": "Project ID for the report"
+                                "type": "string",
+                                "description": "Project ID for the report (can be numeric)"
                             },
                             "report_type": {
                                 "type": "string",
@@ -129,8 +129,8 @@ class AgenticAssistant:
                         "type": "object",
                         "properties": {
                             "evidence_id": {
-                                "type": "integer",
-                                "description": "The evidence ID to submit for review"
+                                "type": "string",
+                                "description": "The evidence ID to submit for review (can be numeric)"
                             }
                         },
                         "required": ["evidence_id"]
@@ -306,6 +306,32 @@ Maintain context across the conversation."""
             logger.error(f"Error in agentic chat: {str(e)}", exc_info=True)
             raise
     
+    def _coerce_argument_types(self, function_name: str, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Coerce argument types to match expected schema (fixes LLM string->int issues)"""
+        # Define integer fields for each function
+        integer_fields = {
+            "upload_evidence": ["control_id", "project_id"],
+            "fetch_evidence": ["control_id", "project_id"],
+            "analyze_compliance": ["control_id", "project_id"],
+            "generate_report": ["project_id"],
+            "submit_for_review": ["evidence_id"]
+        }
+        
+        coerced = args.copy()
+        int_fields = integer_fields.get(function_name, [])
+        
+        for field in int_fields:
+            if field in coerced and coerced[field] is not None:
+                try:
+                    # Convert to int if it's a string representation
+                    if isinstance(coerced[field], str):
+                        coerced[field] = int(coerced[field])
+                        logger.info(f"Coerced {field} from string to int: {coerced[field]}")
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"Failed to coerce {field} to int: {e}")
+        
+        return coerced
+    
     async def _execute_tool(
         self,
         function_name: str,
@@ -328,6 +354,9 @@ Maintain context across the conversation."""
         task_type = task_type_map.get(function_name)
         if not task_type:
             return {"error": f"Unknown tool: {function_name}"}
+        
+        # Coerce argument types (fix LLM returning strings for integers)
+        function_args = self._coerce_argument_types(function_name, function_args)
         
         # Build payload
         payload = function_args.copy()

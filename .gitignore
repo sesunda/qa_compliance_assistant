@@ -227,3 +227,15 @@ node_modules/
 
 # Evidence storage artifacts
 storage/
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/terraform.tfvars
+terraform/*.tfplan
+terraform/outputs.json
+
+# Azure
+.env.azure

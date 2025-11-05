@@ -178,7 +178,7 @@ const AgentTasksPage: React.FC = () => {
     <Box sx={{ p: 3 }}>
       {/* Header */}
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4">Agent Tasks</Typography>
+        <Typography variant="h5">Agent Tasks</Typography>
         <Box>
           <Tooltip title={autoRefresh ? 'Auto-refresh enabled' : 'Auto-refresh disabled'}>
             <Button

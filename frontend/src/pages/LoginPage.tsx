@@ -70,7 +70,7 @@ const LoginPage: React.FC = () => {
           {/* Company Logo */}
           <Box 
             component="img" 
-            src="/assets/logo.svg" 
+            src="/assets/logo.png" 
             alt="Quantique Analytica"
             sx={{ 
               width: '280px', 
@@ -79,10 +79,10 @@ const LoginPage: React.FC = () => {
             }}
           />
           <Typography component="h1" variant="h5" sx={{ fontWeight: 600, color: '#000' }}>
-            Compliance Assistant
+            AI Compliance Assistant
           </Typography>
-          <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-            Secure access to your compliance management system
+          <Typography variant="body1" color="textSecondary" sx={{ mt: 0.5 }}>
+            Intelligent compliance assistance using RAG (Retrieval-Augmented Generation)
           </Typography>
         </Box>
         

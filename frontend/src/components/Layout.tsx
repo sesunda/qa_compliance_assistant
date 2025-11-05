@@ -81,23 +81,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const drawer = (
     <div>
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <QuantiqueAnalyticaLogo size="small" />
+      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <QuantiqueAnalyticaLogo size="xlarge" />
       </Box>
-      <Divider />
-      <Typography 
-        variant="h6" 
-        sx={{ 
-          px: 2, 
-          py: 1, 
-          textAlign: 'center',
-          fontSize: '0.9rem',
-          fontWeight: 500,
-          color: 'text.secondary'
-        }}
-      >
-        Compliance Assistant
-      </Typography>
       <Divider />
       <List>
                   {menuItems.map((item) => {
@@ -147,7 +133,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <QuantiqueAnalyticaLogo size="small" />
           </Box>
           
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
+          <Typography variant="h4" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 700, color: '#ffffff' }}>
             Compliance Assistant
           </Typography>
           <div>
