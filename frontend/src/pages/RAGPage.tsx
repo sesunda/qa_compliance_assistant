@@ -85,9 +85,8 @@ const RAGPage: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState(0)
   const [searchType, setSearchType] = useState<'vector' | 'graph' | 'hybrid'>('hybrid')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [selectedModel, setSelectedModel] = useState<string>('groq')
+  const [selectedModel] = useState<string>('groq')
   const [isRecording, setIsRecording] = useState(false)
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(() => {
     // Restore session from localStorage on page load
     return localStorage.getItem('rag_session_id')
@@ -284,9 +283,8 @@ const RAGPage: React.FC = () => {
       }
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        setAudioBlob(audioBlob)
-        await transcribeAudio(audioBlob)
+        const recordedBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        await transcribeAudio(recordedBlob)
         stream.getTracks().forEach(track => track.stop())
       }
 
@@ -318,7 +316,7 @@ const RAGPage: React.FC = () => {
       })
       
       const transcribedText = response.data.text || ''
-      setInputText(prev => {
+      setInputText(() => {
         console.log('✅ Transcription:', transcribedText)
         return transcribedText
       })
@@ -327,7 +325,6 @@ const RAGPage: React.FC = () => {
       setInputText('⚠️ Transcription failed - please type your message')
     } finally {
       setLoading(false)
-      setAudioBlob(null)
     }
   }
 
