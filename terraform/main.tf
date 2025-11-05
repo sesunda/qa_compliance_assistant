@@ -55,75 +55,13 @@ resource "azurerm_application_insights" "main" {
 }
 
 # ============================================================================
-# VIRTUAL NETWORK
-# ============================================================================
-resource "azurerm_virtual_network" "main" {
-  name                = "vnet-${local.resource_suffix}"
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
-  address_space       = ["10.0.0.0/16"]
-  tags                = local.common_tags
-}
-
-resource "azurerm_subnet" "container_apps" {
-  name                 = "snet-container-apps"
-  resource_group_name  = azurerm_resource_group.main.name
-  virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["10.0.0.0/23"]  # /23 subnet (512 IPs) for Container Apps
-
-  delegation {
-    name = "container-apps-delegation"
-    service_delegation {
-      name    = "Microsoft.App/environments"
-      actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
-    }
-  }
-}
-
-resource "azurerm_subnet" "database" {
-  name                 = "snet-database"
-  resource_group_name  = azurerm_resource_group.main.name
-  virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["10.0.2.0/24"]
-
-  delegation {
-    name = "postgres-delegation"
-    service_delegation {
-      name = "Microsoft.DBforPostgreSQL/flexibleServers"
-      actions = [
-        "Microsoft.Network/virtualNetworks/subnets/join/action",
-      ]
-    }
-  }
-}
-
-# ============================================================================
-# PRIVATE DNS ZONE FOR POSTGRESQL
-# ============================================================================
-resource "azurerm_private_dns_zone" "postgres" {
-  name                = "privatelink.postgres.database.azure.com"
-  resource_group_name = azurerm_resource_group.main.name
-  tags                = local.common_tags
-}
-
-resource "azurerm_private_dns_zone_virtual_network_link" "postgres" {
-  name                  = "postgres-vnet-link"
-  resource_group_name   = azurerm_resource_group.main.name
-  private_dns_zone_name = azurerm_private_dns_zone.postgres.name
-  virtual_network_id    = azurerm_virtual_network.main.id
-  tags                  = local.common_tags
-}
-
-# ============================================================================
-# POSTGRESQL FLEXIBLE SERVER
+# POSTGRESQL FLEXIBLE SERVER (Public Access for DEV)
 # ============================================================================
 resource "azurerm_postgresql_flexible_server" "main" {
   name                   = "psql-${local.resource_suffix}-${random_string.unique.result}"
   resource_group_name    = azurerm_resource_group.main.name
   location               = azurerm_resource_group.main.location
   version                = "15"
-  delegated_subnet_id    = azurerm_subnet.database.id
-  private_dns_zone_id    = azurerm_private_dns_zone.postgres.id
   administrator_login    = var.db_admin_username
   administrator_password = var.db_admin_password
   zone                   = "1"
@@ -131,12 +69,26 @@ resource "azurerm_postgresql_flexible_server" "main" {
   sku_name               = var.db_sku_name
   backup_retention_days  = 7
   
-  # Remove public_network_access_enabled as it conflicts with delegated_subnet_id
-  # public_network_access_enabled = false
-
-  depends_on = [azurerm_private_dns_zone_virtual_network_link.postgres]
+  # Public access for DEV environment - simpler configuration
+  public_network_access_enabled = true
 
   tags = local.common_tags
+}
+
+# Allow Azure services to access PostgreSQL
+resource "azurerm_postgresql_flexible_server_firewall_rule" "allow_azure" {
+  name             = "allow-azure-services"
+  server_id        = azurerm_postgresql_flexible_server.main.id
+  start_ip_address = "0.0.0.0"
+  end_ip_address   = "0.0.0.0"
+}
+
+# Allow all IPs for DEV (restrict in production)
+resource "azurerm_postgresql_flexible_server_firewall_rule" "allow_all" {
+  name             = "allow-all-dev"
+  server_id        = azurerm_postgresql_flexible_server.main.id
+  start_ip_address = "0.0.0.0"
+  end_ip_address   = "255.255.255.255"
 }
 
 resource "azurerm_postgresql_flexible_server_database" "main" {
@@ -260,14 +212,15 @@ resource "azurerm_container_registry" "acr" {
 }
 
 # ============================================================================
-# CONTAINER APPS ENVIRONMENT
+# CONTAINER APPS ENVIRONMENT (Consumption-only, no VNet)
 # ============================================================================
 resource "azurerm_container_app_environment" "main" {
   name                       = "cae-${local.resource_suffix}"
   location                   = azurerm_resource_group.main.location
   resource_group_name        = azurerm_resource_group.main.name
   log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
-  infrastructure_subnet_id   = azurerm_subnet.container_apps.id
+  
+  # No subnet delegation for simpler DEV environment
 
   tags = local.common_tags
 }
