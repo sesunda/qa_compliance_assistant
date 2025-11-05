@@ -34,7 +34,7 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material'
 import toast from 'react-hot-toast'
-import { agenciesService, Agency, AgencyCreate, AgencyUpdate, AgencyStats } from '../services/agencies'
+import { agenciesService, Agency, AgencyCreate, AgencyStats } from '../services/agencies'
 
 const AgenciesPage: React.FC = () => {
   const [agencies, setAgencies] = useState<Agency[]>([])
@@ -351,7 +351,7 @@ const AgenciesPage: React.FC = () => {
             <Box>
               <Button
                 variant={formData.active ? 'contained' : 'outlined'}
-                color={formData.active ? 'success' : 'default'}
+                color={formData.active ? 'success' : 'inherit'}
                 onClick={() => setFormData({ ...formData, active: !formData.active })}
               >
                 {formData.active ? 'Active' : 'Inactive'}
