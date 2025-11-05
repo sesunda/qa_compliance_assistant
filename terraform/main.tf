@@ -69,7 +69,7 @@ resource "azurerm_subnet" "container_apps" {
   name                 = "snet-container-apps"
   resource_group_name  = azurerm_resource_group.main.name
   virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["10.0.1.0/23"]  # Changed from /24 to /23 for Container Apps
+  address_prefixes     = ["10.0.0.0/23"]  # /23 subnet (512 IPs) for Container Apps
 
   delegation {
     name = "container-apps-delegation"
