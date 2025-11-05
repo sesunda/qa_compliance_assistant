@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Red circular logo with A -->
+  <circle cx="30" cy="30" r="25" fill="#D32F2F" stroke="#D32F2F" stroke-width="2"/>
+  <text x="30" y="38" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="24" font-weight="bold">A</text>
+  
+  <!-- Quantique text -->
+  <text x="70" y="25" fill="#333333" font-family="Arial, sans-serif" font-size="20" font-weight="bold">Quantique</text>
+  
+  <!-- Analytica text -->
+  <text x="70" y="45" fill="#333333" font-family="Arial, sans-serif" font-size="20" font-weight="bold">Analytica</text>
+</svg>

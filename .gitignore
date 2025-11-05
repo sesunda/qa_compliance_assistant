@@ -205,3 +205,37 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# Environment files
+.env
+
+# Database
+*.db
+*.sqlite
+
+# Reports
+reports/*.pdf
+reports/*.csv
+reports/*.json
+
+# Node modules (if frontend is added)
+node_modules/
+
+# Evidence storage artifacts
+storage/
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/terraform.tfvars
+terraform/*.tfplan
+terraform/outputs.json
+
+# Azure
+.env.azure

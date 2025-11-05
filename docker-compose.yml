@@ -1,0 +1,97 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: qca_postgres
+    environment:
+      POSTGRES_USER: qca_user
+      POSTGRES_PASSWORD: qca_password
+      POSTGRES_DB: qca_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qca_user -d qca_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - qca_network
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: qca_api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://qca_user:qca_password@db:5432/qca_db
+      - MCP_SERVER_URL=http://mcp_server:8001
+      - PYTHONPATH=/app
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - LLM_PROVIDER=${LLM_PROVIDER:-groq}
+      - EVIDENCE_STORAGE_BACKEND=${EVIDENCE_STORAGE_BACKEND:-local}
+      - EVIDENCE_STORAGE_PATH=${EVIDENCE_STORAGE_PATH:-/app/storage/evidence}
+      - EVIDENCE_MAX_FILE_SIZE_MB=${EVIDENCE_MAX_FILE_SIZE_MB:-25}
+    depends_on:
+      db:
+        condition: service_healthy
+      mcp_server:
+        condition: service_started
+    volumes:
+      - ./api:/app/api
+      - ./libs:/app/libs
+      - ./reports:/app/reports
+      - ./storage:/app/storage
+    networks:
+      - qca_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: qca_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - qca_network
+
+  mcp_server:
+    build:
+      context: ./mcp_server
+      dockerfile: Dockerfile
+    container_name: qca_mcp_server
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=postgresql://qca_user:qca_password@db:5432/qca_db
+      - EVIDENCE_STORAGE_PATH=/app/storage/evidence
+      - PYTHONPATH=/app
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - LLM_PROVIDER=${LLM_PROVIDER:-groq}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./mcp_server:/app/mcp_server
+      - ./libs:/app/libs
+      - ./storage:/app/storage
+    networks:
+      - qca_network
+
+networks:
+  qca_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
