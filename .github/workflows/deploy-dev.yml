@@ -51,6 +51,39 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Get last 2 commits to detect changes
+
+      - name: Detect changed services
+        id: changes
+        run: |
+          # Check which directories changed in last commit
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          echo "Changed files: $CHANGED_FILES"
+          
+          if echo "$CHANGED_FILES" | grep -q "^api/"; then
+            echo "build_api=true" >> $GITHUB_OUTPUT
+            echo "API changed - will rebuild"
+          else
+            echo "build_api=false" >> $GITHUB_OUTPUT
+            echo "API unchanged - skipping"
+          fi
+          
+          if echo "$CHANGED_FILES" | grep -q "^mcp_server/"; then
+            echo "build_mcp=true" >> $GITHUB_OUTPUT
+            echo "MCP changed - will rebuild"
+          else
+            echo "build_mcp=false" >> $GITHUB_OUTPUT
+            echo "MCP unchanged - skipping"
+          fi
+          
+          if echo "$CHANGED_FILES" | grep -q "^frontend/"; then
+            echo "build_frontend=true" >> $GITHUB_OUTPUT
+            echo "Frontend changed - will rebuild"
+          else
+            echo "build_frontend=false" >> $GITHUB_OUTPUT
+            echo "Frontend unchanged - skipping"
+          fi
 
       - name: Azure Login
         uses: azure/login@v1
@@ -62,6 +95,7 @@ jobs:
           az acr login --name ${{ needs.get-acr-name.outputs.acr_name }}
 
       - name: Build and push API image
+        if: steps.changes.outputs.build_api == 'true'
         run: |
           docker build -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:${{ github.sha }} \
                        -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:latest \
@@ -70,6 +104,7 @@ jobs:
           docker push ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:latest
 
       - name: Build and push MCP Server image
+        if: steps.changes.outputs.build_mcp == 'true'
         run: |
           docker build -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:${{ github.sha }} \
                        -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:latest \
@@ -78,6 +113,7 @@ jobs:
           docker push ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:latest
 
       - name: Build and push Frontend image
+        if: steps.changes.outputs.build_frontend == 'true'
         run: |
           docker build -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:${{ github.sha }} \
                        -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest \
@@ -91,6 +127,34 @@ jobs:
     needs: [get-acr-name, build-and-push]
     
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed services
+        id: changes
+        run: |
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          
+          if echo "$CHANGED_FILES" | grep -q "^api/"; then
+            echo "deploy_api=true" >> $GITHUB_OUTPUT
+          else
+            echo "deploy_api=false" >> $GITHUB_OUTPUT
+          fi
+          
+          if echo "$CHANGED_FILES" | grep -q "^mcp_server/"; then
+            echo "deploy_mcp=true" >> $GITHUB_OUTPUT
+          else
+            echo "deploy_mcp=false" >> $GITHUB_OUTPUT
+          fi
+          
+          if echo "$CHANGED_FILES" | grep -q "^frontend/"; then
+            echo "deploy_frontend=true" >> $GITHUB_OUTPUT
+          else
+            echo "deploy_frontend=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Azure Login
         uses: azure/login@v1
         with:
@@ -107,118 +171,37 @@ jobs:
           echo "Container Apps Environment ID: $ENV_ID"
 
       - name: Deploy MCP Server Container App
+        if: steps.changes.outputs.deploy_mcp == 'true'
         run: |
-          echo "Checking if MCP Server container app exists..."
-          if az containerapp show --name ${{ env.MCP_CONTAINER_APP }} --resource-group ${{ env.RESOURCE_GROUP }} &>/dev/null; then
-            echo "Container app exists, updating..."
-            az containerapp update \
-              --name ${{ env.MCP_CONTAINER_APP }} \
-              --resource-group ${{ env.RESOURCE_GROUP }} \
-              --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:latest
-          else
-            echo "Container app doesn't exist, creating..."
-            
-            # Get ACR credentials
-            ACR_USERNAME=$(az acr credential show --name ${{ needs.get-acr-name.outputs.acr_name }} --query username -o tsv)
-            ACR_PASSWORD=$(az acr credential show --name ${{ needs.get-acr-name.outputs.acr_name }} --query "passwords[0].value" -o tsv)
-            
-            az containerapp create \
-              --name ${{ env.MCP_CONTAINER_APP }} \
-              --resource-group ${{ env.RESOURCE_GROUP }} \
-              --environment ${{ steps.get-env.outputs.env_id }} \
-              --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:latest \
-              --target-port 8002 \
-              --ingress external \
-              --registry-server ${{ needs.get-acr-name.outputs.acr_login_server }} \
-              --registry-username $ACR_USERNAME \
-              --registry-password $ACR_PASSWORD \
-              --cpu 0.5 --memory 1.0Gi \
-              --min-replicas 1 --max-replicas 3
-          fi
-          
-          az containerapp show \
+          echo "Deploying MCP Server..."
+          az containerapp update \
             --name ${{ env.MCP_CONTAINER_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --query "{Name:name, Status:properties.provisioningState, FQDN:properties.configuration.ingress.fqdn}" \
-            --output table
+            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:latest \
+            --revision-suffix "r$(date +%s)"
 
       - name: Deploy API Container App
+        if: steps.changes.outputs.deploy_api == 'true'
         run: |
-          echo "Checking if API container app exists..."
-          if az containerapp show --name ${{ env.API_CONTAINER_APP }} --resource-group ${{ env.RESOURCE_GROUP }} &>/dev/null; then
-            echo "Container app exists, updating..."
-            az containerapp update \
-              --name ${{ env.API_CONTAINER_APP }} \
-              --resource-group ${{ env.RESOURCE_GROUP }} \
-              --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:latest
-          else
-            echo "Container app doesn't exist, creating..."
-            
-            # Get ACR credentials
-            ACR_USERNAME=$(az acr credential show --name ${{ needs.get-acr-name.outputs.acr_name }} --query username -o tsv)
-            ACR_PASSWORD=$(az acr credential show --name ${{ needs.get-acr-name.outputs.acr_name }} --query "passwords[0].value" -o tsv)
-            
-            # Get PostgreSQL details from resource group
-            POSTGRES_HOST=$(az postgres flexible-server list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].fullyQualifiedDomainName" -o tsv)
-            
-            az containerapp create \
-              --name ${{ env.API_CONTAINER_APP }} \
-              --resource-group ${{ env.RESOURCE_GROUP }} \
-              --environment ${{ steps.get-env.outputs.env_id }} \
-              --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:latest \
-              --target-port 8000 \
-              --ingress external \
-              --registry-server ${{ needs.get-acr-name.outputs.acr_login_server }} \
-              --registry-username $ACR_USERNAME \
-              --registry-password $ACR_PASSWORD \
-              --env-vars "DATABASE_URL=postgresql://qcaadmin@$POSTGRES_HOST:5432/qca_db?sslmode=require" "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" \
-              --cpu 1.0 --memory 2.0Gi \
-              --min-replicas 1 --max-replicas 5
-          fi
-          
-          az containerapp show \
+          echo "Deploying API..."
+          az containerapp update \
             --name ${{ env.API_CONTAINER_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --query "{Name:name, Status:properties.provisioningState, FQDN:properties.configuration.ingress.fqdn}" \
-            --output table
+            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:latest \
+            --revision-suffix "r$(date +%s)"
 
       - name: Deploy Frontend Container App
+        if: steps.changes.outputs.deploy_frontend == 'true'
         run: |
-          echo "Checking if Frontend container app exists..."
-          if az containerapp show --name ${{ env.FRONTEND_CONTAINER_APP }} --resource-group ${{ env.RESOURCE_GROUP }} &>/dev/null; then
-            echo "Container app exists, updating..."
-            az containerapp update \
-              --name ${{ env.FRONTEND_CONTAINER_APP }} \
-              --resource-group ${{ env.RESOURCE_GROUP }} \
-              --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest
-          else
-            echo "Container app doesn't exist, creating..."
-            
-            # Get ACR credentials
-            ACR_USERNAME=$(az acr credential show --name ${{ needs.get-acr-name.outputs.acr_name }} --query username -o tsv)
-            ACR_PASSWORD=$(az acr credential show --name ${{ needs.get-acr-name.outputs.acr_name }} --query "passwords[0].value" -o tsv)
-            
-            az containerapp create \
-              --name ${{ env.FRONTEND_CONTAINER_APP }} \
-              --resource-group ${{ env.RESOURCE_GROUP }} \
-              --environment ${{ steps.get-env.outputs.env_id }} \
-              --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest \
-              --target-port 80 \
-              --ingress external \
-              --registry-server ${{ needs.get-acr-name.outputs.acr_login_server }} \
-              --registry-username $ACR_USERNAME \
-              --registry-password $ACR_PASSWORD \
-              --cpu 0.5 --memory 1.0Gi \
-              --min-replicas 1 --max-replicas 3
-          fi
-          
-          az containerapp show \
+          echo "Deploying Frontend..."
+          az containerapp update \
             --name ${{ env.FRONTEND_CONTAINER_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --query "{Name:name, Status:properties.provisioningState, FQDN:properties.configuration.ingress.fqdn}" \
-            --output table
+            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest \
+            --revision-suffix "r$(date +%s)"
 
       - name: Run Database Migrations
+        if: steps.changes.outputs.deploy_api == 'true'
         run: |
           echo "Waiting for API to be ready..."
           sleep 30
