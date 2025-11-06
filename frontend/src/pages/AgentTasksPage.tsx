@@ -63,7 +63,7 @@ const AgentTasksPage: React.FC = () => {
         }),
         agentTasksService.getStats(),
       ]);
-      setTasks(tasksData.tasks);
+      setTasks(Array.isArray(tasksData.tasks) ? tasksData.tasks : []);
       setStats(statsData);
       setError(null);
     } catch (err: any) {
