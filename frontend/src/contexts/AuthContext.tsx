@@ -84,7 +84,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       const response = await api.post('/auth/login', { username, password })
+      console.log('Login response:', response.data)
       const { access_token } = response.data
+      console.log('Extracted access_token:', access_token)
       
       setToken(access_token)
       
