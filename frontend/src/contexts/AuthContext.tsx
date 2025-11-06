@@ -88,8 +88,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       setToken(access_token)
       
-      // Save token to cookie
-      Cookies.set('auth_token', access_token, { expires: 1 }) // 1 day
+      // Save token to cookie with SameSite=Lax for Azure deployment
+      Cookies.set('auth_token', access_token, { 
+        expires: 1, // 1 day
+        sameSite: 'lax',
+        secure: window.location.protocol === 'https:'
+      })
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
       
       // Fetch complete user data with permissions from /auth/me
