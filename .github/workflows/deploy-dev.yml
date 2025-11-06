@@ -90,33 +90,58 @@ jobs:
     needs: [get-acr-name, build-and-push]
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.13.4
-
-      - name: Terraform Init
+      - name: Update MCP Server Container App
         run: |
-          cd terraform
-          terraform init
+          echo "Updating MCP Server container app with new image..."
+          az containerapp update \
+            --name ${{ env.MCP_CONTAINER_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:latest \
+            --output table || echo "Update may have failed, checking status..."
+          
+          # Check status
+          az containerapp show \
+            --name ${{ env.MCP_CONTAINER_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "{Name:name, Status:properties.provisioningState, FQDN:properties.configuration.ingress.fqdn}" \
+            --output table
 
-      - name: Terraform Apply to Update Container Apps
+      - name: Update API Container App
         run: |
-          cd terraform
-          terraform apply -auto-approve \
-            -target=azurerm_container_app.mcp_server \
-            -target=azurerm_container_app.api \
-            -target=azurerm_container_app.frontend
-        env:
-          TF_VAR_location: westus2
+          echo "Updating API container app with new image..."
+          az containerapp update \
+            --name ${{ env.API_CONTAINER_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:latest \
+            --output table || echo "Update may have failed, checking status..."
+          
+          # Check status
+          az containerapp show \
+            --name ${{ env.API_CONTAINER_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "{Name:name, Status:properties.provisioningState, FQDN:properties.configuration.ingress.fqdn}" \
+            --output table
+
+      - name: Update Frontend Container App
+        run: |
+          echo "Updating Frontend container app with new image..."
+          az containerapp update \
+            --name ${{ env.FRONTEND_CONTAINER_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest \
+            --output table || echo "Update may have failed, checking status..."
+          
+          # Check status
+          az containerapp show \
+            --name ${{ env.FRONTEND_CONTAINER_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "{Name:name, Status:properties.provisioningState, FQDN:properties.configuration.ingress.fqdn}" \
+            --output table
 
       - name: Run Database Migrations
         run: |
