@@ -22,7 +22,7 @@ class AgenticAssistant:
     
     def __init__(self):
         self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-        self.model = "llama-3.3-70b-versatile"  # Updated: Previous model decommissioned
+        self.model = "llama-3.1-70b-versatile"  # Stable model for agentic workflows
         
         # Define tools available to the agent
         self.tools = [
