@@ -29,12 +29,11 @@ const ControlsPage: React.FC = () => {
   const { data: controls, isLoading } = useQuery(
     'controls',
     () => api.get('/controls/').then((res) => res.data),
-    {
-      refetchOnMount: true,
-      refetchOnWindowFocus: false,
-      staleTime: 30000, // 30 seconds
-    }
+    { refetchOnWindowFocus: false }
   )
+
+  // Ensure controls is an array
+  const controlsList = Array.isArray(controls) ? controls : []
 
   const getImplementationStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -89,10 +88,10 @@ const ControlsPage: React.FC = () => {
   }
 
   const controlStats = {
-    total: controls?.length || 0,
-    implemented: controls?.filter((c: any) => c.status === 'active').length || 0,
-    partial: controls?.filter((c: any) => c.status === 'partial').length || 0,
-    notImplemented: controls?.filter((c: any) => c.status === 'inactive' || c.status === 'not_implemented').length || 0,
+    total: controlsList.length || 0,
+    implemented: controlsList.filter((c: any) => c.status === 'active').length || 0,
+    partial: controlsList.filter((c: any) => c.status === 'partial').length || 0,
+    notImplemented: controlsList.filter((c: any) => c.status === 'inactive' || c.status === 'not_implemented').length || 0,
   }
 
   const overallProgress = controlStats.total > 0 
@@ -201,7 +200,7 @@ const ControlsPage: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {controls?.map((control: any) => {
+                {controlsList.map((control: any) => {
                   const implementationStatus = getImplementationStatusFromControl(control)
                   return (
                     <TableRow key={control.id}>
