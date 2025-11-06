@@ -247,10 +247,26 @@ const RAGPage: React.FC = () => {
 
         setMessages((prev) => [...prev, assistantMessage])
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('AI Assistant error:', error)
+      console.error('Error details:', {
+        response: error.response?.data,
+        status: error.response?.status,
+        message: error.message
+      })
+      
+      // Extract error message from API response
+      let errorText = 'Sorry, I encountered an error while processing your request. Please try again.'
+      
+      if (error.response?.data?.detail) {
+        errorText = error.response.data.detail
+      } else if (error.message) {
+        errorText = error.message
+      }
+      
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: 'Sorry, I encountered an error while processing your request. Please try again.',
+        text: errorText,
         sender: 'assistant',
         timestamp: new Date(),
       }
