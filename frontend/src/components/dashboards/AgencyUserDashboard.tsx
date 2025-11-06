@@ -48,7 +48,7 @@ const AgencyUserDashboard: React.FC = () => {
     () => fetchEvidence()
   );
   
-  const evidenceItems = evidenceData || [];
+  const evidenceItems = Array.isArray(evidenceData) ? evidenceData : [];
   
   // Calculate metrics from real data
   const pendingEvidence = evidenceItems.filter((item: EvidenceItem) => item.verification_status === 'pending');
