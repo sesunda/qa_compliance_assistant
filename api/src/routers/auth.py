@@ -95,7 +95,12 @@ def get_current_user_info(
     db: Session = Depends(get_db)
 ):
     """Get current user information"""
-    user_record = db.query(models.User).filter(models.User.id == current_user["id"]).first()
+    from sqlalchemy.orm import joinedload
+    
+    user_record = db.query(models.User).options(
+        joinedload(models.User.role),
+        joinedload(models.User.agency)
+    ).filter(models.User.id == current_user["id"]).first()
 
     if not user_record:
         raise HTTPException(
