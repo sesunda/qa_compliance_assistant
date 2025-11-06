@@ -411,7 +411,7 @@ resource "azurerm_container_app" "mcp_server" {
   }
 
   template {
-    min_replicas = 1
+    min_replicas = 0  # Scale to zero when idle (saves costs in DEV)
     max_replicas = 2
 
     container {
@@ -483,7 +483,7 @@ resource "azurerm_container_app" "frontend" {
   }
 
   template {
-    min_replicas = 1
+    min_replicas = 0  # Scale to zero when idle (saves costs in DEV)
     max_replicas = 3
 
     container {
