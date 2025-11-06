@@ -8,7 +8,13 @@ class Settings(BaseSettings):
     API_VERSION: str = "1.0.0"
     
     # Security settings
-    ALLOWED_ORIGINS: List[str] = ["*"]  # ⚠️ DEVELOPMENT ONLY - restrict for production
+    # ⚠️ Update ALLOWED_ORIGINS with your deployed frontend URL
+    ALLOWED_ORIGINS: List[str] = [
+        "*",  # DEVELOPMENT ONLY - allows all origins
+        "http://localhost:5173",  # Local Vite dev server
+        "http://localhost:3000",  # Local production build
+        "https://ca-frontend-qca-dev.victoriousmushroom-f7d2d81f.westus2.azurecontainerapps.io",  # Azure DEV
+    ]
     SECRET_KEY: str = "dev-secret-key-change-in-production"
     
     # LLM API settings - Multiple providers for flexibility
