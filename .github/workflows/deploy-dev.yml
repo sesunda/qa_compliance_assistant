@@ -95,48 +95,105 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Update MCP Server Container App
+      - name: Get Container Apps Environment ID
+        id: get-env
         run: |
-          echo "Updating MCP Server container app with new image..."
-          az containerapp update \
-            --name ${{ env.MCP_CONTAINER_APP }} \
+          ENV_ID=$(az containerapp env show \
+            --name cae-qca-dev \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:latest \
-            --output table || echo "Update may have failed, checking status..."
+            --query id -o tsv)
+          echo "env_id=$ENV_ID" >> $GITHUB_OUTPUT
+          echo "Container Apps Environment ID: $ENV_ID"
+
+      - name: Deploy MCP Server Container App
+        run: |
+          echo "Checking if MCP Server container app exists..."
+          if az containerapp show --name ${{ env.MCP_CONTAINER_APP }} --resource-group ${{ env.RESOURCE_GROUP }} &>/dev/null; then
+            echo "Container app exists, updating..."
+            az containerapp update \
+              --name ${{ env.MCP_CONTAINER_APP }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:latest
+          else
+            echo "Container app doesn't exist, creating..."
+            az containerapp create \
+              --name ${{ env.MCP_CONTAINER_APP }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --environment ${{ steps.get-env.outputs.env_id }} \
+              --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:latest \
+              --target-port 8002 \
+              --ingress external \
+              --registry-server ${{ needs.get-acr-name.outputs.acr_login_server }} \
+              --cpu 0.5 --memory 1.0Gi \
+              --min-replicas 1 --max-replicas 3
+          fi
           
-          # Check status
           az containerapp show \
             --name ${{ env.MCP_CONTAINER_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --query "{Name:name, Status:properties.provisioningState, FQDN:properties.configuration.ingress.fqdn}" \
             --output table
 
-      - name: Update API Container App
+      - name: Deploy API Container App
         run: |
-          echo "Updating API container app with new image..."
-          az containerapp update \
-            --name ${{ env.API_CONTAINER_APP }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:latest \
-            --output table || echo "Update may have failed, checking status..."
+          echo "Checking if API container app exists..."
+          if az containerapp show --name ${{ env.API_CONTAINER_APP }} --resource-group ${{ env.RESOURCE_GROUP }} &>/dev/null; then
+            echo "Container app exists, updating..."
+            az containerapp update \
+              --name ${{ env.API_CONTAINER_APP }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:latest
+          else
+            echo "Container app doesn't exist, creating..."
+            
+            # Get database connection string from Key Vault
+            DB_CONNECTION=$(az keyvault secret show \
+              --vault-name $(az keyvault list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv) \
+              --name db-connection-string \
+              --query value -o tsv)
+            
+            az containerapp create \
+              --name ${{ env.API_CONTAINER_APP }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --environment ${{ steps.get-env.outputs.env_id }} \
+              --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:latest \
+              --target-port 8000 \
+              --ingress external \
+              --registry-server ${{ needs.get-acr-name.outputs.acr_login_server }} \
+              --env-vars "DATABASE_URL=$DB_CONNECTION" \
+              --cpu 1.0 --memory 2.0Gi \
+              --min-replicas 1 --max-replicas 5
+          fi
           
-          # Check status
           az containerapp show \
             --name ${{ env.API_CONTAINER_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --query "{Name:name, Status:properties.provisioningState, FQDN:properties.configuration.ingress.fqdn}" \
             --output table
 
-      - name: Update Frontend Container App
+      - name: Deploy Frontend Container App
         run: |
-          echo "Updating Frontend container app with new image..."
-          az containerapp update \
-            --name ${{ env.FRONTEND_CONTAINER_APP }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest \
-            --output table || echo "Update may have failed, checking status..."
+          echo "Checking if Frontend container app exists..."
+          if az containerapp show --name ${{ env.FRONTEND_CONTAINER_APP }} --resource-group ${{ env.RESOURCE_GROUP }} &>/dev/null; then
+            echo "Container app exists, updating..."
+            az containerapp update \
+              --name ${{ env.FRONTEND_CONTAINER_APP }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest
+          else
+            echo "Container app doesn't exist, creating..."
+            az containerapp create \
+              --name ${{ env.FRONTEND_CONTAINER_APP }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --environment ${{ steps.get-env.outputs.env_id }} \
+              --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest \
+              --target-port 80 \
+              --ingress external \
+              --registry-server ${{ needs.get-acr-name.outputs.acr_login_server }} \
+              --cpu 0.5 --memory 1.0Gi \
+              --min-replicas 1 --max-replicas 3
+          fi
           
-          # Check status
           az containerapp show \
             --name ${{ env.FRONTEND_CONTAINER_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
