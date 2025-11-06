@@ -124,7 +124,7 @@ const EvidencePage: React.FC = () => {
   const evidenceQuery = useQuery<EvidenceItem[]>(['evidence'], () => fetchEvidence())
   const controlsQuery = useQuery<ControlSummary[]>(['controls'], fetchControls)
 
-  const controls = controlsQuery.data ?? []
+  const controls = Array.isArray(controlsQuery.data) ? controlsQuery.data : []
   const controlMap = useMemo(() => {
     return new Map(controls.map(control => [control.id, control]))
   }, [controls])
@@ -210,7 +210,7 @@ const EvidencePage: React.FC = () => {
     },
   })
 
-  const evidenceItems = evidenceQuery.data ?? []
+  const evidenceItems = Array.isArray(evidenceQuery.data) ? evidenceQuery.data : []
 
   const evidenceStats = useMemo(() => ({
     total: evidenceItems.length,
