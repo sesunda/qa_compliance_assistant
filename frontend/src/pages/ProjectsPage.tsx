@@ -56,6 +56,10 @@ const ProjectsPage: React.FC = () => {
     api.get('/agencies').then((res) => res.data)
   )
 
+  // Ensure projects and agencies are arrays
+  const projectsList = Array.isArray(projects) ? projects : []
+  const agenciesList = Array.isArray(agencies) ? agencies : []
+
   const createProjectMutation = useMutation(
     (projectData: any) => api.post('/projects', projectData),
     {
@@ -216,7 +220,7 @@ const ProjectsPage: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {projects?.map((project: any) => (
+                {projectsList.map((project: any) => (
                   <TableRow key={project.id}>
                     <TableCell>
                       <Box>
@@ -347,7 +351,7 @@ const ProjectsPage: React.FC = () => {
                 value={formData.agency_id}
                 onChange={(e) => handleInputChange('agency_id', parseInt(e.target.value))}
               >
-                {agencies?.map((agency: any) => (
+                {agenciesList.map((agency: any) => (
                   <MenuItem key={agency.id} value={agency.id}>
                     {agency.name}
                   </MenuItem>
