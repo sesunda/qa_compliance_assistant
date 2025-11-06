@@ -116,6 +116,11 @@ jobs:
               --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:latest
           else
             echo "Container app doesn't exist, creating..."
+            
+            # Get ACR credentials
+            ACR_USERNAME=$(az acr credential show --name ${{ needs.get-acr-name.outputs.acr_name }} --query username -o tsv)
+            ACR_PASSWORD=$(az acr credential show --name ${{ needs.get-acr-name.outputs.acr_name }} --query "passwords[0].value" -o tsv)
+            
             az containerapp create \
               --name ${{ env.MCP_CONTAINER_APP }} \
               --resource-group ${{ env.RESOURCE_GROUP }} \
@@ -124,6 +129,8 @@ jobs:
               --target-port 8002 \
               --ingress external \
               --registry-server ${{ needs.get-acr-name.outputs.acr_login_server }} \
+              --registry-username $ACR_USERNAME \
+              --registry-password $ACR_PASSWORD \
               --cpu 0.5 --memory 1.0Gi \
               --min-replicas 1 --max-replicas 3
           fi
@@ -146,11 +153,12 @@ jobs:
           else
             echo "Container app doesn't exist, creating..."
             
-            # Get database connection string from Key Vault
-            DB_CONNECTION=$(az keyvault secret show \
-              --vault-name $(az keyvault list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv) \
-              --name db-connection-string \
-              --query value -o tsv)
+            # Get ACR credentials
+            ACR_USERNAME=$(az acr credential show --name ${{ needs.get-acr-name.outputs.acr_name }} --query username -o tsv)
+            ACR_PASSWORD=$(az acr credential show --name ${{ needs.get-acr-name.outputs.acr_name }} --query "passwords[0].value" -o tsv)
+            
+            # Get PostgreSQL details from resource group
+            POSTGRES_HOST=$(az postgres flexible-server list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].fullyQualifiedDomainName" -o tsv)
             
             az containerapp create \
               --name ${{ env.API_CONTAINER_APP }} \
@@ -160,7 +168,9 @@ jobs:
               --target-port 8000 \
               --ingress external \
               --registry-server ${{ needs.get-acr-name.outputs.acr_login_server }} \
-              --env-vars "DATABASE_URL=$DB_CONNECTION" \
+              --registry-username $ACR_USERNAME \
+              --registry-password $ACR_PASSWORD \
+              --env-vars "DATABASE_URL=postgresql://qcaadmin@$POSTGRES_HOST:5432/qca_db?sslmode=require" "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" \
               --cpu 1.0 --memory 2.0Gi \
               --min-replicas 1 --max-replicas 5
           fi
@@ -182,6 +192,11 @@ jobs:
               --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest
           else
             echo "Container app doesn't exist, creating..."
+            
+            # Get ACR credentials
+            ACR_USERNAME=$(az acr credential show --name ${{ needs.get-acr-name.outputs.acr_name }} --query username -o tsv)
+            ACR_PASSWORD=$(az acr credential show --name ${{ needs.get-acr-name.outputs.acr_name }} --query "passwords[0].value" -o tsv)
+            
             az containerapp create \
               --name ${{ env.FRONTEND_CONTAINER_APP }} \
               --resource-group ${{ env.RESOURCE_GROUP }} \
@@ -190,6 +205,8 @@ jobs:
               --target-port 80 \
               --ingress external \
               --registry-server ${{ needs.get-acr-name.outputs.acr_login_server }} \
+              --registry-username $ACR_USERNAME \
+              --registry-password $ACR_PASSWORD \
               --cpu 0.5 --memory 1.0Gi \
               --min-replicas 1 --max-replicas 3
           fi
