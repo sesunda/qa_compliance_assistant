@@ -420,7 +420,7 @@ const RAGPage: React.FC = () => {
             AI Compliance Assistant
           </Typography>
           <Typography variant="body1" color="textSecondary">
-            Intelligent compliance assistance using RAG (Retrieval-Augmented Generation) with vector search, graph-based knowledge retrieval, and hybrid approaches.
+            Smarter Compliance through Context-Aware AI with vector search, graph-based knowledge retrieval, and hybrid approaches.
           </Typography>
         </Box>
         {sessionId && (
