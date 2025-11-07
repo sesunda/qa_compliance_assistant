@@ -16,17 +16,18 @@ cd /app/api
 # Check if alembic_version exists and if it has broken state
 echo "Checking migration state..."
 python -c "
+from sqlalchemy import text
 from api.src.database import SessionLocal
 try:
     db = SessionLocal()
-    result = db.execute('SELECT version_num FROM alembic_version').fetchone()
+    result = db.execute(text('SELECT version_num FROM alembic_version')).fetchone()
     if result:
         version = result[0]
         print(f'Current version: {version}')
         # If version is from old migration tree, reset it
         if version in ['5f706ede940a', '898cc8361b19', '002', '003', '004', '006', '007', '008', '008_add_conversation_sessions', '009_update_agent_tasks', '009_5', '010_complete_assessment_workflows']:
             print(f'Detected old migration version {version}, clearing...')
-            db.execute('DELETE FROM alembic_version')
+            db.execute(text('DELETE FROM alembic_version'))
             db.commit()
             print('Cleared old migration state. Will start fresh.')
     db.close()
