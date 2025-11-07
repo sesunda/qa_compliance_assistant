@@ -153,6 +153,23 @@ class Report(ReportBase):
         from_attributes = True
 
 
+# Control Testing Schemas
+class ControlTestCreate(BaseModel):
+    test_result: str  # passed, failed, not_applicable
+    assessment_score: Optional[int] = None
+    test_notes: Optional[str] = None
+
+
+class ControlReviewCreate(BaseModel):
+    review_status: str  # approved, needs_improvement, rejected
+    review_notes: Optional[str] = None
+
+
+class ControlTestProcedureUpdate(BaseModel):
+    test_procedure: Optional[str] = None
+    testing_frequency: Optional[str] = None  # daily, weekly, monthly, quarterly, annual
+
+
 # Control Catalog Schemas
 class ControlCatalogCreate(BaseModel):
     external_id: Optional[str] = None
@@ -231,6 +248,197 @@ class ConversationSessionSummary(BaseModel):
     created_at: datetime
     last_activity: datetime
     active: bool
+    
+    class Config:
+        from_attributes = True
+
+
+# Assessment Schemas
+class AssessmentCreate(BaseModel):
+    title: str
+    assessment_type: str  # vapt, infra_pt, compliance_audit
+    framework: Optional[str] = None  # ISO27001, NIST, PCI-DSS, etc.
+    scope: Optional[str] = None
+    target_completion_date: Optional[datetime] = None
+    period_start: Optional[datetime] = None
+    period_end: Optional[datetime] = None
+    assigned_to: Optional[int] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class AssessmentUpdate(BaseModel):
+    title: Optional[str] = None
+    scope: Optional[str] = None
+    status: Optional[str] = None
+    target_completion_date: Optional[datetime] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class AssessmentAssignment(BaseModel):
+    assigned_to: int
+
+
+class AssessmentProgressUpdate(BaseModel):
+    progress_percentage: int
+
+
+class AssessmentListResponse(BaseModel):
+    id: int
+    title: str
+    assessment_type: str
+    framework: Optional[str] = None
+    status: str
+    progress_percentage: int
+    assigned_to: Optional[str] = None
+    findings_count: int
+    controls_tested_count: int
+    target_completion_date: Optional[datetime] = None
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class AssessmentResponse(BaseModel):
+    id: int
+    agency_id: int
+    title: str
+    assessment_type: str
+    framework: Optional[str] = None
+    scope: Optional[str] = None
+    status: str
+    progress_percentage: int
+    assigned_to: Optional[int] = None
+    assigned_to_username: Optional[str] = None
+    target_completion_date: Optional[datetime] = None
+    assessment_period_start: Optional[datetime] = None
+    assessment_period_end: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    findings_count: int
+    findings_resolved: int
+    findings_by_severity: Dict[str, int]
+    controls_tested_count: int
+    created_at: datetime
+    metadata_json: Optional[Dict[str, Any]] = None
+    
+    class Config:
+        from_attributes = True
+
+
+class AssessmentSummary(BaseModel):
+    id: int
+    title: str
+    assessment_type: str
+    status: str
+    findings_count: int
+    
+    class Config:
+        from_attributes = True
+
+
+# Finding Schemas
+class FindingCreate(BaseModel):
+    assessment_id: int
+    control_id: Optional[int] = None
+    title: str
+    description: str
+    severity: str  # critical, high, medium, low, info
+    priority: Optional[str] = "medium"
+    risk_rating: Optional[str] = None
+    affected_systems: Optional[str] = None
+    remediation_recommendation: Optional[str] = None
+    assigned_to: Optional[int] = None
+    due_date: Optional[datetime] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class FindingUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    severity: Optional[str] = None
+    priority: Optional[str] = None
+    affected_systems: Optional[str] = None
+    remediation_recommendation: Optional[str] = None
+    due_date: Optional[datetime] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class FindingAssignment(BaseModel):
+    assigned_to: int
+
+
+class FindingResolution(BaseModel):
+    remediation_notes: str
+
+
+class FindingValidation(BaseModel):
+    approved: bool
+    validation_notes: Optional[str] = None
+
+
+class FindingListResponse(BaseModel):
+    id: int
+    title: str
+    severity: str
+    priority: str
+    resolution_status: str
+    assigned_to: Optional[str] = None
+    due_date: Optional[datetime] = None
+    assessment_title: str
+    created_at: datetime
+    false_positive: bool
+    
+    class Config:
+        from_attributes = True
+
+
+class FindingResponse(BaseModel):
+    id: int
+    assessment_id: int
+    control_id: Optional[int] = None
+    title: str
+    description: str
+    severity: str
+    priority: str
+    resolution_status: str
+    assigned_to: Optional[int] = None
+    assigned_to_username: Optional[str] = None
+    resolved_by: Optional[int] = None
+    resolved_by_username: Optional[str] = None
+    validated_by: Optional[int] = None
+    validated_by_username: Optional[str] = None
+    risk_rating: Optional[str] = None
+    affected_systems: Optional[str] = None
+    remediation_recommendation: Optional[str] = None
+    remediation_notes: Optional[str] = None
+    false_positive: bool
+    due_date: Optional[datetime] = None
+    resolved_at: Optional[datetime] = None
+    validated_at: Optional[datetime] = None
+    assessment_title: str
+    control_name: Optional[str] = None
+    comments_count: int
+    created_at: datetime
+    metadata_json: Optional[Dict[str, Any]] = None
+    
+    class Config:
+        from_attributes = True
+
+
+# Finding Comment Schemas
+class FindingCommentCreate(BaseModel):
+    comment_type: str  # general, resolution, validation, false_positive
+    comment_text: str
+
+
+class FindingCommentResponse(BaseModel):
+    id: int
+    finding_id: int
+    user_id: int
+    username: str
+    comment_type: str
+    comment_text: str
+    created_at: datetime
     
     class Config:
         from_attributes = True
