@@ -136,32 +136,49 @@ async def run_migrations():
         }
 
 
-@app.post("/admin/fix-alembic")
-async def fix_alembic_state():
-    """Fix alembic migration state - reset to migration 007"""
+@app.post("/admin/reset-database")
+async def reset_database():
+    """Reset entire database and apply consolidated migration"""
     from api.src.database import SessionLocal
+    from sqlalchemy import text
+    
     db = SessionLocal()
     try:
-        # Check current version
-        result = db.execute("SELECT version_num FROM alembic_version").fetchall()
-        current_version = result[0][0] if result else "none"
-        
-        # Reset to migration 007 (last known good state)
-        db.execute("UPDATE alembic_version SET version_num = '007'")
+        # Drop all tables
+        db.execute(text("DROP SCHEMA public CASCADE"))
+        db.execute(text("CREATE SCHEMA public"))
+        db.execute(text("GRANT ALL ON SCHEMA public TO qca_admin"))
+        db.execute(text("GRANT ALL ON SCHEMA public TO public"))
         db.commit()
         
         return {
             "status": "success",
-            "previous_version": current_version,
-            "new_version": "007",
-            "message": "Alembic state reset. Now restart container to apply migrations 008->009->009_5->010"
+            "message": "Database reset complete. Restart container to apply migration 001 and seed admin user."
         }
     except Exception as e:
         db.rollback()
         return {
             "status": "error",
             "error": str(e),
-            "message": "Failed to fix alembic state"
+            "message": "Failed to reset database"
         }
     finally:
         db.close()
+
+
+@app.post("/admin/seed-users")
+async def seed_users():
+    """Seed default admin user"""
+    try:
+        from api.scripts.seed_auth import seed_auth_system
+        seed_auth_system()
+        return {
+            "status": "success",
+            "message": "Admin user seeded successfully. Login: admin / admin123"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "message": "Failed to seed admin user"
+        }
