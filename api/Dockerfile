@@ -2,21 +2,24 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies in one layer
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir --upgrade pip
 
-# Copy requirements and install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt
+# Copy ONLY requirements first (better caching - only rebuilds if requirements change)
+COPY requirements.txt /app/requirements.txt
 
-# Copy the entire application
-COPY . /app/api/
+# Install dependencies (this layer will be cached if requirements.txt doesn't change)
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy and set permissions for startup script
+# Copy startup script early (rarely changes)
 COPY startup.sh /app/startup.sh
 RUN chmod +x /app/startup.sh
+
+# Copy application code LAST (changes most frequently)
+COPY . /app/api/
 
 # Set PYTHONPATH
 ENV PYTHONPATH=/app
@@ -24,7 +27,7 @@ ENV PYTHONPATH=/app
 # Expose port
 EXPOSE 8000
 
-# Health check
+# Lightweight health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
