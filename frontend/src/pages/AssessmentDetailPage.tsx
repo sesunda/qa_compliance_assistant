@@ -13,26 +13,17 @@ import {
   Stack,
   Alert,
   IconButton,
-  Tooltip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Slider
 } from '@mui/material'
 import {
   ArrowBack,
   Edit,
-  BugReport,
   CheckCircle,
   Add,
-  Assignment as AssignmentIcon,
-  Timeline,
-  CalendarToday,
-  Person,
-  Policy,
-  TrendingUp,
 } from '@mui/icons-material'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
@@ -319,7 +310,7 @@ const AssessmentDetailPage: React.FC = () => {
                     fullWidth
                     color="success"
                     startIcon={<CheckCircle />}
-                    onClick={handleMarkComplete}
+                    onClick={handleComplete}
                   >
                     Mark as Complete
                   </Button>
