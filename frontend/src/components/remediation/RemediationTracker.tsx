@@ -22,7 +22,6 @@ import {
   RadioButtonUnchecked,
   Schedule,
   Warning,
-  TrendingUp,
   Assignment,
   BugReport,
 } from '@mui/icons-material'

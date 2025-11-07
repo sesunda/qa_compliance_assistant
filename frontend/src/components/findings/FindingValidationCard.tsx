@@ -21,7 +21,6 @@ import {
 import {
   CheckCircle,
   Cancel,
-  ExpandMore,
   ExpandLess,
   RateReview,
 } from '@mui/icons-material'
