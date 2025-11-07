@@ -1,6 +1,7 @@
 """
 Groq-powered Agentic AI Assistant
 Multi-turn conversation with tool calling for QA Compliance
+Supports: Groq, GitHub Models (OpenAI-compatible API)
 """
 
 import os
@@ -8,6 +9,7 @@ import json
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from groq import Groq
+from openai import OpenAI
 import logging
 
 from api.src.services.conversation_manager import ConversationManager
@@ -18,11 +20,40 @@ logger = logging.getLogger(__name__)
 
 
 class AgenticAssistant:
-    """Groq-powered conversational agent with tool calling"""
+    """Agentic conversational agent with tool calling (supports multiple providers)"""
     
     def __init__(self):
-        self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-        self.model = "llama-3.1-70b-versatile"  # Stable model for agentic workflows
+        # Detect which provider to use
+        self.provider = os.getenv("LLM_PROVIDER", "groq")  # groq, github, openai
+        
+        if self.provider == "github":
+            # GitHub Models (free tier)
+            github_token = os.getenv("GITHUB_TOKEN")
+            if not github_token:
+                raise ValueError("GITHUB_TOKEN required for GitHub Models")
+            
+            self.client = OpenAI(
+                base_url="https://models.inference.ai.azure.com",
+                api_key=github_token
+            )
+            # Available models: gpt-4o, gpt-4o-mini, Llama-3.1-70B-Instruct, Phi-3-medium-128k-instruct
+            self.model = os.getenv("GITHUB_MODEL", "gpt-4o-mini")
+            logger.info(f"Using GitHub Models with {self.model}")
+            
+        elif self.provider == "openai":
+            # OpenAI (paid)
+            self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+            logger.info(f"Using OpenAI with {self.model}")
+            
+        else:  # groq (default)
+            self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+            # Check which models are available
+            try:
+                self.model = "llama-3.3-70b-versatile"  # Try newer model first
+            except:
+                self.model = "llama-3.1-8b-instant"  # Fallback to stable model
+            logger.info(f"Using Groq with {self.model}")
         
         # Define tools available to the agent
         self.tools = [
