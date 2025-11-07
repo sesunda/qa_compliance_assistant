@@ -82,7 +82,7 @@ const LoginPage: React.FC = () => {
             AI Compliance Assistant
           </Typography>
           <Typography variant="body1" color="textSecondary" sx={{ mt: 0.5 }}>
-            Intelligent compliance assistance using RAG (Retrieval-Augmented Generation)
+            Smarter Compliance through Context-Aware AI
           </Typography>
         </Box>
         
