@@ -10,7 +10,7 @@ from typing import Optional
 from datetime import datetime, timedelta
 
 from api.src.database import get_db
-from api.src.auth import get_current_user
+from api.src.auth import get_current_user, require_admin
 from api.src.models import (
     User, Assessment, Finding, Control, Evidence,
     AssessmentControl, Agency
@@ -424,7 +424,6 @@ async def get_agency_comparison(
     db: Session = Depends(get_db)
 ):
     """Get comparison metrics across all agencies (Admin only)"""
-    from api.src.auth import require_admin
     
     agencies = db.query(Agency).filter(Agency.active == True).all()
     
