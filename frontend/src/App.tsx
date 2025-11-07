@@ -12,6 +12,9 @@ import RAGPage from './pages/RAGPage'
 import UsersPage from './pages/UsersPage'
 import AgentTasksPage from './pages/AgentTasksPage'
 import AgenciesPage from './pages/AgenciesPage'
+import AssessmentsPage from './pages/AssessmentsPage'
+import AssessmentDetailPage from './pages/AssessmentDetailPage'
+import FindingsPage from './pages/FindingsPage'
 
 const App: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth()
@@ -34,6 +37,9 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/assessments" element={<AssessmentsPage />} />
+        <Route path="/assessments/:id" element={<AssessmentDetailPage />} />
+        <Route path="/findings" element={<FindingsPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/controls" element={<ControlsPage />} />
         <Route path="/evidence" element={<EvidencePage />} />

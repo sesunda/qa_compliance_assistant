@@ -31,6 +31,8 @@ import {
   Logout,
   SmartToy,
   Business,
+  BugReport,
+  Policy,
 } from '@mui/icons-material'
 import { useLocation, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
@@ -69,9 +71,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const menuItems = [
     { text: 'Dashboard', icon: Dashboard, path: '/dashboard' },
-    { text: 'Projects', icon: Assignment, path: '/projects' },
+    { text: 'Assessments', icon: Policy, path: '/assessments' },
+    { text: 'Findings', icon: BugReport, path: '/findings' },
     { text: 'Controls', icon: Security, path: '/controls' },
     { text: 'Evidence', icon: Description, path: '/evidence' },
+    { text: 'Projects', icon: Assignment, path: '/projects' },
     { text: 'Reports', icon: Assessment, path: '/reports' },
     { text: 'AI Assistant', icon: Psychology, path: '/rag' },
     { text: 'Agent Tasks', icon: SmartToy, path: '/agent-tasks' },
