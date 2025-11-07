@@ -1,0 +1,44 @@
+name: Run Database Migration
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Run Alembic Migration
+        run: |
+          echo "Attempting to run migration..."
+          az containerapp exec \
+            --name ca-api-qca-dev \
+            --resource-group rg-qca-dev \
+            --command "cd /app/api && alembic upgrade head" || \
+          echo "Direct exec failed, trying alternative approach..."
+          
+          # Alternative: Run as a job
+          az containerapp job create \
+            --name migration-job-temp \
+            --resource-group rg-qca-dev \
+            --environment $(az containerapp show --name ca-api-qca-dev --resource-group rg-qca-dev --query 'properties.environmentId' -o tsv | xargs basename) \
+            --trigger-type Manual \
+            --image $(az containerapp show --name ca-api-qca-dev --resource-group rg-qca-dev --query 'properties.template.containers[0].image' -o tsv) \
+            --command "cd /app/api && alembic upgrade head" \
+            --cpu 0.5 --memory 1Gi \
+            --min-executions 1 --max-executions 1 \
+            --replica-timeout 300 || true
+          
+          # Execute the job
+          az containerapp job start --name migration-job-temp --resource-group rg-qca-dev || true
+          
+          # Clean up
+          sleep 30
+          az containerapp job delete --name migration-job-temp --resource-group rg-qca-dev --yes || true
