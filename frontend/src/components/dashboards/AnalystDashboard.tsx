@@ -69,7 +69,21 @@ const AnalystDashboard: React.FC = () => {
       setError(null)
     } catch (err: any) {
       console.error('Failed to load dashboard:', err)
-      setError(err.response?.data?.detail || 'Failed to load dashboard data')
+      console.error('Error response:', err.response)
+      console.error('Error data:', err.response?.data)
+      
+      let errorMessage = 'Failed to load dashboard data'
+      if (err.response?.status === 404) {
+        errorMessage = 'API endpoint not found. The database migration may not have been applied yet.'
+      } else if (err.response?.status === 401 || err.response?.status === 403) {
+        errorMessage = 'Authentication error. Please log in again.'
+      } else if (err.response?.data?.detail) {
+        errorMessage = err.response.data.detail
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -102,8 +116,20 @@ const AnalystDashboard: React.FC = () => {
   if (error) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity="error">{error}</Alert>
-        <Button onClick={loadDashboardData} sx={{ mt: 2 }}>Retry</Button>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          <Typography variant="h6" gutterBottom>Dashboard Load Error</Typography>
+          <Typography variant="body2" sx={{ mb: 2 }}>{error}</Typography>
+          <Typography variant="caption" color="text.secondary">
+            This could mean:
+            <br />• The database migration hasn't been applied yet
+            <br />• The API service is not responding
+            <br />• You don't have permission to access dashboard data
+            <br />• No data exists yet (first time setup)
+          </Typography>
+        </Alert>
+        <Button variant="contained" onClick={loadDashboardData}>
+          Retry Loading Dashboard
+        </Button>
       </Box>
     )
   }
