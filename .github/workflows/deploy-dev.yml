@@ -1,15 +1,17 @@
 name: Deploy to Azure DEV
 
 on:
-  # Automatic deployment disabled - use manual trigger via GitHub Actions UI
-  # push:
-  #   branches:
-  #     - main
-  #   paths-ignore:
-  #     - 'terraform/**'
-  #     - '**.md'
-  #     - '.github/workflows/terraform-*.yml'
-  workflow_dispatch:  # Manual deployment only
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'terraform/**'
+      - '**.md'
+      - '.github/workflows/terraform-*.yml'
+      - 'docs/**'
+      - 'README.md'
+      - 'LICENSE'
+  workflow_dispatch:  # Also allow manual deployment
 
 permissions:
   contents: read
