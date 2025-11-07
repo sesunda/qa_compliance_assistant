@@ -3,7 +3,7 @@ import Cookies from 'js-cookie'
 
 // Determine API base URL based on environment
 const getApiBaseUrl = () => {
-  // In production (Azure), use the API container app URL
+  // In production (Azure), use the API container app URL with HTTPS
   if (window.location.hostname.includes('azurecontainerapps.io')) {
     return 'https://ca-api-qca-dev.victoriousmushroom-f7d2d81f.westus2.azurecontainerapps.io'
   }
