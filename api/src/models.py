@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, JSON
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, JSON, Date
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from api.src.database import Base
@@ -64,8 +64,23 @@ class Control(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
+    # New workflow fields
+    reviewed_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+    review_status = Column(String(50), default="pending", nullable=False, index=True)
+    # Values: pending, in_review, passed, failed, not_applicable
+    assessment_score = Column(Integer, nullable=True)  # 0-100
+    test_procedure = Column(Text, nullable=True)
+    test_results = Column(Text, nullable=True)
+    testing_frequency = Column(String(50), nullable=True)  # annual, quarterly, monthly
+    last_tested_at = Column(DateTime, nullable=True)
+    next_test_due = Column(DateTime, nullable=True, index=True)
+    
+    # Relationships
     project = relationship("Project", back_populates="controls")
     evidence_items = relationship("Evidence", back_populates="control", cascade="all, delete-orphan")
+    reviewer = relationship("User", foreign_keys=[reviewed_by])
+    assessment_links = relationship("AssessmentControl", back_populates="control")
 
 
 class Evidence(Base):
@@ -140,14 +155,27 @@ class Assessment(Base):
     agency_id = Column(Integer, ForeignKey("agencies.id"), nullable=False)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
     title = Column(String(255), nullable=False)
-    assessment_type = Column(String(50))  # vapt, infra_pt, other
+    assessment_type = Column(String(50))  # vapt, infra_pt, compliance_audit
     performed_by = Column(String(255))
     scope = Column(Text)
-    # 'metadata' is a reserved attribute name on Declarative base; store in DB column 'metadata'
-    # but map to attribute name 'metadata_json' to avoid conflicts with SQLAlchemy internals.
     metadata_json = Column('metadata', JSON)
-    status = Column(String(50), default="open")
+    status = Column(String(50), default="open", index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # New workflow fields
+    assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    completed_at = Column(DateTime, nullable=True)
+    progress_percentage = Column(Integer, default=0, nullable=False)
+    target_completion_date = Column(DateTime, nullable=True)
+    framework = Column(String(100), nullable=True, index=True)  # NIST, ISO27001, SOC2, FISMA
+    assessment_period_start = Column(Date, nullable=True)
+    assessment_period_end = Column(Date, nullable=True)
+    findings_count = Column(Integer, default=0, nullable=False)
+    controls_tested_count = Column(Integer, default=0, nullable=False)
+    
+    # Relationships
+    analyst = relationship("User", foreign_keys=[assigned_to])
+    controls = relationship("AssessmentControl", back_populates="assessment", cascade="all, delete-orphan")
 
 
 class Finding(Base):
@@ -164,6 +192,28 @@ class Finding(Base):
     remediation = Column(Text)
     evidence = Column(JSON)  # list of evidence ids or metadata
     created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # New workflow fields
+    resolution_status = Column(String(50), default="open", nullable=False, index=True)
+    # Values: open, in_progress, resolved, accepted_risk, false_positive
+    resolved_at = Column(DateTime, nullable=True)
+    resolved_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    resolution_evidence_id = Column(Integer, ForeignKey("evidence.id", ondelete="SET NULL"), nullable=True)
+    false_positive = Column(Boolean, default=False, nullable=False)
+    validated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    validated_at = Column(DateTime, nullable=True)
+    assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    due_date = Column(DateTime, nullable=True, index=True)
+    priority = Column(String(20), nullable=True, index=True)  # critical, high, medium, low
+    remediation_notes = Column(Text, nullable=True)
+    updated_at = Column(DateTime, nullable=True)
+    
+    # Relationships
+    resolver = relationship("User", foreign_keys=[resolved_by])
+    validator = relationship("User", foreign_keys=[validated_by])
+    assignee = relationship("User", foreign_keys=[assigned_to])
+    resolution_evidence = relationship("Evidence", foreign_keys=[resolution_evidence_id])
+    comments = relationship("FindingComment", back_populates="finding", cascade="all, delete-orphan")
 
 
 class IM8DomainArea(Base):
@@ -253,3 +303,36 @@ class ConversationSession(Base):
     
     user = relationship("User", foreign_keys=[user_id])
 
+
+class AssessmentControl(Base):
+    """Junction table for Assessment-Control many-to-many relationship"""
+    __tablename__ = "assessment_controls"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    assessment_id = Column(Integer, ForeignKey("assessments.id", ondelete="CASCADE"), nullable=False, index=True)
+    control_id = Column(Integer, ForeignKey("controls.id", ondelete="CASCADE"), nullable=False, index=True)
+    selected_for_testing = Column(Boolean, default=True, nullable=False)
+    testing_status = Column(String(50), default="pending", nullable=False, index=True)
+    # Values: pending, in_progress, completed, passed, failed
+    testing_priority = Column(Integer, nullable=True)  # 1=highest priority
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    assessment = relationship("Assessment", back_populates="controls")
+    control = relationship("Control", back_populates="assessment_links")
+
+
+class FindingComment(Base):
+    """Comments and updates on findings for tracking discussion"""
+    __tablename__ = "finding_comments"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    finding_id = Column(Integer, ForeignKey("findings.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    comment_text = Column(Text, nullable=False)
+    comment_type = Column(String(50), nullable=True)  # update, resolution, validation, general
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    finding = relationship("Finding", back_populates="comments")
+    user = relationship("User", foreign_keys=[user_id])
