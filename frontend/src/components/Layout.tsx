@@ -33,6 +33,7 @@ import {
   Business,
   BugReport,
   Policy,
+  RateReview,
 } from '@mui/icons-material'
 import { useLocation, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
@@ -73,6 +74,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { text: 'Dashboard', icon: Dashboard, path: '/dashboard' },
     { text: 'Assessments', icon: Policy, path: '/assessments' },
     { text: 'Findings', icon: BugReport, path: '/findings' },
+    { text: 'QA Review', icon: RateReview, path: '/qa-review' },
     { text: 'Controls', icon: Security, path: '/controls' },
     { text: 'Evidence', icon: Description, path: '/evidence' },
     { text: 'Projects', icon: Assignment, path: '/projects' },

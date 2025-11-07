@@ -16,6 +16,7 @@ import AssessmentsPage from './pages/AssessmentsPage'
 import AssessmentDetailPage from './pages/AssessmentDetailPage'
 import FindingsPage from './pages/FindingsPage'
 import FindingDetailPage from './pages/FindingDetailPage'
+import QAReviewPage from './pages/QAReviewPage'
 
 const App: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth()
@@ -42,6 +43,7 @@ const App: React.FC = () => {
         <Route path="/assessments/:id" element={<AssessmentDetailPage />} />
         <Route path="/findings" element={<FindingsPage />} />
         <Route path="/findings/:id" element={<FindingDetailPage />} />
+        <Route path="/qa-review" element={<QAReviewPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/controls" element={<ControlsPage />} />
         <Route path="/evidence" element={<EvidencePage />} />
