@@ -8,11 +8,8 @@ class Settings(BaseSettings):
     API_VERSION: str = "1.0.0"
     
     # Security settings
-    # ⚠️ Update ALLOWED_ORIGINS with your deployed frontend URL
+    # ALLOWED_ORIGINS should only include the deployed frontend URL in production
     ALLOWED_ORIGINS: List[str] = [
-        "*",  # DEVELOPMENT ONLY - allows all origins
-        "http://localhost:5173",  # Local Vite dev server
-        "http://localhost:3000",  # Local production build
         "https://ca-frontend-qca-dev.victoriousmushroom-f7d2d81f.westus2.azurecontainerapps.io",  # Azure DEV
     ]
     SECRET_KEY: str = "dev-secret-key-change-in-production"

@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 
 # A simple mapping tool that reads control_catalog entries via the API database
 # and calls OpenAI to propose IM8 domain mappings. This script is intended to be
-# run inside the MCP server container or Codespace where OPENAI_API_KEY is set.
+# run inside the MCP server container where OPENAI_API_KEY is set.
 
 # NOTE: this is a standalone script; in production this should be refactored into
 # an MCP tool module and use the project's DB session. For demo we will connect
