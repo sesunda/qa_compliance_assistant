@@ -64,7 +64,7 @@ const LoginPage: React.FC = () => {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            mb: 3,
+            mb: 2,
           }}
         >
           {/* Company Logo */}
@@ -75,10 +75,12 @@ const LoginPage: React.FC = () => {
             sx={{ 
               width: '280px', 
               height: 'auto',
-              mb: 2 
+              mb: 1,
+              display: 'block',
+              margin: '0 auto'
             }}
           />
-          <Typography component="h1" variant="h5" sx={{ fontWeight: 600, color: '#000' }}>
+          <Typography component="h1" variant="h5" sx={{ fontWeight: 600, color: '#000', mt: 1 }}>
             AI Compliance Assistant
           </Typography>
           <Typography variant="body1" color="textSecondary" sx={{ mt: 0.5 }}>

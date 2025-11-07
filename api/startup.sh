@@ -19,6 +19,11 @@ alembic upgrade head || {
     exit 1
 }
 
+# Seed default users and data
+echo "Seeding authentication system..."
+cd /app
+python -m api.scripts.seed_auth || echo "Warning: Failed to seed auth data (may already exist)"
+
 # Start the application from /app directory
 echo "Starting uvicorn server..."
 cd /app
