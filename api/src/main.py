@@ -134,3 +134,34 @@ async def run_migrations():
             "error": e.stderr,
             "message": "Migration failed"
         }
+
+
+@app.post("/admin/fix-alembic")
+async def fix_alembic_state():
+    """Fix alembic migration state - reset to migration 007"""
+    from api.src.database import SessionLocal
+    db = SessionLocal()
+    try:
+        # Check current version
+        result = db.execute("SELECT version_num FROM alembic_version").fetchall()
+        current_version = result[0][0] if result else "none"
+        
+        # Reset to migration 007 (last known good state)
+        db.execute("UPDATE alembic_version SET version_num = '007'")
+        db.commit()
+        
+        return {
+            "status": "success",
+            "previous_version": current_version,
+            "new_version": "007",
+            "message": "Alembic state reset. Now restart container to apply migrations 008->009->009_5->010"
+        }
+    except Exception as e:
+        db.rollback()
+        return {
+            "status": "error",
+            "error": str(e),
+            "message": "Failed to fix alembic state"
+        }
+    finally:
+        db.close()
