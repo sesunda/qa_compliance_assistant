@@ -1,8 +1,8 @@
 """Complete assessment workflows - findings, controls, assessments enhancements
 
 Revision ID: 010_complete_assessment_workflows
-Revises: 009_update_agent_tasks
-Create Date: 2025-11-07 12:00:00.000000
+Revises: 009_5
+Create Date: 2025-11-04 00:00:00.000000
 
 """
 from alembic import op
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '010_complete_assessment_workflows'
-down_revision = '009_update_agent_tasks'
+down_revision = '009_5'
 branch_labels = None
 depends_on = None
 
