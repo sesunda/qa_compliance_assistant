@@ -22,7 +22,6 @@ import {
 import {
   Add as AddIcon,
   Visibility as ViewIcon,
-  Edit as EditIcon,
   Delete as DeleteIcon,
   FilterList as FilterIcon
 } from '@mui/icons-material'

@@ -75,15 +75,6 @@ const AnalystDashboard: React.FC = () => {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'planning': return 'default'
-      case 'in_progress': return 'primary'
-      case 'completed': return 'success'
-      default: return 'default'
-    }
-  }
-
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical': return 'error'

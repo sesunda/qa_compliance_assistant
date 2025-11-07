@@ -23,7 +23,6 @@ import {
   Add as AddIcon,
   Visibility as ViewIcon,
   Warning as WarningIcon,
-  CheckCircle as ResolvedIcon,
   Block as FalsePositiveIcon
 } from '@mui/icons-material'
 import { useNavigate, useSearchParams } from 'react-router-dom'

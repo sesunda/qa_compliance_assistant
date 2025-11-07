@@ -11,6 +11,7 @@ export interface Finding {
   resolution_status: string
   assigned_to?: number
   assigned_to_username?: string
+  assigned_to_name?: string  // Added for FindingDetailPage
   resolved_by?: number
   resolved_by_username?: string
   validated_by?: number
@@ -18,11 +19,15 @@ export interface Finding {
   risk_rating?: string
   affected_systems?: string
   remediation_recommendation?: string
+  remediation_plan?: string  // Added for FindingDetailPage
   remediation_notes?: string
+  resolution_notes?: string  // Added for FindingDetailPage
   false_positive: boolean
+  is_false_positive?: boolean  // Alias for compatibility
   due_date?: string
   resolved_at?: string
   validated_at?: string
+  updated_at?: string  // Added for FindingDetailPage
   assessment_title: string
   control_name?: string
   comments_count: number
@@ -74,8 +79,10 @@ export interface FindingComment {
   finding_id: number
   user_id: number
   username: string
+  user_name: string  // Added alias for FindingDetailPage
   comment_type: string
   comment_text: string
+  comment: string  // Added alias for FindingDetailPage
   created_at: string
 }
 

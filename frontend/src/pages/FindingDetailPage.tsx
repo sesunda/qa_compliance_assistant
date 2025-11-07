@@ -23,7 +23,6 @@ import {
   ListItemAvatar,
   Avatar,
   IconButton,
-  Tooltip,
 } from '@mui/material'
 import {
   ArrowBack,
@@ -38,7 +37,6 @@ import {
   Person,
   CalendarToday,
   Error as ErrorIcon,
-  Warning,
 } from '@mui/icons-material'
 import findingsService, { Finding, FindingComment } from '../services/findings'
 
@@ -127,7 +125,7 @@ const FindingDetailPage: React.FC = () => {
 
     try {
       setActionLoading(true)
-      await findingsService.validate(parseInt(id!))
+      await findingsService.validate(parseInt(id!), true, 'Validation approved')
       await loadFindingData()
     } catch (err: any) {
       console.error('Failed to validate finding:', err)
@@ -142,7 +140,7 @@ const FindingDetailPage: React.FC = () => {
 
     try {
       setActionLoading(true)
-      await findingsService.markFalsePositive(parseInt(id!))
+      await findingsService.markFalsePositive(parseInt(id!), 'Marked as false positive')
       await loadFindingData()
     } catch (err: any) {
       console.error('Failed to mark as false positive:', err)
@@ -157,7 +155,7 @@ const FindingDetailPage: React.FC = () => {
 
     try {
       setActionLoading(true)
-      await findingsService.addComment(parseInt(id!), newComment.trim())
+      await findingsService.addComment(parseInt(id!), 'general', newComment.trim())
       setCommentDialogOpen(false)
       setNewComment('')
       await loadFindingData()

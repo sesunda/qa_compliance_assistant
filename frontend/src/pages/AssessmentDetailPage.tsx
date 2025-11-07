@@ -22,11 +22,17 @@ import {
   Slider
 } from '@mui/material'
 import {
-  ArrowBack as BackIcon,
-  Edit as EditIcon,
+  ArrowBack,
+  Edit,
+  BugReport,
+  CheckCircle,
+  Add,
   Assignment as AssignmentIcon,
-  CheckCircle as CompleteIcon,
-  Add as AddIcon
+  Timeline,
+  CalendarToday,
+  Person,
+  Policy,
+  TrendingUp,
 } from '@mui/icons-material'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
@@ -100,16 +106,6 @@ const AssessmentDetailPage: React.FC = () => {
     }
   }
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical': return 'error'
-      case 'high': return 'warning'
-      case 'medium': return 'info'
-      case 'low': return 'default'
-      default: return 'default'
-    }
-  }
-
   const canUpdateProgress = () => {
     const role = user?.role?.name?.toLowerCase()
     return assessment?.assigned_to === user?.id || ['admin', 'super_admin'].includes(role || '')
@@ -127,7 +123,7 @@ const AssessmentDetailPage: React.FC = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">{error || 'Assessment not found'}</Alert>
-        <Button startIcon={<BackIcon />} onClick={() => navigate('/assessments')} sx={{ mt: 2 }}>
+        <Button startIcon={<ArrowBack />} onClick={() => navigate('/assessments')} sx={{ mt: 2 }}>
           Back to Assessments
         </Button>
       </Box>
@@ -139,7 +135,7 @@ const AssessmentDetailPage: React.FC = () => {
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
         <IconButton onClick={() => navigate('/assessments')}>
-          <BackIcon />
+          <ArrowBack />
         </IconButton>
         <Box sx={{ flexGrow: 1 }}>
           <Typography variant="h4">{assessment.title}</Typography>
@@ -203,7 +199,7 @@ const AssessmentDetailPage: React.FC = () => {
                 {canUpdateProgress() && assessment.status !== 'completed' && (
                   <Button
                     size="small"
-                    startIcon={<EditIcon />}
+                    startIcon={<Edit />}
                     onClick={() => setProgressDialogOpen(true)}
                   >
                     Update Progress
@@ -311,7 +307,7 @@ const AssessmentDetailPage: React.FC = () => {
                 <Button
                   variant="outlined"
                   fullWidth
-                  startIcon={<AddIcon />}
+                  startIcon={<Add />}
                   onClick={() => navigate(`/findings/new?assessment_id=${assessment.id}`)}
                 >
                   Add Finding
@@ -322,8 +318,8 @@ const AssessmentDetailPage: React.FC = () => {
                     variant="contained"
                     fullWidth
                     color="success"
-                    startIcon={<CompleteIcon />}
-                    onClick={handleComplete}
+                    startIcon={<CheckCircle />}
+                    onClick={handleMarkComplete}
                   >
                     Mark as Complete
                   </Button>
