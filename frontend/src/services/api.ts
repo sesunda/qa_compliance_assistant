@@ -17,7 +17,8 @@ export const api = axios.create({
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  withCredentials: true // Ensure cookies are sent with requests
 })
 
 // Request interceptor

@@ -91,10 +91,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setToken(access_token)
       
       // Save token to cookie with SameSite=Lax for Azure deployment
+      // Set domain for Azure Container Apps so cookie is available to both frontend and API
+      const isAzure = window.location.hostname.includes('azurecontainerapps.io');
       Cookies.set('auth_token', access_token, { 
         expires: 1, // 1 day
         sameSite: 'lax',
-        secure: window.location.protocol === 'https:'
+        secure: window.location.protocol === 'https:',
+        ...(isAzure && { domain: '.victoriousmushroom-f7d2d81f.westus2.azurecontainerapps.io' })
       })
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
       
