@@ -62,9 +62,9 @@ variable "api_memory" {
 }
 
 variable "api_min_replicas" {
-  description = "Minimum replicas for API container"
+  description = "Minimum replicas for API container (0 for scale-to-zero cost optimization)"
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "api_max_replicas" {

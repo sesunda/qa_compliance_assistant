@@ -55,6 +55,21 @@ output "application_insights_instrumentation_key" {
   sensitive   = true
 }
 
+output "automation_account_name" {
+  description = "Automation Account name for scheduled start/stop"
+  value       = azurerm_automation_account.main.name
+}
+
+output "stop_schedule_time" {
+  description = "Container Apps stop time (SGT)"
+  value       = "8:00 PM SGT (Daily)"
+}
+
+output "start_schedule_time" {
+  description = "Container Apps start time (SGT)"
+  value       = "8:00 AM SGT (Daily)"
+}
+
 output "deployment_instructions" {
   description = "Next steps for deployment"
   value = <<-EOT
