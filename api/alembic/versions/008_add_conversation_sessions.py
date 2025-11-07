@@ -1,6 +1,6 @@
 """add conversation sessions
 
-Revision ID: 008
+Revision ID: 008_add_conversation_sessions
 Revises: 007
 Create Date: 2025-01-04 00:00:00.000000
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '008'
+revision = '008_add_conversation_sessions'
 down_revision = '007'
 branch_labels = None
 depends_on = None
