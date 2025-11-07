@@ -106,3 +106,28 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "healthy"}
+
+
+@app.post("/admin/migrate")
+async def run_migrations():
+    """Run database migrations - admin only endpoint"""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["alembic", "upgrade", "head"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return {
+            "status": "success",
+            "output": result.stdout,
+            "message": "Migrations completed successfully"
+        }
+    except subprocess.CalledProcessError as e:
+        return {
+            "status": "error",
+            "output": e.stdout,
+            "error": e.stderr,
+            "message": "Migration failed"
+        }
