@@ -27,6 +27,7 @@ class AIFindingAnalyzer:
             self.client = AzureOpenAI(
                 base_url="https://models.inference.ai.azure.com",
                 api_key=os.getenv("GITHUB_TOKEN"),
+                api_version="2024-05-01-preview"
             )
             self.model = os.getenv("AI_MODEL", "gpt-4o")  # Default to GPT-4o
         else:
