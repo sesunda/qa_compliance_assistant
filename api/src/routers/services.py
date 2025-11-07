@@ -269,9 +269,9 @@ def ai_suggest_remediation_priority(
 @router.post("/reports/generate/{assessment_id}")
 def generate_assessment_report(
     assessment_id: int,
+    background_tasks: BackgroundTasks,
     include_findings: bool = True,
     include_controls: bool = True,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
