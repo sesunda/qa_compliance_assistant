@@ -174,6 +174,7 @@ class Assessment(Base):
     controls_tested_count = Column(Integer, default=0, nullable=False)
     
     # Relationships
+    agency = relationship("Agency", foreign_keys=[agency_id])
     analyst = relationship("User", foreign_keys=[assigned_to])
     controls = relationship("AssessmentControl", back_populates="assessment", cascade="all, delete-orphan")
 
@@ -209,6 +210,8 @@ class Finding(Base):
     updated_at = Column(DateTime, nullable=True)
     
     # Relationships
+    assessment = relationship("Assessment", foreign_keys=[assessment_id])
+    control = relationship("Control", foreign_keys=[control_id])
     resolver = relationship("User", foreign_keys=[resolved_by])
     validator = relationship("User", foreign_keys=[validated_by])
     assignee = relationship("User", foreign_keys=[assigned_to])
