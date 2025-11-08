@@ -151,18 +151,16 @@ app.include_router(evidence.router)
 app.include_router(reports.router)
 app.include_router(control_catalog.router)
 
-# Import and include auth router
-from api.src.routers import auth, rag, agent_tasks, agencies, conversations
-# Phase 4/5 routers temporarily disabled (assessments, findings, analytics)
-# TODO: Re-enable after database migrations are restored
+# Import and include routers
+from api.src.routers import auth, rag, agent_tasks, agencies, conversations, assessments, findings, analytics
 app.include_router(auth.router)
 app.include_router(rag.router)
 app.include_router(agent_tasks.router)
 app.include_router(agencies.router)
 app.include_router(conversations.router)
-# app.include_router(assessments.router)  # Disabled - Phase 4/5
-# app.include_router(findings.router)     # Disabled - Phase 4/5
-# app.include_router(analytics.router)    # Disabled - Phase 4/5
+app.include_router(assessments.router)
+app.include_router(findings.router)
+app.include_router(analytics.router)
 
 
 @app.get("/")
