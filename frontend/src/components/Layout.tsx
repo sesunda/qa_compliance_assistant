@@ -80,6 +80,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { text: 'Projects', icon: Assignment, path: '/projects' },
     { text: 'Reports', icon: Assessment, path: '/reports' },
     { text: 'AI Assistant', icon: Psychology, path: '/rag' },
+    { text: 'Agentic AI', icon: SmartToy, path: '/agentic-chat' },
     { text: 'Agent Tasks', icon: SmartToy, path: '/agent-tasks' },
     { text: 'Agencies', icon: Business, path: '/agencies' },
     { text: 'Users', icon: People, path: '/users' },
