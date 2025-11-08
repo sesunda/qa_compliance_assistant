@@ -87,7 +87,7 @@ app.include_router(reports.router)
 app.include_router(control_catalog.router)
 
 # Import and include auth router
-from api.src.routers import auth, rag, agent_tasks, agencies, conversations, assessments, findings, analytics, services
+from api.src.routers import auth, rag, agent_tasks, agencies, conversations, assessments, findings, analytics
 app.include_router(auth.router)
 app.include_router(rag.router)
 app.include_router(agent_tasks.router)
@@ -96,7 +96,6 @@ app.include_router(conversations.router)
 app.include_router(assessments.router)
 app.include_router(findings.router)
 app.include_router(analytics.router)
-app.include_router(services.router)  # Phase 4 & 5 services
 
 
 @app.get("/")
