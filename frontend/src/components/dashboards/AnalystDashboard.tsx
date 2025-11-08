@@ -51,39 +51,34 @@ const AnalystDashboard: React.FC = () => {
     try {
       setLoading(true)
       
-      // Load all data in parallel
-      const [metricsData, workloadData, assessmentsData, findingsData] = await Promise.all([
-        analyticsService.getDashboard(),
-        analyticsService.getMyWorkload(),
-        assessmentsService.list({ assigned_to_me: true }),
-        findingsService.list({ 
-          severity: 'critical',
-          resolution_status: 'open'
-        })
-      ])
+      // Phase 4/5 features (assessments, findings, analytics) are temporarily disabled
+      // TODO: Re-enable when database tables are restored
+      
+      // Load only available data (Phase 1-3 features)
+      // const [metricsData, workloadData, assessmentsData, findingsData] = await Promise.all([
+      //   analyticsService.getDashboard(),
+      //   analyticsService.getMyWorkload(),
+      //   assessmentsService.list({ assigned_to_me: true }),
+      //   findingsService.list({ 
+      //     severity: 'critical',
+      //     resolution_status: 'open'
+      //   })
+      // ])
 
-      setMetrics(metricsData)
-      setWorkload(workloadData)
-      setMyAssessments(assessmentsData.filter(a => ['planning', 'in_progress'].includes(a.status)))
-      setCriticalFindings(findingsData.slice(0, 5)) // Top 5 critical
-      setError(null)
+      // setMetrics(metricsData)
+      // setWorkload(workloadData)
+      // setMyAssessments(assessmentsData.filter(a => ['planning', 'in_progress'].includes(a.status)))
+      // setCriticalFindings(findingsData.slice(0, 5)) // Top 5 critical
+      
+      // Set empty data for now
+      setMetrics(null)
+      setWorkload(null)
+      setMyAssessments([])
+      setCriticalFindings([])
+      setError('Phase 4/5 features (Assessments, Findings, Analytics) are temporarily unavailable. Please use Projects, Controls, Evidence, and RAG features.')
     } catch (err: any) {
       console.error('Failed to load dashboard:', err)
-      console.error('Error response:', err.response)
-      console.error('Error data:', err.response?.data)
-      
-      let errorMessage = 'Failed to load dashboard data'
-      if (err.response?.status === 404) {
-        errorMessage = 'API endpoint not found. The database migration may not have been applied yet.'
-      } else if (err.response?.status === 401 || err.response?.status === 403) {
-        errorMessage = 'Authentication error. Please log in again.'
-      } else if (err.response?.data?.detail) {
-        errorMessage = err.response.data.detail
-      } else if (err.message) {
-        errorMessage = err.message
-      }
-      
-      setError(errorMessage)
+      setError('Dashboard temporarily unavailable')
     } finally {
       setLoading(false)
     }
