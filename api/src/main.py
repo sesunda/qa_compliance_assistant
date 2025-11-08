@@ -57,20 +57,17 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Proxy headers middleware - MUST be first to detect HTTPS correctly
-class ProxyHeadersMiddleware(BaseHTTPMiddleware):
-    """Middleware to handle X-Forwarded-* headers from Azure proxy"""
-    async def dispatch(self, request: Request, call_next):
-        # Check for X-Forwarded-Proto header (set by Azure Application Gateway/Front Door)
-        forwarded_proto = request.headers.get("x-forwarded-proto")
-        if forwarded_proto == "https":
-            # Override the request URL scheme to https
-            request.scope["scheme"] = "https"
-        
-        response = await call_next(request)
-        return response
+# CRITICAL: Middleware order matters! They execute in REVERSE order of addition.
+# Add CORS first so it processes last (adds headers to final response)
 
-app.add_middleware(ProxyHeadersMiddleware)
+# CORS middleware - MUST be added first
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Add OPTIONS for preflight
+    allow_headers=["Content-Type", "Authorization"],
+)
 
 # Security headers middleware
 @app.middleware("http")
@@ -85,16 +82,20 @@ async def add_security_headers(request: Request, call_next):
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
 
-# CORS middleware - CONFIGURED FOR DEVELOPMENT
-# ⚠️ WARNING: For production, replace "*" with specific domains
-# Example: allow_origins=["https://yourapp.com", "https://admin.yourapp.com"]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,  # Now configurable
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],  # Specific methods only
-    allow_headers=["Content-Type", "Authorization"],  # Specific headers only
-)
+# Proxy headers middleware - handles X-Forwarded-Proto from Azure
+class ProxyHeadersMiddleware(BaseHTTPMiddleware):
+    """Middleware to handle X-Forwarded-* headers from Azure proxy"""
+    async def dispatch(self, request: Request, call_next):
+        # Check for X-Forwarded-Proto header (set by Azure Application Gateway/Front Door)
+        forwarded_proto = request.headers.get("x-forwarded-proto")
+        if forwarded_proto == "https":
+            # Override the request URL scheme to https
+            request.scope["scheme"] = "https"
+        
+        response = await call_next(request)
+        return response
+
+app.add_middleware(ProxyHeadersMiddleware)
 
 # Include routers
 app.include_router(projects.router)
