@@ -15,8 +15,12 @@ COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy startup script early (rarely changes)
+RUN pwd && ls -al
 COPY startup.sh /app/startup.sh
 RUN chmod +x /app/startup.sh
+RUN echo "copy done"
+RUN tail -10 /app/startup.sh 
+
 
 # Copy application code LAST (changes most frequently)
 COPY . /app/api/
