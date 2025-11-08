@@ -1,7 +1,8 @@
 # Trivial change for redeployment trigger
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from contextlib import asynccontextmanager
 import asyncio
@@ -96,6 +97,52 @@ class ProxyHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 app.add_middleware(ProxyHeadersMiddleware)
+
+# Exception handler to ensure CORS headers on errors
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Global exception handler that ensures CORS headers are always added,
+    even when exceptions occur before response middleware runs.
+    """
+    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    
+    # Create error response
+    response = JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Internal server error",
+            "error": str(exc) if settings.API_VERSION == "dev" else "An error occurred"
+        }
+    )
+    
+    # Manually add CORS headers
+    origin = request.headers.get("origin")
+    if origin in settings.ALLOWED_ORIGINS:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Vary"] = "Origin"
+    
+    return response
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """
+    HTTP exception handler that ensures CORS headers on HTTP errors.
+    """
+    response = JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+    
+    # Manually add CORS headers
+    origin = request.headers.get("origin")
+    if origin in settings.ALLOWED_ORIGINS:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Vary"] = "Origin"
+    
+    return response
 
 # Include routers
 app.include_router(projects.router)
