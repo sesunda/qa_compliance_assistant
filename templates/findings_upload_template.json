@@ -1,0 +1,95 @@
+{
+  "task_type": "bulk_upload_findings",
+  "title": "Bulk Upload Security Findings",
+  "description": "Import multiple findings from VAPT or security assessment",
+  "payload": {
+    "assessment_id": 1,
+    "findings": [
+      {
+        "title": "SQL Injection Vulnerability in Login Form",
+        "description": "The login form on /auth/login endpoint does not properly sanitize user input, allowing SQL injection attacks. An attacker can bypass authentication by injecting malicious SQL code.",
+        "severity": "critical",
+        "cve": "N/A",
+        "cvss": "9.8",
+        "remediation": "Implement parameterized queries or prepared statements for all database interactions. Use input validation and sanitization. Consider using an ORM framework that automatically prevents SQL injection.",
+        "evidence": {
+          "poc": "username: admin' OR '1'='1' -- ",
+          "affected_endpoint": "/auth/login",
+          "test_date": "2025-11-08",
+          "tester": "Security Team"
+        },
+        "resolution_status": "open",
+        "assigned_to": null,
+        "due_date": "2025-11-30",
+        "priority": "critical",
+        "control_id": 1,
+        "remediation_notes": "Priority 1: Must be fixed before production release"
+      },
+      {
+        "title": "Missing Security Headers",
+        "description": "The application does not implement critical security headers including X-Frame-Options, X-Content-Type-Options, and Content-Security-Policy. This leaves the application vulnerable to clickjacking and XSS attacks.",
+        "severity": "high",
+        "cve": "N/A",
+        "cvss": "6.5",
+        "remediation": "Configure web server or application to include the following headers: X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Content-Security-Policy: default-src 'self', Strict-Transport-Security: max-age=31536000",
+        "evidence": {
+          "missing_headers": [
+            "X-Frame-Options",
+            "X-Content-Type-Options",
+            "Content-Security-Policy",
+            "Strict-Transport-Security"
+          ],
+          "test_date": "2025-11-08"
+        },
+        "resolution_status": "open",
+        "assigned_to": null,
+        "due_date": "2025-12-15",
+        "priority": "high",
+        "control_id": null,
+        "remediation_notes": "Can be implemented through middleware or web server configuration"
+      },
+      {
+        "title": "Weak Password Policy",
+        "description": "The current password policy allows passwords with only 6 characters and does not enforce complexity requirements. This makes user accounts vulnerable to brute force attacks.",
+        "severity": "medium",
+        "cve": "N/A",
+        "cvss": "5.3",
+        "remediation": "Update password policy to require: minimum 12 characters, at least one uppercase letter, one lowercase letter, one number, and one special character. Implement account lockout after 5 failed attempts.",
+        "evidence": {
+          "current_policy": "Minimum 6 characters, no complexity",
+          "test_account": "test123 (accepted)",
+          "test_date": "2025-11-08"
+        },
+        "resolution_status": "open",
+        "assigned_to": null,
+        "due_date": "2025-12-31",
+        "priority": "medium",
+        "control_id": 2,
+        "remediation_notes": "Should align with IM8 AC-2 requirements"
+      },
+      {
+        "title": "Insufficient Audit Logging",
+        "description": "The application does not log security-relevant events such as failed login attempts, privilege escalation attempts, and data access by administrative users. This limits incident response capabilities.",
+        "severity": "medium",
+        "cve": "N/A",
+        "cvss": "4.3",
+        "remediation": "Implement comprehensive audit logging for all security-relevant events. Ensure logs include timestamp, user identifier, event type, source IP, and outcome. Retain logs for at least 90 days.",
+        "evidence": {
+          "missing_log_events": [
+            "Failed login attempts",
+            "Privilege escalation",
+            "Admin data access",
+            "Configuration changes"
+          ],
+          "test_date": "2025-11-08"
+        },
+        "resolution_status": "open",
+        "assigned_to": null,
+        "due_date": "2026-01-15",
+        "priority": "medium",
+        "control_id": null,
+        "remediation_notes": "Required for IM8 AU-1 and AU-2 compliance"
+      }
+    ]
+  }
+}

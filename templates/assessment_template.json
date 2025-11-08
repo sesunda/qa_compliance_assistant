@@ -1,0 +1,41 @@
+{
+  "task_type": "create_assessment",
+  "title": "Create New Security Assessment",
+  "description": "Create a comprehensive security assessment with AI assistance",
+  "payload": {
+    "assessment_data": {
+      "title": "Q4 2025 IM8 Compliance Assessment",
+      "assessment_type": "compliance_audit",
+      "framework": "IM8",
+      "scope": "Full organization IM8 compliance review covering all 8 domains: 1) Access Control, 2) Awareness and Training, 3) Audit and Accountability, 4) Security Assessment, 5) Configuration Management, 6) Identification and Authentication, 7) Incident Response, 8) System and Information Integrity",
+      "performed_by": "Internal Audit Team",
+      "period_start": "2025-10-01",
+      "period_end": "2025-12-31",
+      "target_completion_date": "2025-12-31",
+      "metadata": {
+        "assessment_methodology": "NIST SP 800-53 Rev 5",
+        "assessment_scope": "All information systems and applications",
+        "stakeholders": [
+          "CISO",
+          "IT Security Team",
+          "Compliance Officer"
+        ],
+        "key_focus_areas": [
+          "Access Control Implementation",
+          "Audit Log Management",
+          "Incident Response Procedures",
+          "Configuration Management"
+        ]
+      }
+    },
+    "controls_to_test": [
+      "AC-1",
+      "AC-2",
+      "AU-1",
+      "AU-2",
+      "IR-1",
+      "CM-1"
+    ],
+    "assigned_to_user_id": null
+  }
+}

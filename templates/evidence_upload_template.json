@@ -1,0 +1,76 @@
+{
+  "task_type": "fetch_evidence",
+  "title": "Upload Evidence Documents",
+  "description": "Upload and link evidence to compliance controls with AI-powered analysis",
+  "payload": {
+    "project_id": 1,
+    "sources": [
+      {
+        "type": "file",
+        "location": "/storage/evidence/access_control_policy_v2.0.pdf",
+        "control_id": 1,
+        "description": "Access Control Policy Document Version 2.0 - Approved by CISO on 2025-01-15",
+        "evidence_type": "policy",
+        "metadata": {
+          "document_version": "2.0",
+          "approval_date": "2025-01-15",
+          "approver": "Chief Information Security Officer",
+          "review_date": "2026-01-15",
+          "classification": "Internal Use Only"
+        }
+      },
+      {
+        "type": "file",
+        "location": "/storage/evidence/user_access_review_q3_2025.xlsx",
+        "control_id": 2,
+        "description": "Quarterly User Access Review - Q3 2025",
+        "evidence_type": "audit_log",
+        "metadata": {
+          "review_period": "Q3 2025",
+          "reviewer": "IT Security Team",
+          "accounts_reviewed": 450,
+          "accounts_disabled": 12,
+          "review_date": "2025-09-30"
+        }
+      },
+      {
+        "type": "file",
+        "location": "/storage/evidence/audit_log_configuration.json",
+        "control_id": 3,
+        "description": "Audit Logging Configuration - All Systems",
+        "evidence_type": "configuration",
+        "metadata": {
+          "systems_covered": [
+            "Application Server",
+            "Database Server",
+            "Authentication Server",
+            "Network Devices"
+          ],
+          "log_retention_days": 90,
+          "last_updated": "2025-10-01"
+        }
+      },
+      {
+        "type": "screenshot",
+        "location": "/storage/evidence/security_dashboard_nov2025.png",
+        "control_id": null,
+        "description": "Security Dashboard showing real-time monitoring capabilities",
+        "evidence_type": "screenshot",
+        "metadata": {
+          "capture_date": "2025-11-08",
+          "showing": "Real-time security event monitoring",
+          "resolution": "1920x1080"
+        }
+      }
+    ],
+    "created_by": 1,
+    "verification_status": "pending",
+    "ai_analysis_requested": true,
+    "analysis_tasks": [
+      "extract_metadata",
+      "validate_completeness",
+      "suggest_control_mappings",
+      "quality_score"
+    ]
+  }
+}

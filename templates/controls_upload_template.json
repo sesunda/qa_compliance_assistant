@@ -1,0 +1,64 @@
+{
+  "task_type": "bulk_upload_controls",
+  "title": "Bulk Upload Controls",
+  "description": "Upload multiple controls from compliance framework",
+  "payload": {
+    "project_id": 1,
+    "controls": [
+      {
+        "name": "AC-1: Access Control Policy and Procedures",
+        "description": "The organization develops, documents, and disseminates access control policies and procedures",
+        "control_type": "Access Control",
+        "status": "pending",
+        "framework": "IM8",
+        "control_id": "AC-1",
+        "category": "Access Control",
+        "requirement_level": "Mandatory",
+        "implementation_guidance": "Develop and maintain documented access control policies that address purpose, scope, roles, responsibilities, management commitment, coordination, and compliance. Review and update the policy at least annually.",
+        "evidence_requirements": [
+          "Access Control Policy Document",
+          "Access Control Procedures Manual",
+          "Annual Review Records"
+        ],
+        "testing_frequency": "Annual",
+        "assessment_score": null
+      },
+      {
+        "name": "AC-2: Account Management",
+        "description": "The organization manages information system accounts including establishing, activating, modifying, reviewing, disabling, and removing accounts",
+        "control_type": "Access Control",
+        "status": "pending",
+        "framework": "IM8",
+        "control_id": "AC-2",
+        "category": "Access Control",
+        "requirement_level": "Mandatory",
+        "implementation_guidance": "Establish procedures for account management including account creation, modification, and termination. Maintain audit trail of all account activities.",
+        "evidence_requirements": [
+          "Account Management Procedures",
+          "User Access Forms",
+          "Account Review Logs"
+        ],
+        "testing_frequency": "Quarterly",
+        "assessment_score": null
+      },
+      {
+        "name": "AU-1: Audit and Accountability Policy and Procedures",
+        "description": "The organization develops, documents, and disseminates audit and accountability policies and procedures",
+        "control_type": "Audit and Accountability",
+        "status": "pending",
+        "framework": "IM8",
+        "control_id": "AU-1",
+        "category": "Audit and Accountability",
+        "requirement_level": "Mandatory",
+        "implementation_guidance": "Develop comprehensive audit policy covering what events to log, log retention periods, and log review procedures. Ensure logs are protected from unauthorized access.",
+        "evidence_requirements": [
+          "Audit and Accountability Policy",
+          "Logging Configuration Documentation",
+          "Log Review Procedures"
+        ],
+        "testing_frequency": "Annual",
+        "assessment_score": null
+      }
+    ]
+  }
+}
