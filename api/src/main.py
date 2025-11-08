@@ -1,6 +1,8 @@
 # Trivial change for redeployment trigger
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from contextlib import asynccontextmanager
 import asyncio
 import logging
@@ -54,6 +56,21 @@ app = FastAPI(
     version=settings.API_VERSION,
     lifespan=lifespan
 )
+
+# Proxy headers middleware - MUST be first to detect HTTPS correctly
+class ProxyHeadersMiddleware(BaseHTTPMiddleware):
+    """Middleware to handle X-Forwarded-* headers from Azure proxy"""
+    async def dispatch(self, request: Request, call_next):
+        # Check for X-Forwarded-Proto header (set by Azure Application Gateway/Front Door)
+        forwarded_proto = request.headers.get("x-forwarded-proto")
+        if forwarded_proto == "https":
+            # Override the request URL scheme to https
+            request.scope["scheme"] = "https"
+        
+        response = await call_next(request)
+        return response
+
+app.add_middleware(ProxyHeadersMiddleware)
 
 # Security headers middleware
 @app.middleware("http")
