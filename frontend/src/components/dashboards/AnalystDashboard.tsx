@@ -30,9 +30,16 @@ import {
   Error as ErrorIcon,
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
-import analyticsService, { DashboardMetrics, WorkloadData } from '../../services/analytics'
-import assessmentsService, { AssessmentListItem } from '../../services/assessments'
-import findingsService, { FindingListItem } from '../../services/findings'
+// Phase 4/5 services temporarily disabled
+// import analyticsService, { DashboardMetrics, WorkloadData } from '../../services/analytics'
+// import assessmentsService, { AssessmentListItem } from '../../services/assessments'
+// import findingsService, { FindingListItem } from '../../services/findings'
+
+// Temporary type definitions for disabled features
+type DashboardMetrics = any
+type WorkloadData = any
+type AssessmentListItem = any
+type FindingListItem = any
 
 const AnalystDashboard: React.FC = () => {
   const navigate = useNavigate()
