@@ -50,4 +50,5 @@ python -m api.scripts.seed_auth || echo "Warning: Failed to seed auth data (may 
 # Start the application from /app directory
 echo "Starting uvicorn server..."
 cd /app
+echo "Uvicorn command: exec uvicorn api.src.main:app --host 0.0.0.0 --port 8000 --proxy-headers"
 exec uvicorn api.src.main:app --host 0.0.0.0 --port 8000 --proxy-headers
