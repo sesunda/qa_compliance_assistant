@@ -49,6 +49,10 @@ jobs:
     name: Build and Push Docker Images
     runs-on: ubuntu-latest
     needs: get-acr-name
+    outputs:
+      build_api: ${{ steps.changes.outputs.build_api }}
+      build_mcp: ${{ steps.changes.outputs.build_mcp }}
+      build_frontend: ${{ steps.changes.outputs.build_frontend }}
     
     steps:
       - name: Checkout code
@@ -87,41 +91,52 @@ jobs:
             echo "Frontend unchanged - skipping"
           fi
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Azure Login
+        if: steps.changes.outputs.build_api == 'true' || steps.changes.outputs.build_mcp == 'true' || steps.changes.outputs.build_frontend == 'true'
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Login to Azure Container Registry
+        if: steps.changes.outputs.build_api == 'true' || steps.changes.outputs.build_mcp == 'true' || steps.changes.outputs.build_frontend == 'true'
         run: |
           az acr login --name ${{ needs.get-acr-name.outputs.acr_name }}
 
       - name: Build and push API image
         if: steps.changes.outputs.build_api == 'true'
         run: |
-          docker build -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:${{ github.sha }} \
-                       -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:latest \
-                       ./api
-          docker push ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:${{ github.sha }}
-          docker push ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:latest
+          docker buildx build \
+            --cache-from=type=registry,ref=${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:latest \
+            --cache-to=type=inline \
+            --push \
+            -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:${{ github.sha }} \
+            -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:latest \
+            ./api
 
       - name: Build and push MCP Server image
         if: steps.changes.outputs.build_mcp == 'true'
         run: |
-          docker build -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:${{ github.sha }} \
-                       -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:latest \
-                       ./mcp_server
-          docker push ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:${{ github.sha }}
-          docker push ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:latest
+          docker buildx build \
+            --cache-from=type=registry,ref=${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:latest \
+            --cache-to=type=inline \
+            --push \
+            -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:${{ github.sha }} \
+            -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:latest \
+            ./mcp_server
 
       - name: Build and push Frontend image
         if: steps.changes.outputs.build_frontend == 'true'
         run: |
-          docker build -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:${{ github.sha }} \
-                       -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest \
-                       ./frontend
-          docker push ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:${{ github.sha }}
-          docker push ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest
+          docker buildx build \
+            --cache-from=type=registry,ref=${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest \
+            --cache-to=type=inline \
+            --push \
+            -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:${{ github.sha }} \
+            -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest \
+            ./frontend
 
   deploy-containers:
     name: Deploy to Azure Container Apps  
