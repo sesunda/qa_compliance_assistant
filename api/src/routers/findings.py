@@ -153,7 +153,7 @@ async def list_findings(
     
     # Load relationships
     query = query.options(
-        joinedload(Finding.assigned_user),
+        joinedload(Finding.assignee),
         joinedload(Finding.assessment)
     )
     
@@ -170,7 +170,7 @@ async def list_findings(
             "severity": finding.severity,
             "priority": finding.priority,
             "resolution_status": finding.resolution_status,
-            "assigned_to": finding.assigned_user.username if finding.assigned_user else None,
+            "assigned_to": finding.assignee.username if finding.assignee else None,
             "due_date": finding.due_date,
             "assessment_title": finding.assessment.title,
             "created_at": finding.created_at,
@@ -190,9 +190,9 @@ async def get_finding(
     user = db.query(User).filter(User.id == current_user["id"]).first()
     
     finding = db.query(Finding).join(Assessment).options(
-        joinedload(Finding.assigned_user),
-        joinedload(Finding.resolved_by_user),
-        joinedload(Finding.validated_by_user),
+        joinedload(Finding.assignee),
+        joinedload(Finding.resolver),
+        joinedload(Finding.validator),
         joinedload(Finding.assessment),
         joinedload(Finding.control)
     ).filter(
@@ -213,9 +213,9 @@ async def get_finding(
     
     return {
         **finding.__dict__,
-        "assigned_to_username": finding.assigned_user.username if finding.assigned_user else None,
-        "resolved_by_username": finding.resolved_by_user.username if finding.resolved_by_user else None,
-        "validated_by_username": finding.validated_by_user.username if finding.validated_by_user else None,
+        "assigned_to_username": finding.assignee.username if finding.assignee else None,
+        "resolved_by_username": finding.resolver.username if finding.resolver else None,
+        "validated_by_username": finding.validator.username if finding.validator else None,
         "assessment_title": finding.assessment.title,
         "control_name": finding.control.name if finding.control else None,
         "comments_count": comments_count

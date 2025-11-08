@@ -111,7 +111,7 @@ async def list_assessments(
     
     # Load relationships
     query = query.options(
-        joinedload(Assessment.assigned_user)
+        joinedload(Assessment.analyst)
     )
     
     assessments = query.order_by(Assessment.created_at.desc()).all()
@@ -134,7 +134,7 @@ async def list_assessments(
             "framework": assessment.framework,
             "status": assessment.status,
             "progress_percentage": assessment.progress_percentage,
-            "assigned_to": assessment.assigned_user.username if assessment.assigned_user else None,
+            "assigned_to": assessment.analyst.username if assessment.analyst else None,
             "findings_count": findings_count,
             "controls_tested_count": controls_count,
             "target_completion_date": assessment.target_completion_date,
@@ -154,7 +154,7 @@ async def get_assessment(
     user = db.query(User).filter(User.id == current_user["id"]).first()
     
     assessment = db.query(Assessment).options(
-        joinedload(Assessment.assigned_user),
+        joinedload(Assessment.analyst),
         joinedload(Assessment.agency)
     ).filter(
         Assessment.id == assessment_id,
@@ -191,7 +191,7 @@ async def get_assessment(
         "findings_resolved": resolved_findings,
         "findings_by_severity": findings_by_severity,
         "controls_tested_count": len(controls),
-        "assigned_to_username": assessment.assigned_user.username if assessment.assigned_user else None
+        "assigned_to_username": assessment.analyst.username if assessment.analyst else None
     }
 
 
