@@ -69,11 +69,17 @@ class LLMService:
         # Build context-aware system prompt
         context_info = ""
         if conversation_context:
-            context_info = f"\n\nCONVERSATION CONTEXT (previous information collected):\n{json.dumps(conversation_context, indent=2)}\n\nMerge this context with any new information from the user's message."
+            context_info = f"\n\nCONVERSATION CONTEXT (previous information collected):\n{json.dumps(conversation_context, indent=2)}\n\nIMPORTANT: Merge this context with any new information from the user's message. If the user provides a parameter value (like a number or ID), add it to the parameters from the context. For example, if context shows missing 'project_id' and user says '1' or '001', set parameters.project_id = 1."
         
         system_prompt = f"""You are an AI assistant for a compliance management system that uses CONVERSATIONAL information gathering.
 
 Your task: Parse the user's request and identify what information is still needed.
+
+CRITICAL RULES FOR MULTI-TURN CONVERSATIONS:
+1. If user provides a simple answer (number, ID, name) after you asked a question, interpret it as the answer to that question
+2. Look at missing_parameters in context - if user provides a value, add it to parameters
+3. Examples: "1" or "001" → project_id: 1, "project 5" → project_id: 5, "all domains" → domain_areas: all
+4. Convert string IDs to integers when appropriate
 
 REQUIRED PARAMETERS by action:
 - create_controls: project_id (required - must exist in database), framework (default: IM8), count (default: 30), domain_areas (default: all)
