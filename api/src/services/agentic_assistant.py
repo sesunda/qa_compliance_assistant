@@ -237,12 +237,12 @@ class AgenticAssistant:
                             "include_evidence": {
                                 "type": "boolean",
                                 "description": "Include evidence analysis in assessment",
-                                "default": true
+                                "default": True
                             },
                             "generate_recommendations": {
                                 "type": "boolean",
                                 "description": "Generate AI recommendations for gaps",
-                                "default": true
+                                "default": True
                             }
                         },
                         "required": ["project_id"]
