@@ -293,19 +293,27 @@ async def handle_create_controls_task(task_id: int, payload: Dict[str, Any], db:
         # Create control records in database
         created_controls = []
         for idx, control_data in enumerate(controls_data):
+            # Map LLM-generated data to actual Control model fields
+            # Store framework info in control_type field (e.g., "IM8-AC-01")
+            control_type = control_data.get("control_id", f"{framework}-{idx+1:03d}")
+            
+            # Combine implementation guidance and evidence requirements into description
+            description = control_data.get("description", "")
+            implementation = control_data.get("implementation_guidance")
+            if implementation:
+                description += f"\n\nImplementation Guidance:\n{implementation}"
+            evidence_reqs = control_data.get("evidence_requirements", [])
+            if evidence_reqs:
+                description += f"\n\nEvidence Requirements:\n" + "\n".join(f"- {req}" for req in evidence_reqs)
+            
             control = Control(
                 agency_id=agency_id,
                 project_id=project_id,
                 name=control_data.get("name"),
-                description=control_data.get("description"),
-                control_type=control_data.get("control_type"),
+                description=description,
+                control_type=control_type,
                 status="pending",
-                framework=framework,
-                control_id=control_data.get("control_id"),
-                category=control_data.get("category"),
-                requirement_level=control_data.get("requirement_level", "Mandatory"),
-                implementation_guidance=control_data.get("implementation_guidance"),
-                evidence_requirements=control_data.get("evidence_requirements", []),
+                test_procedure=control_data.get("implementation_guidance", "To be defined"),
                 testing_frequency=control_data.get("testing_frequency", "Annual")
             )
             db.add(control)
