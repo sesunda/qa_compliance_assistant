@@ -25,7 +25,6 @@ import {
   Security,
   Description,
   Assessment,
-  Psychology,
   People,
   AccountCircle,
   Logout,
