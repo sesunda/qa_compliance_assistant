@@ -100,11 +100,54 @@ async def process_chat_message(
             conversation_context=conversation_context
         )
         
+        # Store original message for findings description
+        intent["original_message"] = chat_message.message
+        
         # Check if we have all required parameters
         is_ready = intent.get("is_ready", False)
         missing_params = intent.get("missing_parameters", [])
         
-        # If expert mode detected or all params ready, execute immediately
+        # CRITICAL: Validate parameters exist in database before marking as ready
+        action = intent.get("action")
+        parameters = intent.get("parameters", {})
+        
+        if is_ready and action:
+            # Validate against database
+            is_valid, validation_missing, error_msg = llm_service.validate_parameters(
+                action=action,
+                parameters=parameters,
+                db_session=db,
+                user=user
+            )
+            
+            if not is_valid:
+                # Database validation failed
+                if error_msg:
+                    # Entity doesn't exist - ask user to clarify
+                    return ChatResponse(
+                        response=f"❌ {error_msg}\n\nPlease provide a valid ID or ask me to show available options.",
+                        task_created=False,
+                        is_clarifying=True,
+                        clarifying_question=error_msg,
+                        suggested_responses=[
+                            "Show me available projects" if "project" in error_msg.lower() else
+                            "Show me available assessments" if "assessment" in error_msg.lower() else
+                            "Show me available controls" if "control" in error_msg.lower() else
+                            "List all evidence items"
+                        ],
+                        conversation_context=intent,
+                        parameters_collected=parameters,
+                        parameters_missing=validation_missing,
+                        conversation_id=chat_message.conversation_id or f"conv_{current_user['id']}_{int(datetime.now().timestamp())}",
+                        can_edit=True,
+                        intent=intent
+                    )
+                else:
+                    # Missing required params
+                    is_ready = False
+                    missing_params.extend(validation_missing)
+        
+        # If expert mode detected or all params ready AND validated, execute immediately
         if is_ready:
             return await _execute_task(intent, user, db, chat_message.conversation_id or "")
         
@@ -173,52 +216,70 @@ async def _execute_task(
     }
     
     if action == "create_controls":
-            task_type = "create_controls"
-            task_title = f"Generate {count or 30} {parameters.get('framework', 'IM8')} Controls"
-            task_payload.update({
-                "framework": parameters.get("framework", "IM8"),
-                "count": count or 30,
-                "domain_areas": parameters.get("domain_areas", [
-                    "IM8-01", "IM8-02", "IM8-03", "IM8-04", "IM8-05",
-                    "IM8-06", "IM8-07", "IM8-08", "IM8-09", "IM8-10"
-                ]),
-                "project_id": parameters.get("project_id", 1)
-            })
-            response_text = f"✅ I'll generate {count or 30} {parameters.get('framework', 'IM8')} security controls for you. This may take a minute..."
+        task_type = "create_controls"
+        framework = parameters.get("framework", "IM8")
+        project_id = parameters.get("project_id")  # REQUIRED - no default
         
-        elif action == "create_findings":
-            task_type = "create_findings"
-            assessment_id = parameters.get("assessment_id", 1)
-            task_title = f"Generate Security Findings for Assessment {assessment_id}"
-            task_payload.update({
-                "findings_description": chat_message.message,
-                "assessment_id": assessment_id,
-                "framework": parameters.get("framework", "IM8"),
-                "assigned_to": user.id
-            })
-            response_text = f"✅ I'll create the security findings and link them to assessment {assessment_id}. Processing..."
+        if not project_id:
+            raise ValueError("project_id is required for create_controls")
         
-        elif action == "analyze_evidence":
-            task_type = "analyze_evidence"
-            control_id = parameters.get("control_id", 1)
-            evidence_ids = parameters.get("evidence_ids", [])
-            task_title = f"AI Evidence Analysis for Control {control_id}"
-            task_payload.update({
-                "control_id": control_id,
-                "evidence_ids": evidence_ids
-            })
-            response_text = f"✅ I'll analyze the evidence items against control requirements. This will take a moment..."
+        task_title = f"Generate {count or 30} {framework} Controls"
+        task_payload.update({
+            "framework": framework,
+            "count": count or 30,
+            "domain_areas": parameters.get("domain_areas", [
+                "IM8-01", "IM8-02", "IM8-03", "IM8-04", "IM8-05",
+                "IM8-06", "IM8-07", "IM8-08", "IM8-09", "IM8-10"
+            ]),
+            "project_id": project_id
+        })
+        response_text = f"✅ I'll generate {count or 30} {framework} security controls for you. This may take a minute..."
+    
+    elif action == "create_findings":
+        task_type = "create_findings"
+        assessment_id = parameters.get("assessment_id")  # REQUIRED - no default
         
-        elif action == "generate_report":
-            task_type = "generate_compliance_report"
-            assessment_id = parameters.get("assessment_id", 1)
-            report_type = parameters.get("report_type", "executive")
-            task_title = f"Generate {report_type.title()} Compliance Report"
-            task_payload.update({
-                "assessment_id": assessment_id,
-                "report_type": report_type
-            })
-            response_text = f"✅ I'll generate the {report_type} compliance report for assessment {assessment_id}. Compiling data..."
+        if not assessment_id:
+            raise ValueError("assessment_id is required for create_findings")
+        
+        task_title = f"Generate Security Findings for Assessment {assessment_id}"
+        task_payload.update({
+            "findings_description": intent.get("original_message", ""),
+            "assessment_id": assessment_id,
+            "framework": parameters.get("framework", "IM8"),
+            "assigned_to": user.id
+        })
+        response_text = f"✅ I'll create the security findings and link them to assessment {assessment_id}. Processing..."
+    
+    elif action == "analyze_evidence":
+        task_type = "analyze_evidence"
+        control_id = parameters.get("control_id")  # REQUIRED - no default
+        
+        if not control_id:
+            raise ValueError("control_id is required for analyze_evidence")
+        
+        evidence_ids = parameters.get("evidence_ids", [])
+        task_title = f"AI Evidence Analysis for Control {control_id}"
+        task_payload.update({
+            "control_id": control_id,
+            "evidence_ids": evidence_ids
+        })
+        response_text = f"✅ I'll analyze the evidence items against control requirements. This will take a moment..."
+    
+    elif action == "generate_report":
+        task_type = "generate_compliance_report"
+        assessment_id = parameters.get("assessment_id")  # REQUIRED - no default
+        
+        if not assessment_id:
+            raise ValueError("assessment_id is required for generate_report")
+        
+        report_type = parameters.get("report_type", "executive")
+        task_title = f"Generate {report_type.title()} Compliance Report"
+        task_payload.update({
+            "assessment_id": assessment_id,
+            "report_type": report_type
+        })
+        response_text = f"✅ I'll generate the {report_type} compliance report for assessment {assessment_id}. Compiling data..."
         
         else:
             return ChatResponse(

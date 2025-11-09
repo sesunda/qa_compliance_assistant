@@ -76,10 +76,12 @@ class LLMService:
 Your task: Parse the user's request and identify what information is still needed.
 
 REQUIRED PARAMETERS by action:
-- create_controls: project_id (required), framework (default: IM8), count (default: 30), domain_areas (default: all)
-- create_findings: assessment_id (required), findings_description (from user message)
-- analyze_evidence: control_id (required), evidence_ids (required)
-- generate_report: assessment_id (required), report_type (default: executive)
+- create_controls: project_id (required - must exist in database), framework (default: IM8), count (default: 30), domain_areas (default: all)
+- create_findings: assessment_id (required - must exist in database), findings_description (from user message)
+- analyze_evidence: control_id (required - must exist in database), evidence_ids (optional - can be all evidence for that control)
+- generate_report: assessment_id (required - must exist in database), report_type (default: executive)
+
+CRITICAL: Do NOT mark as is_ready=true if required parameters are missing OR use placeholders like "control 5" without validation.
 
 SMART DEFAULTS (use these if not specified):
 - framework: "IM8"
@@ -204,6 +206,30 @@ Response: {{
                 if suggestions:
                     suggestions.append("Show all assessments")
             
+            elif parameter_name == "control_id":
+                # Fetch recent controls
+                from api.src.models import Control
+                controls = db_session.query(Control).filter(
+                    Control.agency_id == user.agency_id
+                ).order_by(Control.created_at.desc()).limit(5).all()
+                
+                suggestions = [f"Control {c.id}: {c.name}" for c in controls]
+                if suggestions:
+                    suggestions.append("Show all controls")
+                else:
+                    suggestions = ["Create controls first"]
+            
+            elif parameter_name == "evidence_ids":
+                # Fetch recent evidence
+                from api.src.models import Evidence
+                evidence = db_session.query(Evidence).filter(
+                    Evidence.agency_id == user.agency_id
+                ).order_by(Evidence.created_at.desc()).limit(5).all()
+                
+                suggestions = [f"Evidence {e.id}: {e.title}" for e in evidence]
+                if suggestions:
+                    suggestions.append("All evidence for this control")
+            
             elif parameter_name == "domain_areas":
                 # Offer IM8 domains
                 suggestions = [
@@ -225,6 +251,84 @@ Response: {{
             suggestions = [f"Enter {parameter_name}"]
         
         return suggestions[:5]  # Max 5 suggestions
+    
+    def validate_parameters(self, action: str, parameters: Dict[str, Any], db_session: Any, user: Any) -> tuple[bool, List[str], str]:
+        """
+        Validate that required parameters exist in database
+        
+        Args:
+            action: Action type
+            parameters: Parameters to validate
+            db_session: Database session
+            user: Current user
+        
+        Returns:
+            (is_valid, missing_params, error_message)
+        """
+        from api.src.models import Project, Assessment, Control, Evidence
+        
+        missing = []
+        error_msg = ""
+        
+        try:
+            if action == "create_controls":
+                project_id = parameters.get("project_id")
+                if not project_id:
+                    missing.append("project_id")
+                else:
+                    # Validate project exists and user has access
+                    project = db_session.query(Project).filter(
+                        Project.id == project_id,
+                        Project.agency_id == user.agency_id
+                    ).first()
+                    if not project:
+                        error_msg = f"Project {project_id} not found or you don't have access to it."
+                        return False, missing, error_msg
+            
+            elif action == "create_findings" or action == "generate_report":
+                assessment_id = parameters.get("assessment_id")
+                if not assessment_id:
+                    missing.append("assessment_id")
+                else:
+                    # Validate assessment exists and user has access
+                    assessment = db_session.query(Assessment).filter(
+                        Assessment.id == assessment_id,
+                        Assessment.agency_id == user.agency_id
+                    ).first()
+                    if not assessment:
+                        error_msg = f"Assessment {assessment_id} not found or you don't have access to it."
+                        return False, missing, error_msg
+            
+            elif action == "analyze_evidence":
+                control_id = parameters.get("control_id")
+                if not control_id:
+                    missing.append("control_id")
+                else:
+                    # Validate control exists and user has access
+                    control = db_session.query(Control).filter(
+                        Control.id == control_id,
+                        Control.agency_id == user.agency_id
+                    ).first()
+                    if not control:
+                        error_msg = f"Control {control_id} not found or you don't have access to it."
+                        return False, missing, error_msg
+                
+                # Evidence IDs are optional - if not provided, analyze all evidence for that control
+                evidence_ids = parameters.get("evidence_ids", [])
+                if evidence_ids:
+                    # Validate all evidence IDs exist
+                    for eid in evidence_ids:
+                        evidence = db_session.query(Evidence).filter(Evidence.id == eid).first()
+                        if not evidence:
+                            error_msg = f"Evidence {eid} not found."
+                            return False, missing, error_msg
+        
+        except Exception as e:
+            logger.error(f"Error validating parameters: {str(e)}")
+            error_msg = f"Validation error: {str(e)}"
+            return False, missing, error_msg
+        
+        return len(missing) == 0 and not error_msg, missing, error_msg
     
     def generate_controls(self, framework: str, domain_areas: List[str], count: int) -> List[Dict[str, Any]]:
         """
