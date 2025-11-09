@@ -211,13 +211,24 @@ const AgenticChatPage: React.FC = () => {
         formData.append('file', selectedFile);
       }
 
-      const response = await api.post<ChatResponse>('/agentic-chat/', formData, {
-        // Axios will automatically set correct Content-Type with boundary for FormData
-        // Don't set any Content-Type header at all
-        transformRequest: [(data) => data], // Prevent axios from transforming FormData
-        timeout: 120000, // 2 minute timeout for long-running operations
-        validateStatus: (status) => status < 500 // Don't throw on 4xx errors, handle them gracefully
+      // Use native fetch for FormData to avoid axios header issues
+      const token = document.cookie.split('; ').find(row => row.startsWith('auth_token='))?.split('=')[1];
+      const fetchResponse = await fetch(`${api.defaults.baseURL}/agentic-chat/`, {
+        method: 'POST',
+        body: formData, // Native fetch handles FormData correctly
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        signal: AbortSignal.timeout(120000), // 2 minute timeout
       });
+
+      // Convert to axios-like response format
+      const responseData = await fetchResponse.json().catch(() => ({}));
+      const response = {
+        status: fetchResponse.status,
+        data: responseData,
+        statusText: fetchResponse.statusText,
+      };
       
       // Handle non-200 responses gracefully
       if (response.status >= 400) {
