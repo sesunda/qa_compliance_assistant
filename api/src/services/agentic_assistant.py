@@ -167,6 +167,113 @@ class AgenticAssistant:
                         "required": ["evidence_id"]
                     }
                 }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "mcp_fetch_evidence",
+                    "description": "Fetch evidence from URLs or local filesystem using MCP server. Automatically downloads files, calculates SHA256 checksums, and stores in database with maker-checker workflow. Use when user provides URLs to download compliance evidence.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "sources": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "type": {
+                                            "type": "string",
+                                            "enum": ["url", "file"],
+                                            "description": "Source type"
+                                        },
+                                        "location": {
+                                            "type": "string",
+                                            "description": "URL or file path"
+                                        },
+                                        "description": {
+                                            "type": "string",
+                                            "description": "Description of evidence"
+                                        },
+                                        "control_id": {
+                                            "type": "integer",
+                                            "description": "Control ID this evidence relates to"
+                                        }
+                                    },
+                                    "required": ["type", "location", "control_id"]
+                                },
+                                "description": "List of evidence sources to fetch"
+                            },
+                            "project_id": {
+                                "type": "integer",
+                                "description": "Project ID for evidence storage"
+                            },
+                            "created_by": {
+                                "type": "integer",
+                                "description": "User ID who initiated the fetch"
+                            }
+                        },
+                        "required": ["sources", "project_id", "created_by"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "mcp_analyze_compliance",
+                    "description": "Comprehensive compliance analysis using MCP server. Calculates overall compliance score (0-100), identifies gaps, assesses each control's implementation status, counts evidence, and generates AI-powered recommendations. Use when user requests full compliance analysis or assessment report.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "project_id": {
+                                "type": "integer",
+                                "description": "Project ID to analyze"
+                            },
+                            "framework": {
+                                "type": "string",
+                                "enum": ["IM8", "ISO27001", "NIST"],
+                                "description": "Compliance framework",
+                                "default": "IM8"
+                            },
+                            "include_evidence": {
+                                "type": "boolean",
+                                "description": "Include evidence analysis in assessment",
+                                "default": true
+                            },
+                            "generate_recommendations": {
+                                "type": "boolean",
+                                "description": "Generate AI recommendations for gaps",
+                                "default": true
+                            }
+                        },
+                        "required": ["project_id"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "search_documents",
+                    "description": "Search uploaded compliance documents using semantic vector search. Returns relevant document excerpts with similarity scores and source citations. Use when user asks questions about uploaded documents, policies, audit reports, or evidence content.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "Natural language search query"
+                            },
+                            "control_id": {
+                                "type": "integer",
+                                "description": "Filter by specific control ID (optional)"
+                            },
+                            "top_k": {
+                                "type": "integer",
+                                "description": "Number of results to return",
+                                "default": 5
+                            }
+                        },
+                        "required": ["query"]
+                    }
+                }
             }
         ]
         
@@ -266,14 +373,28 @@ Maintain context across the conversation."""
                     
                     logger.info(f"Executing tool: {function_name} with args: {function_args}")
                     
-                    # Execute tool via AI Task Orchestrator
-                    tool_result = await self._execute_tool(
-                        function_name=function_name,
-                        function_args=function_args,
-                        db=db,
-                        current_user=current_user,
-                        file_path=file_path
-                    )
+                    # Route to appropriate handler
+                    if function_name.startswith("mcp_"):
+                        # MCP Server tools
+                        tool_result = await self.handle_mcp_tool_call(function_name, function_args)
+                    elif function_name == "search_documents":
+                        # RAG document search
+                        tool_result = await self.handle_search_documents(
+                            query=function_args.get("query"),
+                            control_id=function_args.get("control_id"),
+                            top_k=function_args.get("top_k", 5),
+                            db=db,
+                            current_user=current_user
+                        )
+                    else:
+                        # Existing tools via AI Task Orchestrator
+                        tool_result = await self._execute_tool(
+                            function_name=function_name,
+                            function_args=function_args,
+                            db=db,
+                            current_user=current_user,
+                            file_path=file_path
+                        )
                     
                     tool_results.append({
                         "tool": function_name,
@@ -336,6 +457,111 @@ Maintain context across the conversation."""
         except Exception as e:
             logger.error(f"Error in agentic chat: {str(e)}", exc_info=True)
             raise
+    
+    async def handle_mcp_tool_call(
+        self,
+        tool_name: str,
+        arguments: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Route tool calls to MCP server
+        
+        Args:
+            tool_name: MCP tool name (mcp_fetch_evidence, mcp_analyze_compliance)
+            arguments: Tool parameters
+            
+        Returns:
+            MCP tool execution result
+        """
+        from ..mcp.client import mcp_client
+        
+        try:
+            # Remove 'mcp_' prefix to get actual tool name
+            actual_tool_name = tool_name.replace("mcp_", "")
+            
+            logger.info(f"Calling MCP tool: {actual_tool_name}")
+            logger.debug(f"MCP tool arguments: {arguments}")
+            
+            # Call MCP server
+            result = await mcp_client.call_tool(actual_tool_name, arguments)
+            
+            logger.info(f"MCP tool {actual_tool_name} completed successfully")
+            
+            return {
+                "success": True,
+                "result": result
+            }
+        except Exception as e:
+            logger.error(f"MCP tool call failed: {e}", exc_info=True)
+            return {
+                "success": False,
+                "error": str(e),
+                "tool_name": tool_name
+            }
+    
+    async def handle_search_documents(
+        self,
+        query: str,
+        control_id: Optional[int] = None,
+        top_k: int = 5,
+        db: Session = None,
+        current_user: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Execute semantic search on uploaded documents
+        
+        Args:
+            query: Search query
+            control_id: Filter by control ID
+            top_k: Number of results
+            db: Database session
+            current_user: Current user context
+            
+        Returns:
+            Search results with context and sources
+        """
+        try:
+            from ..rag.vector_search import vector_store
+            
+            logger.info(f"Searching documents: {query}")
+            
+            # Perform vector search
+            search_results = await vector_store.search(
+                query=query,
+                user_id=current_user["id"],
+                agency_id=current_user.get("agency_id"),
+                filters={"control_id": control_id} if control_id else {},
+                top_k=top_k
+            )
+            
+            # Format results
+            context_chunks = []
+            sources = []
+            
+            for result in search_results:
+                context_chunks.append(result.get("content", ""))
+                sources.append({
+                    "document_name": result.get("metadata", {}).get("filename", "Unknown"),
+                    "page": result.get("metadata", {}).get("page_number"),
+                    "control_id": result.get("metadata", {}).get("control_id"),
+                    "score": result.get("score", 0.0)
+                })
+            
+            return {
+                "success": True,
+                "context": "\n\n---\n\n".join(context_chunks),
+                "sources": sources,
+                "total_results": len(search_results)
+            }
+            
+        except Exception as e:
+            logger.error(f"Document search failed: {e}", exc_info=True)
+            return {
+                "success": False,
+                "error": str(e),
+                "context": "",
+                "sources": []
+            }
     
     def _coerce_argument_types(self, function_name: str, args: Dict[str, Any]) -> Dict[str, Any]:
         """Coerce argument types to match expected schema (fixes LLM string->int issues)"""

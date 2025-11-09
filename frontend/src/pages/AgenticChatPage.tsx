@@ -16,6 +16,7 @@ import SendIcon from '@mui/icons-material/Send';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import PersonIcon from '@mui/icons-material/Person';
 import TaskIcon from '@mui/icons-material/Task';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 import api from '../services/api';
 
 interface ChatMessage {
@@ -33,6 +34,15 @@ interface ChatMessage {
   parameters_collected?: Record<string, any>;
   parameters_missing?: string[];
   can_edit?: boolean;
+  
+  // RAG features
+  sources?: Array<{
+    document_name: string;
+    page?: number;
+    control_id?: number;
+    score?: number;
+  }>;
+  file_uploaded?: boolean;
 }
 
 interface ChatResponse {
@@ -51,6 +61,15 @@ interface ChatResponse {
   parameters_missing?: string[];
   conversation_id?: string;
   can_edit?: boolean;
+  
+  // RAG features
+  sources?: Array<{
+    document_name: string;
+    page?: number;
+    control_id?: number;
+    score?: number;
+  }>;
+  file_uploaded?: boolean;
 }
 
 const AgenticChatPage: React.FC = () => {
@@ -78,17 +97,32 @@ const AgenticChatPage: React.FC = () => {
   const [capabilities, setCapabilities] = useState<any>(null);
   const [conversationContext, setConversationContext] = useState<any>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Fetch available capabilities
     fetchCapabilities();
+    
+    // Restore session from localStorage
+    const savedSession = localStorage.getItem('agentic_session_id');
+    if (savedSession) {
+      setConversationId(savedSession);
+    }
   }, []);
 
   useEffect(() => {
     // Scroll to bottom when messages change
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+  
+  useEffect(() => {
+    // Persist session to localStorage
+    if (conversationId) {
+      localStorage.setItem('agentic_session_id', conversationId);
+    }
+  }, [conversationId]);
 
   const fetchCapabilities = async () => {
     try {
@@ -101,12 +135,13 @@ const AgenticChatPage: React.FC = () => {
 
   const handleSendMessage = async (messageText?: string) => {
     const textToSend = messageText || input;
-    if (!textToSend.trim() || loading) return;
+    if (!textToSend.trim() && !selectedFile) return;
+    if (loading) return;
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
-      content: textToSend,
+      content: textToSend + (selectedFile ? ` [📎 ${selectedFile.name}]` : ''),
       timestamp: new Date()
     };
 
@@ -115,10 +150,23 @@ const AgenticChatPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await api.post<ChatResponse>('/agentic-chat/', {
-        message: textToSend,
-        context: conversationContext,
-        conversation_id: conversationId
+      // Use FormData for file upload support
+      const formData = new FormData();
+      formData.append('message', textToSend);
+      if (conversationContext) {
+        formData.append('context', JSON.stringify(conversationContext));
+      }
+      if (conversationId) {
+        formData.append('conversation_id', conversationId);
+      }
+      if (selectedFile) {
+        formData.append('file', selectedFile);
+      }
+
+      const response = await api.post<ChatResponse>('/agentic-chat/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
       const assistantMessage: ChatMessage = {
@@ -133,7 +181,9 @@ const AgenticChatPage: React.FC = () => {
         conversation_id: response.data.conversation_id,
         parameters_collected: response.data.parameters_collected,
         parameters_missing: response.data.parameters_missing,
-        can_edit: response.data.can_edit
+        can_edit: response.data.can_edit,
+        sources: response.data.sources,
+        file_uploaded: response.data.file_uploaded
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -147,6 +197,9 @@ const AgenticChatPage: React.FC = () => {
         setConversationContext(null);
         setConversationId(null);
       }
+      
+      // Clear file after upload
+      setSelectedFile(null);
     } catch (error: any) {
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -339,6 +392,27 @@ const AgenticChatPage: React.FC = () => {
                       </Box>
                     </Box>
                   )}
+                  
+                  {/* Show document sources from RAG search */}
+                  {message.sources && message.sources.length > 0 && (
+                    <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid rgba(0,0,0,0.1)' }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                        📚 Sources:
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {message.sources.map((source, idx) => (
+                          <Chip
+                            key={idx}
+                            label={`${source.document_name}${source.page ? ` (p.${source.page})` : ''}${source.score ? ` - ${(source.score * 100).toFixed(0)}%` : ''}`}
+                            size="small"
+                            color="secondary"
+                            variant="outlined"
+                            sx={{ fontSize: '0.7rem' }}
+                          />
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
                 </Paper>
                 <Typography variant="caption" color="text.secondary" sx={{ ml: 1, mt: 0.5, display: 'block' }}>
                   {message.timestamp.toLocaleTimeString()}
@@ -380,7 +454,42 @@ const AgenticChatPage: React.FC = () => {
 
       {/* Input Area */}
       <Paper sx={{ p: 2 }}>
+        {/* File upload input (hidden) */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) setSelectedFile(file);
+          }}
+          accept=".pdf,.doc,.docx,.txt,.csv,.json,.xml,.xls,.xlsx,.png,.jpg,.jpeg"
+        />
+        
+        {/* Show selected file */}
+        {selectedFile && (
+          <Box sx={{ mb: 1 }}>
+            <Chip
+              label={`📎 ${selectedFile.name} (${(selectedFile.size / 1024).toFixed(1)} KB)`}
+              onDelete={() => setSelectedFile(null)}
+              size="small"
+              color="primary"
+              variant="outlined"
+            />
+          </Box>
+        )}
+        
         <Box sx={{ display: 'flex', gap: 1 }}>
+          {/* File Upload Button */}
+          <IconButton
+            color={selectedFile ? "primary" : "default"}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={loading}
+            title="Attach file"
+          >
+            <AttachFileIcon />
+          </IconButton>
+          
           <TextField
             fullWidth
             multiline
@@ -388,20 +497,20 @@ const AgenticChatPage: React.FC = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Describe what you need... (e.g., 'Upload 30 IM8 controls')"
+            placeholder="Describe what you need... (e.g., 'Upload 30 IM8 controls' or attach a document)"
             disabled={loading}
           />
           <IconButton
             color="primary"
-            onClick={handleSendMessage}
-            disabled={!input.trim() || loading}
+            onClick={() => handleSendMessage()}
+            disabled={(!input.trim() && !selectedFile) || loading}
             sx={{ alignSelf: 'flex-end' }}
           >
             <SendIcon />
           </IconButton>
         </Box>
         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-          Press Enter to send, Shift+Enter for new line
+          Press Enter to send, Shift+Enter for new line • 📎 Attach documents for RAG analysis
         </Typography>
       </Paper>
 
