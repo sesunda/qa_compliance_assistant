@@ -135,8 +135,56 @@ const AgenticChatPage: React.FC = () => {
 
   const handleSendMessage = async (messageText?: string) => {
     const textToSend = messageText || input;
-    if (!textToSend.trim() && !selectedFile) return;
+    
+    // PROACTIVE VALIDATION: Check if message is empty
+    if (!textToSend.trim() && !selectedFile) {
+      return; // Silently ignore empty messages
+    }
+    
+    // PROACTIVE VALIDATION: Prevent double submissions
     if (loading) return;
+    
+    // PROACTIVE VALIDATION: Check message length (avoid huge requests)
+    if (textToSend.length > 10000) {
+      const errorMessage: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: '❌ Error: Message is too long. Please keep messages under 10,000 characters.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      return;
+    }
+    
+    // PROACTIVE VALIDATION: Check file size (avoid huge uploads)
+    if (selectedFile && selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
+      const errorMessage: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `❌ Error: File "${selectedFile.name}" is too large (${(selectedFile.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 10MB.`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      setSelectedFile(null);
+      return;
+    }
+    
+    // PROACTIVE VALIDATION: Check file type (only allow specific extensions)
+    if (selectedFile) {
+      const allowedExtensions = ['.pdf', '.docx', '.txt', '.csv', '.json', '.xml', '.jpg', '.jpeg', '.png'];
+      const fileExtension = selectedFile.name.substring(selectedFile.name.lastIndexOf('.')).toLowerCase();
+      if (!allowedExtensions.includes(fileExtension)) {
+        const errorMessage: ChatMessage = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: `❌ Error: File type "${fileExtension}" is not supported. Allowed types: ${allowedExtensions.join(', ')}`,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+        setSelectedFile(null);
+        return;
+      }
+    }
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -166,8 +214,15 @@ const AgenticChatPage: React.FC = () => {
       const response = await api.post<ChatResponse>('/agentic-chat/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
-        }
+        },
+        timeout: 120000, // 2 minute timeout for long-running operations
+        validateStatus: (status) => status < 500 // Don't throw on 4xx errors, handle them gracefully
       });
+      
+      // Handle non-200 responses gracefully
+      if (response.status >= 400) {
+        throw new Error(response.data?.detail || 'Request failed');
+      }
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -202,11 +257,26 @@ const AgenticChatPage: React.FC = () => {
       setSelectedFile(null);
     } catch (error: any) {
       let errorText = 'Failed to process your request. Please try again.';
-      if (error.response?.data?.detail) {
+      
+      // Network errors (no response from server)
+      if (!error.response) {
+        if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+          errorText = '⏱️ Request timed out. The operation took too long. Please try a simpler request or try again later.';
+        } else if (error.message?.includes('Network Error')) {
+          errorText = '🌐 Network error. Please check your internet connection and try again.';
+        } else {
+          errorText = `⚠️ Connection error: ${error.message || 'Unable to reach server'}`;
+        }
+      }
+      // Server returned an error response
+      else if (error.response?.data?.detail) {
         // Handle FastAPI validation errors (array of objects)
         if (Array.isArray(error.response.data.detail)) {
           errorText = error.response.data.detail
-            .map((err: any) => `${err.loc?.join('.') || 'Field'}: ${err.msg}`)
+            .map((err: any) => {
+              const field = err.loc?.slice(1).join('.') || 'Field';
+              return `${field}: ${err.msg}`;
+            })
             .join(', ');
         } else if (typeof error.response.data.detail === 'string') {
           errorText = error.response.data.detail;
@@ -214,11 +284,39 @@ const AgenticChatPage: React.FC = () => {
           errorText = JSON.stringify(error.response.data.detail);
         }
       }
+      // HTTP status code errors
+      else if (error.response?.status) {
+        switch (error.response.status) {
+          case 401:
+            errorText = '🔒 Authentication failed. Please log in again.';
+            break;
+          case 403:
+            errorText = '🚫 You don\'t have permission to perform this action.';
+            break;
+          case 404:
+            errorText = '❓ Resource not found. The requested item may have been deleted.';
+            break;
+          case 413:
+            errorText = '📦 Request too large. Please reduce the size of your message or file.';
+            break;
+          case 429:
+            errorText = '⏳ Too many requests. Please wait a moment and try again.';
+            break;
+          case 500:
+            errorText = '💥 Server error. Our team has been notified. Please try again later.';
+            break;
+          case 503:
+            errorText = '🔧 Service temporarily unavailable. Please try again in a few moments.';
+            break;
+          default:
+            errorText = `❌ Error ${error.response.status}: ${error.response.statusText || 'Request failed'}`;
+        }
+      }
       
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `❌ Error: ${errorText}`,
+        content: errorText,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -499,7 +597,7 @@ const AgenticChatPage: React.FC = () => {
             color={selectedFile ? "primary" : "default"}
             onClick={() => fileInputRef.current?.click()}
             disabled={loading}
-            title="Attach file"
+            title="Attach file (max 10MB)"
           >
             <AttachFileIcon />
           </IconButton>
@@ -513,18 +611,24 @@ const AgenticChatPage: React.FC = () => {
             onKeyPress={handleKeyPress}
             placeholder="Describe what you need... (e.g., 'Upload 30 IM8 controls' or attach a document)"
             disabled={loading}
+            error={input.length > 10000}
+            helperText={
+              input.length > 9000 
+                ? `${input.length}/10,000 characters ${input.length > 10000 ? '(too long!)' : ''}`
+                : undefined
+            }
           />
           <IconButton
             color="primary"
             onClick={() => handleSendMessage()}
-            disabled={(!input.trim() && !selectedFile) || loading}
+            disabled={(!input.trim() && !selectedFile) || loading || input.length > 10000}
             sx={{ alignSelf: 'flex-end' }}
           >
             <SendIcon />
           </IconButton>
         </Box>
         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-          Press Enter to send, Shift+Enter for new line • 📎 Attach documents for RAG analysis
+          Press Enter to send, Shift+Enter for new line • 📎 Attach documents for RAG analysis (PDF, DOCX, TXT, CSV, JSON, XML - max 10MB)
         </Typography>
       </Paper>
 

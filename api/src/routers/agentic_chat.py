@@ -76,6 +76,40 @@ async def chat(
     This replaces the old implementation with AgenticAssistant integration.
     """
     try:
+        # PROACTIVE VALIDATION: Check message length
+        if not message or not message.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Message cannot be empty. Please provide a question or command."
+            )
+        
+        if len(message) > 10000:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Message is too long ({len(message)} characters). Maximum allowed is 10,000 characters."
+            )
+        
+        # PROACTIVE VALIDATION: Check file size and type
+        if file:
+            # Check file size (10MB limit)
+            contents = await file.read()
+            await file.seek(0)  # Reset file pointer
+            
+            if len(contents) > 10 * 1024 * 1024:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"File '{file.filename}' is too large ({len(contents) / 1024 / 1024:.2f}MB). Maximum size is 10MB."
+                )
+            
+            # Check file type
+            allowed_extensions = {'.pdf', '.docx', '.txt', '.csv', '.json', '.xml', '.jpg', '.jpeg', '.png'}
+            file_extension = os.path.splitext(file.filename)[1].lower()
+            if file_extension not in allowed_extensions:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"File type '{file_extension}' is not supported. Allowed types: {', '.join(allowed_extensions)}"
+                )
+        
         # Parse conversation context
         conversation_context = json.loads(context) if context else None
         
@@ -191,9 +225,50 @@ async def chat(
         )
         
     except HTTPException:
+        # Re-raise HTTP exceptions (validation errors, etc.)
         raise
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON in context: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid conversation context format. Please refresh the page and try again."
+        )
     except Exception as e:
         logger.error(f"Chat error: {e}", exc_info=True)
+        error_message = str(e).lower()
+        
+        # Database errors
+        if "database" in error_message or "connection" in error_message:
+            raise HTTPException(
+                status_code=503,
+                detail="Database connection error. Please try again in a moment."
+            )
+        
+        # File system errors
+        if "permission" in error_message or "access denied" in error_message:
+            raise HTTPException(
+                status_code=500,
+                detail="File system error. Unable to save uploaded file."
+            )
+        
+        # OpenAI/LLM errors
+        if "rate limit" in error_message:
+            raise HTTPException(
+                status_code=429,
+                detail="AI service rate limit exceeded. Please wait a moment and try again."
+            )
+        elif "api key" in error_message or "authentication" in error_message:
+            raise HTTPException(
+                status_code=503,
+                detail="AI service authentication error. Please contact support."
+            )
+        elif "timeout" in error_message:
+            raise HTTPException(
+                status_code=504,
+                detail="AI service timeout. Please try a simpler query."
+            )
+        
+        # Generic error
         raise HTTPException(
             status_code=500,
             detail=f"Error processing chat: {str(e)}"
