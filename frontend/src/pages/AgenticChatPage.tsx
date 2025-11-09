@@ -201,10 +201,24 @@ const AgenticChatPage: React.FC = () => {
       // Clear file after upload
       setSelectedFile(null);
     } catch (error: any) {
+      let errorText = 'Failed to process your request. Please try again.';
+      if (error.response?.data?.detail) {
+        // Handle FastAPI validation errors (array of objects)
+        if (Array.isArray(error.response.data.detail)) {
+          errorText = error.response.data.detail
+            .map((err: any) => `${err.loc?.join('.') || 'Field'}: ${err.msg}`)
+            .join(', ');
+        } else if (typeof error.response.data.detail === 'string') {
+          errorText = error.response.data.detail;
+        } else {
+          errorText = JSON.stringify(error.response.data.detail);
+        }
+      }
+      
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `❌ Error: ${error.response?.data?.detail || 'Failed to process your request. Please try again.'}`,
+        content: `❌ Error: ${errorText}`,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
