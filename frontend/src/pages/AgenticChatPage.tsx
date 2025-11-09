@@ -212,10 +212,9 @@ const AgenticChatPage: React.FC = () => {
       }
 
       const response = await api.post<ChatResponse>('/agentic-chat/', formData, {
-        headers: {
-          // Remove default Content-Type to let browser set multipart/form-data with boundary
-          'Content-Type': undefined
-        },
+        // Axios will automatically set correct Content-Type with boundary for FormData
+        // Don't set any Content-Type header at all
+        transformRequest: [(data) => data], // Prevent axios from transforming FormData
         timeout: 120000, // 2 minute timeout for long-running operations
         validateStatus: (status) => status < 500 // Don't throw on 4xx errors, handle them gracefully
       });
