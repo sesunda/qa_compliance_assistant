@@ -222,7 +222,8 @@ const AgenticChatPage: React.FC = () => {
       
       // Handle non-200 responses gracefully
       if (response.status >= 400) {
-        throw new Error(response.data?.detail || 'Request failed');
+        const errorData = response.data as any;
+        throw new Error(errorData?.detail || 'Request failed');
       }
 
       const assistantMessage: ChatMessage = {
