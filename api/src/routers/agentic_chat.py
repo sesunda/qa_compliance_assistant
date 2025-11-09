@@ -255,12 +255,6 @@ async def _execute_task(
     db: Session,
     conversation_id: str
 ) -> ChatResponse:
-async def _execute_task(
-    intent: Dict[str, Any],
-    user: User,
-    db: Session,
-    conversation_id: str
-) -> ChatResponse:
     """
     Execute task once all parameters are collected
     """
