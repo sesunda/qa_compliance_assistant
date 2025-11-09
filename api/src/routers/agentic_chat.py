@@ -164,6 +164,53 @@ async def process_chat_message(
         
         # If expert mode detected or all params ready AND validated, execute immediately
         if is_ready:
+            # FINAL VALIDATION GATE: Run database validation one more time before executing
+            # This ensures we NEVER create a task with invalid parameters
+            logger.info(f"DEBUG: Final validation gate before task execution")
+            final_is_valid, final_missing, final_error = llm_service.validate_parameters(
+                action=action,
+                parameters=parameters,
+                db_session=db,
+                user=user
+            )
+            logger.info(f"DEBUG: Final validation result: is_valid={final_is_valid}, error={final_error}, missing={final_missing}")
+            
+            if not final_is_valid:
+                # Validation failed - ask for clarification instead of executing
+                suggestions = []
+                if final_error:
+                    # Entity doesn't exist
+                    if "control" in final_error.lower():
+                        suggestions = llm_service.get_smart_suggestions("control_id", db, user)
+                    elif "project" in final_error.lower():
+                        suggestions = llm_service.get_smart_suggestions("project_id", db, user)
+                    elif "assessment" in final_error.lower():
+                        suggestions = llm_service.get_smart_suggestions("assessment_id", db, user)
+                elif final_missing:
+                    # Parameters missing
+                    first_missing = final_missing[0]
+                    suggestions = llm_service.get_smart_suggestions(first_missing, db, user)
+                
+                if not suggestions:
+                    suggestions = ["Show me what's available"]
+                
+                error_message = final_error or f"Missing required parameters: {', '.join(final_missing)}"
+                
+                return ChatResponse(
+                    response=f"❌ {error_message}\n\nPlease select from available options:",
+                    task_created=False,
+                    is_clarifying=True,
+                    clarifying_question=error_message,
+                    suggested_responses=suggestions,
+                    conversation_context=intent,
+                    parameters_collected=parameters,
+                    parameters_missing=final_missing,
+                    conversation_id=chat_message.conversation_id or f"conv_{current_user['id']}_{int(datetime.now().timestamp())}",
+                    can_edit=True,
+                    intent=intent
+                )
+            
+            # Validation passed - safe to execute
             return await _execute_task(intent, user, db, chat_message.conversation_id or "")
         
         # Otherwise, ask clarifying question
