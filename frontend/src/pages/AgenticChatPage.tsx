@@ -267,7 +267,11 @@ const AgenticChatPage: React.FC = () => {
         } else if (error.message?.includes('Network Error')) {
           errorText = '🌐 Network error. Please check your internet connection and try again.';
         } else {
-          errorText = `⚠️ Connection error: ${error.message || 'Unable to reach server'}`;
+          // Safely stringify error message
+          const errMsg = typeof error.message === 'string' 
+            ? error.message 
+            : (error.message ? JSON.stringify(error.message) : 'Unable to reach server');
+          errorText = `⚠️ Connection error: ${errMsg}`;
         }
       }
       // Server returned an error response
