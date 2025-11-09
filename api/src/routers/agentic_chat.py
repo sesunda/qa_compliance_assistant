@@ -189,16 +189,15 @@ async def chat(
                 task_id = task_result.get("task_id")
         
         # Get smart suggestions if conversation ongoing
-        llm_service = get_llm_service()
+        # For now, provide generic suggestions based on whether a task was created
         suggested_responses = []
-        if conversation_context or not task_created:
-            suggestions_result = await llm_service.get_smart_suggestions(
-                intent=conversation_context.get("intent") if conversation_context else "general",
-                collected_params=conversation_context.get("parameters", {}) if conversation_context else {},
-                db=db,
-                current_user=current_user
-            )
-            suggested_responses = suggestions_result.get("suggestions", [])
+        if not task_created:
+            # No task created yet - offer helpful next steps
+            suggested_responses = [
+                "Show me recent projects",
+                "Create a new project first",
+                "Use project 1"
+            ]
         
         # Extract sources from tool results (for RAG search_documents)
         sources = []
@@ -217,8 +216,8 @@ async def chat(
             is_clarifying=not task_created,
             suggested_responses=suggested_responses,
             conversation_id=session.session_id,
-            conversation_context=conversation_context,
-            parameters_collected=conversation_context.get("parameters", {}) if conversation_context else {},
+            conversation_context=None,  # AgenticAssistant handles conversation internally
+            parameters_collected={},
             parameters_missing=[],
             can_edit=True,
             sources=sources,
