@@ -115,7 +115,8 @@ async def process_chat_message(
         
         # CRITICAL: ALWAYS validate parameters against database, even if LLM says is_ready=True
         # The LLM doesn't know if control_id=5 actually exists, so we must check
-        if action and parameters:
+        # Run validation even if parameters is empty - validation will check for missing params
+        if action:
             logger.info(f"DEBUG: Running validation for action={action}")
             is_valid, validation_missing, error_msg = llm_service.validate_parameters(
                 action=action,
