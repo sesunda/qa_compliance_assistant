@@ -107,12 +107,12 @@ async def process_chat_message(
         is_ready = intent.get("is_ready", False)
         missing_params = intent.get("missing_parameters", [])
         
-        # CRITICAL: Validate parameters exist in database before marking as ready
         action = intent.get("action")
         parameters = intent.get("parameters", {})
         
-        if is_ready and action:
-            # Validate against database
+        # CRITICAL: ALWAYS validate parameters against database, even if LLM says is_ready=True
+        # The LLM doesn't know if control_id=5 actually exists, so we must check
+        if action and parameters:
             is_valid, validation_missing, error_msg = llm_service.validate_parameters(
                 action=action,
                 parameters=parameters,
@@ -124,17 +124,25 @@ async def process_chat_message(
                 # Database validation failed
                 if error_msg:
                     # Entity doesn't exist - ask user to clarify
+                    suggestions = []
+                    if "project" in error_msg.lower() or "Project" in error_msg:
+                        suggestions = llm_service.get_smart_suggestions("project_id", db, user)
+                    elif "assessment" in error_msg.lower() or "Assessment" in error_msg:
+                        suggestions = llm_service.get_smart_suggestions("assessment_id", db, user)
+                    elif "control" in error_msg.lower() or "Control" in error_msg:
+                        suggestions = llm_service.get_smart_suggestions("control_id", db, user)
+                    elif "evidence" in error_msg.lower() or "Evidence" in error_msg:
+                        suggestions = llm_service.get_smart_suggestions("evidence_ids", db, user)
+                    
+                    if not suggestions:
+                        suggestions = ["Show me what's available"]
+                    
                     return ChatResponse(
-                        response=f"❌ {error_msg}\n\nPlease provide a valid ID or ask me to show available options.",
+                        response=f"❌ {error_msg}\n\nPlease select from available options below:",
                         task_created=False,
                         is_clarifying=True,
                         clarifying_question=error_msg,
-                        suggested_responses=[
-                            "Show me available projects" if "project" in error_msg.lower() else
-                            "Show me available assessments" if "assessment" in error_msg.lower() else
-                            "Show me available controls" if "control" in error_msg.lower() else
-                            "List all evidence items"
-                        ],
+                        suggested_responses=suggestions,
                         conversation_context=intent,
                         parameters_collected=parameters,
                         parameters_missing=validation_missing,
@@ -142,7 +150,7 @@ async def process_chat_message(
                         can_edit=True,
                         intent=intent
                     )
-                else:
+                elif validation_missing:
                     # Missing required params
                     is_ready = False
                     missing_params.extend(validation_missing)
