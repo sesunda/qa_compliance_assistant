@@ -16,7 +16,7 @@ import SendIcon from '@mui/icons-material/Send';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import PersonIcon from '@mui/icons-material/Person';
 import TaskIcon from '@mui/icons-material/Task';
-import { apiClient } from '../services/api';
+import api from '../services/api';
 
 interface ChatMessage {
   id: string;
@@ -70,7 +70,7 @@ const AgenticChatPage: React.FC = () => {
 
   const fetchCapabilities = async () => {
     try {
-      const response = await apiClient.get('/agentic-chat/capabilities');
+      const response = await api.get('/agentic-chat/capabilities');
       setCapabilities(response.data);
     } catch (error) {
       console.error('Error fetching capabilities:', error);
@@ -92,7 +92,7 @@ const AgenticChatPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await apiClient.post<ChatResponse>('/agentic-chat/', {
+      const response = await api.post<ChatResponse>('/agentic-chat/', {
         message: input
       });
 
