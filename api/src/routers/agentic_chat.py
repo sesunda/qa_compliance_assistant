@@ -110,15 +110,21 @@ async def process_chat_message(
         action = intent.get("action")
         parameters = intent.get("parameters", {})
         
+        # DEBUG: Log what we're about to validate
+        logger.info(f"DEBUG: action={action}, parameters={parameters}, is_ready={is_ready}")
+        
         # CRITICAL: ALWAYS validate parameters against database, even if LLM says is_ready=True
         # The LLM doesn't know if control_id=5 actually exists, so we must check
         if action and parameters:
+            logger.info(f"DEBUG: Running validation for action={action}")
             is_valid, validation_missing, error_msg = llm_service.validate_parameters(
                 action=action,
                 parameters=parameters,
                 db_session=db,
                 user=user
             )
+            
+            logger.info(f"DEBUG: Validation result: is_valid={is_valid}, error_msg={error_msg}, missing={validation_missing}")
             
             if not is_valid:
                 # Database validation failed

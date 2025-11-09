@@ -301,16 +301,23 @@ Response: {{
             
             elif action == "analyze_evidence":
                 control_id = parameters.get("control_id")
+                logger.info(f"DEBUG validate_parameters: action=analyze_evidence, control_id={control_id}")
+                
                 if not control_id:
+                    logger.info(f"DEBUG: control_id is missing, adding to missing list")
                     missing.append("control_id")
                 else:
                     # Validate control exists and user has access
+                    logger.info(f"DEBUG: Querying database for Control.id={control_id}, user.agency_id={user.agency_id}")
                     control = db_session.query(Control).filter(
                         Control.id == control_id,
                         Control.agency_id == user.agency_id
                     ).first()
+                    logger.info(f"DEBUG: Query result: control={control}")
+                    
                     if not control:
                         error_msg = f"Control {control_id} not found or you don't have access to it."
+                        logger.warning(f"DEBUG: Control not found, returning error_msg={error_msg}")
                         return False, missing, error_msg
                 
                 # Evidence IDs are optional - if not provided, analyze all evidence for that control
