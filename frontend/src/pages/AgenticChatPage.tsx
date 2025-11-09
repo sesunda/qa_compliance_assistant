@@ -213,7 +213,8 @@ const AgenticChatPage: React.FC = () => {
 
       const response = await api.post<ChatResponse>('/agentic-chat/', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
+          // Don't set Content-Type manually - let browser set it with boundary
+          // 'Content-Type': 'multipart/form-data'
         },
         timeout: 120000, // 2 minute timeout for long-running operations
         validateStatus: (status) => status < 500 // Don't throw on 4xx errors, handle them gracefully
