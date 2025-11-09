@@ -336,15 +336,15 @@ async def _execute_task(
             "report_type": report_type
         })
         response_text = f"✅ I'll generate the {report_type} compliance report for assessment {assessment_id}. Compiling data..."
-        
-        else:
-            return ChatResponse(
-                response=f"🤔 I understand you want to {action} {entity}, but I'm not sure how to do that yet. Can you try rephrasing? I can help you:\n\n• Create controls\n• Create findings\n• Analyze evidence\n• Generate reports",
-                task_created=False,
-                intent=intent
-            )
-        
-        # Create agent task
+    
+    else:
+        return ChatResponse(
+            response=f"🤔 I understand you want to {action} {entity}, but I'm not sure how to do that yet. Can you try rephrasing? I can help you:\n\n• Create controls\n• Create findings\n• Analyze evidence\n• Generate reports",
+            task_created=False,
+            intent=intent
+        )
+    
+    # Create agent task
         agent_task = AgentTask(
             task_type=task_type,
             title=task_title,
