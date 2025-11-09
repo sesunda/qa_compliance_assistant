@@ -55,7 +55,7 @@ class ChatResponse(BaseModel):
 
 @router.post("/")
 async def chat(
-    message: str = Form(...),
+    message: str = Form(None),  # Temporarily make optional to debug
     context: Optional[str] = Form(None),
     conversation_id: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
@@ -75,6 +75,7 @@ async def chat(
     
     This replaces the old implementation with AgenticAssistant integration.
     """
+    logger.info(f"DEBUG: Received chat request: message='{message}', has_file={file is not None}, conversation_id={conversation_id}, context={context[:100] if context else None}")
     try:
         # PROACTIVE VALIDATION: Check message length
         if not message or not message.strip():
