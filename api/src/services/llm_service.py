@@ -43,55 +43,107 @@ class LLMService:
         """Check if LLM service is available"""
         return self.client is not None
     
-    def parse_user_intent(self, user_prompt: str) -> Dict[str, Any]:
+    def parse_user_intent(self, user_prompt: str, conversation_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Parse user's natural language prompt to extract intent and parameters
+        Supports multi-turn conversation for gathering missing parameters
+        
+        Args:
+            user_prompt: User's message
+            conversation_context: Previous conversation state with partial parameters
         
         Returns:
         {
             "action": "create_controls" | "create_findings" | "analyze_evidence" | "generate_report",
             "entity": "control" | "finding" | "evidence" | "assessment" | "report",
             "count": int,
-            "parameters": {...}
+            "parameters": {...},
+            "missing_parameters": [...],  # List of parameters still needed
+            "clarifying_question": str,    # Next question to ask user
+            "is_ready": bool               # True if all required params collected
         }
         """
         if not self.is_available():
             raise ValueError("LLM service not available. Configure AZURE_OPENAI or OPENAI credentials.")
         
-        system_prompt = """You are an AI assistant for a compliance management system.
-Parse the user's request and extract:
-1. The action they want to perform (create, upload, analyze, generate, etc.)
-2. The entity type (controls, findings, evidence, assessment, report)
-3. Relevant parameters (count, framework, domain, etc.)
+        # Build context-aware system prompt
+        context_info = ""
+        if conversation_context:
+            context_info = f"\n\nCONVERSATION CONTEXT (previous information collected):\n{json.dumps(conversation_context, indent=2)}\n\nMerge this context with any new information from the user's message."
+        
+        system_prompt = f"""You are an AI assistant for a compliance management system that uses CONVERSATIONAL information gathering.
 
-Return a JSON object with:
-{
+Your task: Parse the user's request and identify what information is still needed.
+
+REQUIRED PARAMETERS by action:
+- create_controls: project_id (required), framework (default: IM8), count (default: 30), domain_areas (default: all)
+- create_findings: assessment_id (required), findings_description (from user message)
+- analyze_evidence: control_id (required), evidence_ids (required)
+- generate_report: assessment_id (required), report_type (default: executive)
+
+SMART DEFAULTS (use these if not specified):
+- framework: "IM8"
+- count: 30 for controls
+- domain_areas: ["IM8-01", "IM8-02", "IM8-03", "IM8-04", "IM8-05", "IM8-06", "IM8-07", "IM8-08", "IM8-09", "IM8-10"]
+- report_type: "executive"
+
+Return JSON:
+{{
     "action": "action_name",
     "entity": "entity_type",
-    "count": number_if_applicable,
-    "parameters": {
-        "framework": "IM8" if mentioned,
-        "domain_areas": list of domains,
-        "assessment_id": id if mentioned,
-        "severity": if mentioned,
-        etc.
-    }
-}
+    "count": number_or_default,
+    "parameters": {{}},
+    "missing_parameters": [],  // List parameters still needed
+    "clarifying_question": "",  // Natural question to ask user (max 80 chars)
+    "suggested_responses": [],  // 3-5 suggested quick responses
+    "is_ready": false,  // True only when ALL required params collected
+    "expert_mode_detected": false  // True if user provides complete info upfront
+}}
 
-Valid actions:
-- create_controls: Generate new security controls
-- create_findings: Create security findings
-- create_assessment: Create new assessment
-- analyze_evidence: Analyze uploaded evidence
-- generate_report: Generate compliance report
-- bulk_upload: Bulk upload from template
+QUESTION GUIDELINES:
+1. Ask ONE question at a time
+2. Keep questions under 80 characters
+3. Provide 3-5 concrete suggestions
+4. Use friendly, conversational tone
+5. Maximum 5 questions total per task
 
-Examples:
-User: "Upload 30 IM8 controls covering all 10 domains"
-Response: {"action": "create_controls", "entity": "control", "count": 30, "parameters": {"framework": "IM8", "domains": "all"}}
+EXAMPLES:
 
-User: "Create findings from VAPT report: SQL injection (critical), XSS (high)"
-Response: {"action": "create_findings", "entity": "finding", "count": 2, "parameters": {"findings": [{"title": "SQL Injection", "severity": "critical"}, {"title": "XSS", "severity": "high"}]}}
+User: "Upload controls"
+Response: {{
+    "action": "create_controls",
+    "entity": "control",
+    "count": 30,
+    "parameters": {{"framework": "IM8"}},
+    "missing_parameters": ["project_id", "domain_areas"],
+    "clarifying_question": "Which project should I add these controls to?",
+    "suggested_responses": ["Project 1: 2025 Annual Compliance", "Project 2: Q4 Security Audit", "Show all projects"],
+    "is_ready": false,
+    "expert_mode_detected": false
+}}
+
+User: "Upload 30 IM8 controls for Access Control domain to project 1"
+Response: {{
+    "action": "create_controls",
+    "entity": "control",
+    "count": 30,
+    "parameters": {{"framework": "IM8", "domain_areas": ["IM8-01"], "project_id": 1}},
+    "missing_parameters": [],
+    "clarifying_question": "",
+    "suggested_responses": [],
+    "is_ready": true,
+    "expert_mode_detected": true
+}}
+
+User (after being asked about project): "Project 1"
+Response: {{
+    "action": "create_controls",
+    "entity": "control",
+    "count": 30,
+    "parameters": {{"framework": "IM8", "project_id": 1, "domain_areas": ["all"]}},
+    "missing_parameters": [],
+    "is_ready": true
+}}{context_info}
 """
         
         try:
@@ -111,6 +163,68 @@ Response: {"action": "create_findings", "entity": "finding", "count": 2, "parame
         except Exception as e:
             logger.error(f"Error parsing intent: {str(e)}")
             raise
+    
+    def get_smart_suggestions(self, parameter_name: str, db_session: Any, user: Any) -> List[str]:
+        """
+        Generate smart suggestions for a parameter based on database context
+        
+        Args:
+            parameter_name: Name of parameter needing suggestions
+            db_session: Database session for queries
+            user: Current user object
+        
+        Returns:
+            List of 3-5 suggested responses
+        """
+        suggestions = []
+        
+        try:
+            if parameter_name == "project_id":
+                # Fetch user's recent projects
+                from api.src.models import Project
+                projects = db_session.query(Project).filter(
+                    Project.agency_id == user.agency_id,
+                    Project.status == "active"
+                ).order_by(Project.updated_at.desc()).limit(5).all()
+                
+                suggestions = [f"Project {p.id}: {p.name}" for p in projects]
+                if suggestions:
+                    suggestions.append("Show all projects")
+                else:
+                    suggestions = ["Create new project first"]
+            
+            elif parameter_name == "assessment_id":
+                # Fetch recent assessments
+                from api.src.models import Assessment
+                assessments = db_session.query(Assessment).filter(
+                    Assessment.agency_id == user.agency_id
+                ).order_by(Assessment.created_at.desc()).limit(5).all()
+                
+                suggestions = [f"Assessment {a.id}: {a.title}" for a in assessments]
+                if suggestions:
+                    suggestions.append("Show all assessments")
+            
+            elif parameter_name == "domain_areas":
+                # Offer IM8 domains
+                suggestions = [
+                    "IM8-01: Access Control",
+                    "IM8-02: Network Security",
+                    "IM8-03: Data Protection",
+                    "IM8-06: Logging & Monitoring",
+                    "All 10 IM8 domains"
+                ]
+            
+            elif parameter_name == "report_type":
+                suggestions = ["Executive Summary", "Technical Audit Report", "Compliance Certificate"]
+            
+            elif parameter_name == "count":
+                suggestions = ["5 controls", "10 controls", "30 controls (full set)", "50 controls"]
+        
+        except Exception as e:
+            logger.error(f"Error generating suggestions for {parameter_name}: {str(e)}")
+            suggestions = [f"Enter {parameter_name}"]
+        
+        return suggestions[:5]  # Max 5 suggestions
     
     def generate_controls(self, framework: str, domain_areas: List[str], count: int) -> List[Dict[str, Any]]:
         """

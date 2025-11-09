@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
+from datetime import datetime
 import logging
 
 from api.src.database import get_db
@@ -22,6 +23,8 @@ router = APIRouter(prefix="/agentic-chat", tags=["agentic-chat"])
 class ChatMessage(BaseModel):
     message: str
     context: Optional[Dict[str, Any]] = None
+    conversation_id: Optional[str] = None  # Track conversation thread
+    edit_parameter: Optional[Dict[str, Any]] = None  # For editing previous answers
 
 
 class ChatResponse(BaseModel):
@@ -30,6 +33,16 @@ class ChatResponse(BaseModel):
     task_id: Optional[int] = None
     task_type: Optional[str] = None
     intent: Optional[Dict[str, Any]] = None
+    
+    # Multi-turn conversation fields
+    is_clarifying: bool = False  # True if asking for more info
+    clarifying_question: Optional[str] = None
+    suggested_responses: Optional[list] = None
+    conversation_context: Optional[Dict[str, Any]] = None  # State to send back
+    parameters_collected: Optional[Dict[str, Any]] = None  # What we have so far
+    parameters_missing: Optional[list] = None  # What's still needed
+    conversation_id: Optional[str] = None
+    can_edit: bool = True  # Allow user to edit previous answers
 
 
 @router.post("/", response_model=ChatResponse)
@@ -39,18 +52,22 @@ async def process_chat_message(
     db: Session = Depends(get_db)
 ):
     """
-    Process natural language message and create agent tasks
+    Process natural language message with multi-turn conversation support
     
     This endpoint:
     1. Parses user intent using LLM
-    2. Creates appropriate agent task
-    3. Returns confirmation and task ID
+    2. Detects missing required parameters
+    3. Asks clarifying questions with smart suggestions
+    4. Creates task only when all parameters collected
+    5. Supports editing previous answers
     
-    Example messages:
-    - "Upload 30 IM8 controls covering all 10 domains"
-    - "Create findings from VAPT: SQL injection (critical), XSS (high)"
-    - "Generate executive compliance report for assessment 1"
-    - "Analyze evidence for IM8-01 controls"
+    Example conversation flow:
+    User: "Upload IM8 controls"
+    Bot: "Which project should I add these controls to?" [suggestions: Project 1, Project 2...]
+    User: "Project 1"
+    Bot: "Which IM8 domains?" [suggestions: IM8-01, IM8-02, All domains...]
+    User: "All domains"
+    Bot: ✅ Task created! [executes]
     """
     try:
         llm_service = get_llm_service()
@@ -61,27 +78,101 @@ async def process_chat_message(
                 task_created=False
             )
         
-        # Parse user intent
-        logger.info(f"Parsing message from user {current_user['id']}: {chat_message.message}")
-        intent = llm_service.parse_user_intent(chat_message.message)
-        
-        action = intent.get("action")
-        entity = intent.get("entity")
-        parameters = intent.get("parameters", {})
-        count = intent.get("count")
-        
         # Get user details
         user = db.query(User).filter(User.id == current_user["id"]).first()
         
-        # Route to appropriate task handler
-        task_type = None
-        task_title = None
-        task_payload = {
-            "agency_id": user.agency_id,
-            "created_by": user.id
-        }
+        # Handle edit requests
+        conversation_context = chat_message.context or {}
+        if chat_message.edit_parameter:
+            # User wants to edit a previous answer
+            param_name = chat_message.edit_parameter.get("parameter")
+            param_value = chat_message.edit_parameter.get("value")
+            if param_name and conversation_context.get("parameters"):
+                conversation_context["parameters"][param_name] = param_value
+                logger.info(f"Edited parameter {param_name} to {param_value}")
         
-        if action == "create_controls":
+        # Parse user intent with conversation context
+        logger.info(f"Parsing message from user {current_user['id']}: {chat_message.message}")
+        logger.info(f"Conversation context: {conversation_context}")
+        
+        intent = llm_service.parse_user_intent(
+            user_prompt=chat_message.message,
+            conversation_context=conversation_context
+        )
+        
+        # Check if we have all required parameters
+        is_ready = intent.get("is_ready", False)
+        missing_params = intent.get("missing_parameters", [])
+        
+        # If expert mode detected or all params ready, execute immediately
+        if is_ready:
+            return await _execute_task(intent, user, db, chat_message.conversation_id or "")
+        
+        # Otherwise, ask clarifying question
+        clarifying_question = intent.get("clarifying_question", "")
+        suggested_responses = intent.get("suggested_responses", [])
+        
+        # Enhance suggestions with database context
+        if missing_params and len(missing_params) > 0:
+            first_missing = missing_params[0]
+            db_suggestions = llm_service.get_smart_suggestions(first_missing, db, user)
+            if db_suggestions:
+                suggested_responses = db_suggestions
+        
+        # Generate conversation ID if not exists
+        conversation_id = chat_message.conversation_id or f"conv_{current_user['id']}_{int(datetime.now().timestamp())}"
+        
+        return ChatResponse(
+            response=clarifying_question,
+            task_created=False,
+            is_clarifying=True,
+            clarifying_question=clarifying_question,
+            suggested_responses=suggested_responses,
+            conversation_context=intent,  # Send full intent as context for next turn
+            parameters_collected=intent.get("parameters", {}),
+            parameters_missing=missing_params,
+            conversation_id=conversation_id,
+            can_edit=True,
+            intent=intent
+        )
+    
+    except Exception as e:
+        logger.error(f"Error processing chat message: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to process message: {str(e)}"
+        )
+
+
+async def _execute_task(
+    intent: Dict[str, Any],
+    user: User,
+    db: Session,
+    conversation_id: str
+) -> ChatResponse:
+async def _execute_task(
+    intent: Dict[str, Any],
+    user: User,
+    db: Session,
+    conversation_id: str
+) -> ChatResponse:
+    """
+    Execute task once all parameters are collected
+    """
+    action = intent.get("action")
+    entity = intent.get("entity")
+    parameters = intent.get("parameters", {})
+    count = intent.get("count")
+    
+    # Route to appropriate task handler
+    task_type = None
+    task_title = None
+    task_payload = {
+        "agency_id": user.agency_id,
+        "created_by": user.id
+    }
+    
+    if action == "create_controls":
             task_type = "create_controls"
             task_title = f"Generate {count or 30} {parameters.get('framework', 'IM8')} Controls"
             task_payload.update({
@@ -129,15 +220,6 @@ async def process_chat_message(
             })
             response_text = f"✅ I'll generate the {report_type} compliance report for assessment {assessment_id}. Compiling data..."
         
-        elif action == "create_assessment":
-            # For now, guide user to create via UI
-            # In future, implement assessment creation task
-            return ChatResponse(
-                response="📋 To create a new assessment, please use the 'Assessments' page and click 'New Assessment'. I can help you populate it with controls and findings once it's created!",
-                task_created=False,
-                intent=intent
-            )
-        
         else:
             return ChatResponse(
                 response=f"🤔 I understand you want to {action} {entity}, but I'm not sure how to do that yet. Can you try rephrasing? I can help you:\n\n• Create controls\n• Create findings\n• Analyze evidence\n• Generate reports",
@@ -149,7 +231,7 @@ async def process_chat_message(
         agent_task = AgentTask(
             task_type=task_type,
             title=task_title,
-            description=f"Requested via agentic chat: {chat_message.message[:200]}",
+            description=f"Requested via agentic chat (conversation: {conversation_id})",
             status="pending",
             progress=0,
             created_by=user.id,
@@ -167,14 +249,8 @@ async def process_chat_message(
             task_created=True,
             task_id=agent_task.id,
             task_type=task_type,
-            intent=intent
-        )
-    
-    except Exception as e:
-        logger.error(f"Error processing chat message: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process message: {str(e)}"
+            intent=intent,
+            conversation_id=conversation_id
         )
 
 
