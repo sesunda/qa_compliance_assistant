@@ -223,7 +223,7 @@ const AgenticChatPage: React.FC = () => {
       });
 
       // Convert to axios-like response format
-      const responseData = await fetchResponse.json().catch(() => ({}));
+      const responseData = await fetchResponse.json().catch(() => ({})) as ChatResponse;
       const response = {
         status: fetchResponse.status,
         data: responseData,
