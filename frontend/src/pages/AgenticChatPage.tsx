@@ -4,15 +4,13 @@ import {
   Paper,
   Typography,
   TextField,
-  Button,
   Box,
   Card,
   CardContent,
   Chip,
   Alert,
   CircularProgress,
-  IconButton,
-  Divider
+  IconButton
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
