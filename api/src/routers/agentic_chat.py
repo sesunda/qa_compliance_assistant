@@ -115,7 +115,7 @@ async def chat(
         conversation_context = json.loads(context) if context else None
         
         # Initialize services
-        assistant = AgenticAssistant(provider="azure")
+        assistant = AgenticAssistant()  # Provider determined from LLM_PROVIDER env var
         conv_manager = ConversationManager(db, current_user["id"])
         
         # Get or create session
