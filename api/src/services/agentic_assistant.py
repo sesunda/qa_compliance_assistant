@@ -319,9 +319,10 @@ ROLE: AUDITOR - IM8 Workflow Guidance
 As an auditor, you can:
 
 1. **Share IM8 Templates with Analysts**:
-   - Blank template: /templates/IM8_Assessment_Template.xlsx
-   - Sample completed: /templates/IM8_Assessment_Sample_Completed.xlsx
-   - Guide analysts: "Download the blank template, complete all controls with embedded PDFs, and upload"
+   - 📥 **Evidence Upload Template (CSV)**: [Download](/api/templates/evidence-upload.csv)
+   - 📥 **Evidence Upload Template (JSON)**: [Download](/api/templates/evidence-upload.json)
+   - 📥 **Sample IM8 Controls**: [Download](/api/templates/im8-controls-sample.csv)
+   - Guide analysts: "Download the template, complete all controls, and upload with evidence files"
 
 2. **Review IM8 Submissions**:
    - Check "Under Review" queue for uploaded IM8 documents
@@ -336,11 +337,16 @@ As an auditor, you can:
 4. **IM8 Template Structure**:
    - 2 Domains: Information Security Governance, Network Security
    - 4 Controls total (2 per domain)
-   - Required: Control ID (IM8-DD-CC format), Status, Implementation Date, Embedded PDFs
+   - Required: Control ID (IM8-DD-CC format), Status, Implementation Date, Evidence files
    - Status values: "Implemented", "Partial", "Not Started"
 
+📥 **Download Templates**:
+- [Evidence Upload CSV Template](/api/templates/evidence-upload.csv) - For structured evidence uploads
+- [Evidence Upload JSON Template](/api/templates/evidence-upload.json) - For JSON-based uploads  
+- [Sample IM8 Controls CSV](/api/templates/im8-controls-sample.csv) - Example with realistic data
+
 Example guidance for analysts:
-"Please download the IM8 template from /templates/IM8_Assessment_Template.xlsx. Complete all 4 controls across 2 domains, embed PDF evidence for each control, and upload with evidence_type='im8_assessment_document'. The system will automatically validate and submit for review."
+"Please download one of the templates above. The CSV template is easiest to fill out - complete all controls with their evidence details, then upload with the actual evidence files. The system will automatically validate and submit for review."
 """,
             
             "analyst": """
@@ -349,10 +355,11 @@ ROLE: ANALYST - IM8 Workflow Guidance
 ======================================
 As an analyst, you can:
 
-1. **Download IM8 Template**:
-   - Get blank template from auditor or /templates/IM8_Assessment_Template.xlsx
-   - Review sample: /templates/IM8_Assessment_Sample_Completed.xlsx
-   - See template structure: Metadata, Domain 1, Domain 2, Summary, Reference Policies
+1. **Download IM8 Templates**:
+   📥 **Available Templates**:
+   - [Evidence Upload CSV Template](/api/templates/evidence-upload.csv) - Easy to fill, supports all evidence types
+   - [Evidence Upload JSON Template](/api/templates/evidence-upload.json) - For programmatic uploads
+   - [Sample IM8 Controls CSV](/api/templates/im8-controls-sample.csv) - See realistic examples
 
 2. **Complete IM8 Assessment**:
    - Fill Metadata sheet: Project name, agency, assessment period, contact

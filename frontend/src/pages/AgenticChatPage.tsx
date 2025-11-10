@@ -10,13 +10,15 @@ import {
   Chip,
   Alert,
   CircularProgress,
-  IconButton
+  IconButton,
+  Button
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import PersonIcon from '@mui/icons-material/Person';
 import TaskIcon from '@mui/icons-material/Task';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
+import AddIcon from '@mui/icons-material/Add';
 import api from '../services/api';
 
 interface ChatMessage {
@@ -109,6 +111,8 @@ const AgenticChatPage: React.FC = () => {
     const savedSession = localStorage.getItem('agentic_session_id');
     if (savedSession) {
       setConversationId(savedSession);
+      // Restore message history
+      restoreMessageHistory(savedSession);
     }
   }, []);
 
@@ -131,6 +135,44 @@ const AgenticChatPage: React.FC = () => {
     } catch (error) {
       console.error('Error fetching capabilities:', error);
     }
+  };
+
+  const restoreMessageHistory = async (sessionId: string) => {
+    try {
+      const response = await api.get(`/agentic-chat/sessions/${sessionId}/messages`);
+      const { messages: historyMessages } = response.data;
+      
+      // Convert backend message format to frontend ChatMessage format
+      const convertedMessages: ChatMessage[] = historyMessages.map((msg: any) => ({
+        id: msg.id || Date.now().toString(),
+        role: msg.role,
+        content: msg.content,
+        timestamp: new Date(msg.timestamp),
+        metadata: msg.metadata,
+        sources: msg.sources,
+        suggested_responses: msg.suggested_responses,
+        reasoning: msg.reasoning
+      }));
+      
+      setMessages(convertedMessages);
+    } catch (error: any) {
+      console.error('Error restoring message history:', error);
+      
+      // If session not found or expired, clear it and start fresh
+      if (error.response?.status === 404) {
+        localStorage.removeItem('agentic_session_id');
+        setConversationId(null);
+      }
+    }
+  };
+
+  const handleNewChat = () => {
+    // Clear current conversation
+    setMessages([]);
+    setConversationId(null);
+    localStorage.removeItem('agentic_session_id');
+    setInput('');
+    setSelectedFile(null);
   };
 
   const handleSendMessage = async (messageText?: string) => {
@@ -373,24 +415,34 @@ const AgenticChatPage: React.FC = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <SmartToyIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
-        <Box>
-          <Typography variant="h4" gutterBottom>
-            Agentic AI Assistant
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Natural language interface for compliance automation
-            {capabilities && (
-              <Chip 
-                label={`${capabilities.provider || 'AI'} Active`} 
-                color="success" 
-                size="small" 
-                sx={{ ml: 1 }} 
-              />
-            )}
-          </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <SmartToyIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
+          <Box>
+            <Typography variant="h4" gutterBottom>
+              Agentic AI Assistant
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Natural language interface for compliance automation
+              {capabilities && (
+                <Chip 
+                  label={`${capabilities.provider || 'AI'} Active`} 
+                  color="success" 
+                  size="small" 
+                  sx={{ ml: 1 }} 
+                />
+              )}
+            </Typography>
+          </Box>
         </Box>
+        <Button
+          variant="outlined"
+          startIcon={<AddIcon />}
+          onClick={handleNewChat}
+          disabled={messages.length === 0}
+        >
+          New Chat
+        </Button>
       </Box>
 
       {/* Example Prompts */}
@@ -465,7 +517,11 @@ const AgenticChatPage: React.FC = () => {
                   </Typography>
 
                   {/* Template download links if mentioned in the message */}
-                  {message.role === 'assistant' && (message.content.includes('/templates/evidence-upload.csv') || message.content.includes('/templates/evidence-upload.json')) && (
+                  {message.role === 'assistant' && (
+                    message.content.includes('/api/templates/') || 
+                    message.content.includes('Download Template') ||
+                    message.content.includes('📥')
+                  ) && (
                     <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid rgba(0,0,0,0.1)' }}>
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
                         📥 Download Templates:
@@ -473,7 +529,7 @@ const AgenticChatPage: React.FC = () => {
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                         <Chip
                           icon={<AttachFileIcon />}
-                          label="CSV Template"
+                          label="Evidence CSV Template"
                           size="small"
                           color="primary"
                           component="a"
@@ -483,11 +539,21 @@ const AgenticChatPage: React.FC = () => {
                         />
                         <Chip
                           icon={<AttachFileIcon />}
-                          label="JSON Template"
+                          label="Evidence JSON Template"
                           size="small"
                           color="secondary"
                           component="a"
                           href={`${api.defaults.baseURL}/templates/evidence-upload.json`}
+                          download
+                          clickable
+                        />
+                        <Chip
+                          icon={<AttachFileIcon />}
+                          label="Sample IM8 Controls"
+                          size="small"
+                          color="success"
+                          component="a"
+                          href={`${api.defaults.baseURL}/templates/im8-controls-sample.csv`}
                           download
                           clickable
                         />

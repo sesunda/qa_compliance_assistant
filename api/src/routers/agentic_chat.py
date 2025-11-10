@@ -308,3 +308,45 @@ async def get_capabilities():
         "status": "active" if get_llm_service().is_available() else "unavailable",
         "provider": get_llm_service().provider
     }
+
+
+@router.get("/sessions/{session_id}/messages")
+async def get_session_messages(
+    session_id: str,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get message history for a conversation session"""
+    try:
+        conv_manager = ConversationManager(db, current_user["id"])
+        session = conv_manager.get_session(session_id)
+        
+        if not session:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Session {session_id} not found"
+            )
+        
+        # Verify user owns this session
+        if session.user_id != current_user["id"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied: You don't have permission to view this session"
+            )
+        
+        return {
+            "session_id": session.session_id,
+            "title": session.title,
+            "messages": session.messages or [],
+            "created_at": session.created_at.isoformat() if session.created_at else None,
+            "last_activity": session.last_activity.isoformat() if session.last_activity else None
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching session messages: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching session messages: {str(e)}"
+        )
