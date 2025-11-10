@@ -1365,6 +1365,15 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
         # Build payload
         payload = function_args.copy()
         
+        # Convert domains array to domain_areas for create_controls
+        if function_name == "create_controls" and "domains" in payload:
+            # Convert [1, 2, 3] to ["IM8-01", "IM8-02", "IM8-03"]
+            domains = payload.pop("domains")
+            payload["domain_areas"] = [f"IM8-{d:02d}" for d in domains]
+            # Calculate count (3 controls per domain for IM8)
+            payload["count"] = len(domains) * 3
+            logger.info(f"Converted domains {domains} to domain_areas {payload['domain_areas']}, count={payload['count']}")
+        
         # Add file_path for upload operations - override LLM's suggestion with actual file
         if function_name == "upload_evidence" or function_name == "fetch_evidence":
             if file_path:
