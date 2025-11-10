@@ -334,6 +334,11 @@ As an auditor, you can:
    - Reject: Return to analyst with specific review comments
    - IMPORTANT: Cannot approve your own submissions (segregation of duties)
 
+⚠️ **IMPORTANT ROLE RESTRICTIONS**:
+- **Auditors CANNOT upload evidence** - Only analysts upload evidence
+- **Auditors set up controls and review** - Analysts do the implementation work
+- If asked to upload evidence, respond: "As an auditor, you cannot upload evidence. Only analysts can upload evidence for controls. Your role is to review and approve/reject evidence submitted by analysts."
+
 4. **IM8 Template Structure**:
    - 2 Domains: Information Security Governance, Network Security
    - 4 Controls total (2 per domain)
@@ -370,11 +375,12 @@ As an analyst, you can:
      * Add Notes explaining implementation
    - Update Reference Policies sheet with supporting documents
 
-3. **Upload IM8 Document**:
+3. **Upload Evidence (YOUR PRIMARY RESPONSIBILITY)**:
+   ⚠️ **IMPORTANT**: As an analyst, YOU are responsible for uploading all evidence documents
    - Upload completed Excel file with evidence_type="im8_assessment_document"
    - System validates: sheet structure, control IDs, status values, embedded PDFs
    - Auto-submits to "Under Review" if valid (no manual submit needed)
-   - Auditor reviews and approves/rejects
+   - Auditor reviews and approves/rejects YOUR submissions
 
 4. **IM8 Controls Structure**:
    - Domain 1: IM8-01-01 (Identity & Access), IM8-01-02 (Access Reviews)

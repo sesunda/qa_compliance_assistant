@@ -302,9 +302,9 @@ const AgenticChatPage: React.FC = () => {
         setConversationContext(response.data.conversation_context);
         setConversationId(response.data.conversation_id || null);
       } else if (response.data.task_created) {
-        // Task created, reset conversation
+        // Task created, preserve conversation for follow-up questions
         setConversationContext(null);
-        setConversationId(null);
+        // Keep conversationId so messages persist across navigation
       }
       
       // Clear file after upload
@@ -407,7 +407,7 @@ const AgenticChatPage: React.FC = () => {
   };
 
   const examplePrompts = [
-    "Upload IM8 controls",
+    "Set up IM8 controls",
     "Create security findings",
     "Generate compliance report",
     "Upload 30 IM8 controls for all domains to project 1"  // Expert mode example
@@ -456,7 +456,7 @@ const AgenticChatPage: React.FC = () => {
               <Chip
                 key={index}
                 label={prompt}
-                onClick={() => setInput(prompt)}
+                onClick={() => handleSendMessage(prompt)}
                 sx={{ cursor: 'pointer' }}
                 variant="outlined"
               />
