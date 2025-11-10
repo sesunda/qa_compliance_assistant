@@ -21,6 +21,7 @@ class TaskType(str, Enum):
     GENERATE_REPORT = "generate_report"
     ANALYZE_COMPLIANCE = "analyze_compliance"
     MAP_CONTROLS = "map_controls"
+    CREATE_PROJECT = "create_project"
     CUSTOM = "custom"
 
 

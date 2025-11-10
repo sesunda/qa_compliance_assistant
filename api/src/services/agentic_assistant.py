@@ -171,6 +171,36 @@ class AgenticAssistant:
             {
                 "type": "function",
                 "function": {
+                    "name": "create_project",
+                    "description": "Create a new compliance or security project. Use when auditor wants to set up a new project for IM8 controls, security audit, risk assessment, etc.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "Project name (required). Example: 'Health Sciences IM8 Compliance 2025'"
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Project description. Example: 'Annual IM8 compliance assessment for Health Sciences division'"
+                            },
+                            "project_type": {
+                                "type": "string",
+                                "enum": ["compliance_assessment", "security_audit", "risk_management", "penetration_test"],
+                                "description": "Type of project (default: compliance_assessment)"
+                            },
+                            "start_date": {
+                                "type": "string",
+                                "description": "Project start date in YYYY-MM-DD format. Example: '2025-01-15'"
+                            }
+                        },
+                        "required": ["name"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
                     "name": "mcp_fetch_evidence",
                     "description": "Fetch evidence from URLs or local filesystem using MCP server. Automatically downloads files, calculates SHA256 checksums, and stores in database with maker-checker workflow. Use when user provides URLs to download compliance evidence.",
                     "parameters": {
@@ -937,7 +967,8 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
             "fetch_evidence": ["control_id", "project_id"],
             "analyze_compliance": ["control_id", "project_id"],
             "generate_report": ["project_id"],
-            "submit_for_review": ["evidence_id"]
+            "submit_for_review": ["evidence_id"],
+            "create_project": ["agency_id"]
         }
         
         coerced = args.copy()
