@@ -102,7 +102,7 @@ def get_current_user(
         "id": user.id,
         "username": user.username,
         "email": user.email,
-        "role": user.role.name if user.role else "user",
+        "role": user.role.name.lower() if user.role else "user",  # Normalize to lowercase
         "agency_id": user.agency_id,
         "is_active": user.is_active
     }
