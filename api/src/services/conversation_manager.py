@@ -24,9 +24,30 @@ class ConversationManager:
         self.db = db
         self.user_id = user_id
     
-    def create_session(self, title: Optional[str] = None) -> ConversationSession:
-        """Create a new conversation session"""
-        session_id = str(uuid.uuid4())
+    def create_session(self, title: Optional[str] = None, session_id: Optional[str] = None) -> ConversationSession:
+        """Create a new conversation session
+        
+        Args:
+            title: Optional title for the session
+            session_id: Optional custom session ID (if not provided, generates UUID)
+            
+        Returns:
+            ConversationSession object
+            
+        Raises:
+            ValueError: If provided session_id already exists in database
+        """
+        # Use provided session_id or generate new one
+        if not session_id:
+            session_id = str(uuid.uuid4())
+        
+        # Check if session_id already exists
+        existing = self.db.query(ConversationSession).filter(
+            ConversationSession.session_id == session_id
+        ).first()
+        
+        if existing:
+            raise ValueError(f"Session ID {session_id} already exists")
         
         # Generate default title if not provided
         if not title:
