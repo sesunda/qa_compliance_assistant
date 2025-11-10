@@ -201,6 +201,37 @@ class AgenticAssistant:
             {
                 "type": "function",
                 "function": {
+                    "name": "create_controls",
+                    "description": "Create IM8 compliance controls for a project. Use when auditor wants to set up IM8 controls by selecting domains (1-10). Creates multiple controls based on selected domains.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "project_id": {
+                                "type": "integer",
+                                "description": "Project ID to add controls to (required)"
+                            },
+                            "domains": {
+                                "type": "array",
+                                "items": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 10
+                                },
+                                "description": "IM8 domain numbers to include. Domains: 1=Identity/Access, 2=Awareness/Training, 3=Data Protection, 4=Incident Response, 5=IT Security Operations, 6=Network Security, 7=System Security, 8=Application Security, 9=Mobile Device, 10=Cloud Security"
+                            },
+                            "framework": {
+                                "type": "string",
+                                "enum": ["IM8", "NIST", "ISO27001"],
+                                "description": "Compliance framework (default: IM8)"
+                            }
+                        },
+                        "required": ["project_id", "domains"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
                     "name": "mcp_fetch_evidence",
                     "description": "Fetch evidence from URLs or local filesystem using MCP server. Automatically downloads files, calculates SHA256 checksums, and stores in database with maker-checker workflow. Use when user provides URLs to download compliance evidence.",
                     "parameters": {
@@ -1024,6 +1055,49 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
                     "suggestion": "Please shorten the project name"
                 }
         
+        # Validation for create_controls
+        elif function_name == "create_controls":
+            # Check project_id
+            if not args.get("project_id"):
+                return {
+                    "valid": False,
+                    "error": "Project ID is required",
+                    "suggestion": "Please specify which project to add controls to"
+                }
+            
+            # Check project exists and belongs to user's agency
+            from api.src.models import Project
+            project = db.query(Project).filter(Project.id == args["project_id"]).first()
+            if not project:
+                return {
+                    "valid": False,
+                    "error": f"Project ID {args['project_id']} not found",
+                    "suggestion": "Please provide a valid project ID"
+                }
+            if project.agency_id != current_user.get("agency_id"):
+                return {
+                    "valid": False,
+                    "error": f"Access denied: Project {args['project_id']} belongs to another agency",
+                    "suggestion": "You can only add controls to your agency's projects"
+                }
+            
+            # Check domains array
+            if not args.get("domains") or not isinstance(args["domains"], list):
+                return {
+                    "valid": False,
+                    "error": "Domains array is required",
+                    "suggestion": "Please specify which IM8 domains to include (e.g., [1, 2, 3])"
+                }
+            
+            # Validate domain numbers (1-10)
+            invalid_domains = [d for d in args["domains"] if not isinstance(d, int) or d < 1 or d > 10]
+            if invalid_domains:
+                return {
+                    "valid": False,
+                    "error": f"Invalid domain numbers: {invalid_domains}. Must be integers between 1 and 10",
+                    "suggestion": "IM8 domains are numbered 1-10. Please use valid domain numbers"
+                }
+        
         # Validation for upload_evidence
         elif function_name == "upload_evidence" or function_name == "fetch_evidence":
             # Check control_id exists and belongs to user's agency
@@ -1273,6 +1347,7 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
         # Map tool to task type
         task_type_map = {
             "create_project": "create_project",
+            "create_controls": "create_controls",
             "upload_evidence": "fetch_evidence",  # Uses same handler
             "fetch_evidence": "fetch_evidence",
             "analyze_compliance": "analyze_compliance",
@@ -1306,6 +1381,7 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
         # Generate title and description for the task
         title_map = {
             "create_project": "Create New Project",
+            "create_controls": "Create IM8 Controls",
             "upload_evidence": "Upload Evidence Document",
             "fetch_evidence": "Fetch Evidence",
             "analyze_compliance": "Analyze Compliance",
