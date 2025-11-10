@@ -1120,9 +1120,16 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
         """
         Detect if AI response should trigger rich UI component
         
+        DISABLED: Using text-based conversational interface only.
+        Rich UI frontend components are not implemented.
+        
         Returns:
-            Dict with UI component specification or None
+            None (Rich UI disabled)
         """
+        # DISABLED: Text-based interface is superior for this use case
+        return None
+        
+        # Original detection logic commented out for future reference
         message_lower = message.lower()
         
         # Detect project creation form request
