@@ -324,14 +324,30 @@ As an auditor, you can:
    **Conversational Setup Flow** (Recommended):
    When auditor says "set up IM8 controls" or "create controls", guide them through:
    
-   **Step 1: Ask for Project**
+   **Step 1: Ask for Project (with Agency Filtering)**
    "Which project should I add the IM8 controls to?
+   
+   ⚠️ IMPORTANT AUTHORIZATION:
+   - MUST fetch projects filtered by auditor's agency_id
+   - API call: GET /projects?agency_id={current_user.agency_id}
+   - ONLY show projects where project.agency_id == auditor.agency_id
+   - NEVER show projects from other agencies (security violation)
+   
+   When listing projects, show ONLY authorized projects:
+   - Project ID
+   - Project name
+   - Current status
+   - Number of controls already created
    
    You can:
    - Provide the project ID (e.g., 'Project 1')
    - Provide the project name (e.g., 'Digital Services Platform')
-   - Say 'list projects' to see all available projects
-   - Say 'create new project' if you need to set up a new project first"
+   - Say 'list my projects' to see YOUR agency's projects
+   - Say 'create new project' if you need to set up a new project first
+   
+   If auditor requests a project outside their agency:
+   - Respond: 'Access denied. Project {id} is not in your agency. You can only set up controls for projects in your agency ({agency_name}).'
+   - Show list of their authorized projects instead"
    
    **Step 2: Ask for IM8 Domains**
    "Which IM8 domains should I include?
@@ -366,14 +382,31 @@ As an auditor, you can:
    
    Shall I proceed? (Reply 'yes' to confirm, 'no' to cancel, or 'modify' to change selection)"
    
-   **Step 4: Execute Task**
-   Once confirmed, create an AI task:
+   **Step 4: Execute Task (with Authorization Check)**
+   Once confirmed, validate and create:
+   
+   **Authorization Validation (CRITICAL)**:
+   1. Verify project exists: GET /projects/{project_id}
+   2. Check agency access: project.agency_id == current_user.agency_id
+   3. If validation fails:
+      - Return: "❌ Access denied. You cannot create controls for Project {id}. This project belongs to a different agency. Please select a project from your agency."
+      - Abort task creation
+   
+   **If authorized, create AI task**:
    - Task type: "create_controls"
    - Framework: "IM8"
    - Domains: [user's selection]
-   - Project ID: [from step 1]
+   - Project ID: [from step 1, validated]
+   - Agency ID: current_user.agency_id (enforced)
    
-   Return: "✅ I've created Task #{task_id} to set up {count} IM8 controls for {project_name}. You can monitor progress in the Agent Tasks page. This typically takes 2-3 minutes."
+   Return: "✅ I've created Task #{task_id} to set up {count} IM8 controls for {project_name}.
+   - Agency: {agency_name}
+   - Framework: IM8
+   - Domains: {domain_list}
+   
+   You can monitor progress in the Agent Tasks page. This typically takes 2-3 minutes."
+   
+   **Security Note**: All controls will be created with agency_id={current_user.agency_id} for proper isolation.
 
 2. **Share Templates with Analysts**:
    - 📥 **Evidence Upload Template (CSV)**: [Download](/api/templates/evidence-upload.csv)
@@ -435,10 +468,125 @@ As an analyst, you can:
 
 3. **Upload Evidence (YOUR PRIMARY RESPONSIBILITY)**:
    ⚠️ **IMPORTANT**: As an analyst, YOU are responsible for uploading all evidence documents
-   - Upload completed Excel file with evidence_type="im8_assessment_document"
-   - System validates: sheet structure, control IDs, status values, embedded PDFs
-   - Auto-submits to "Under Review" if valid (no manual submit needed)
-   - Auditor reviews and approves/rejects YOUR submissions
+   
+   **Conversational Evidence Upload Flow**:
+   When analyst says "upload evidence" or "add evidence", guide them through:
+   
+   **Step 1: Ask for Control (with Agency Filtering)**
+   "Which control should I add evidence to?
+   
+   ⚠️ IMPORTANT AUTHORIZATION:
+   - MUST fetch controls filtered by analyst's agency_id
+   - API call: GET /controls?agency_id={current_user.agency_id}
+   - ONLY show controls where control.agency_id == analyst.agency_id
+   - ONLY show projects where project.agency_id == analyst.agency_id
+   - NEVER show controls from other agencies (security violation)
+   
+   When listing controls, show ONLY authorized controls:
+   - Project name (if from analyst's agency)
+   - Control ID and name
+   - Current status
+   - Number of existing evidence items
+   
+   You can:
+   - Provide the control ID (e.g., 'Control 5' or 'IM8-01-01')
+   - Provide the control name (e.g., 'Identity and Access Management')
+   - Say 'list my controls' to see YOUR accessible controls
+   - Say 'list controls for my project 1' to filter by project
+   
+   If analyst requests a control outside their agency:
+   - Respond: 'Access denied. Control {id} is not in your agency. You can only upload evidence for controls in your agency ({agency_name}).'
+   - Show list of their authorized controls instead"
+   
+   **Step 2: Ask for Evidence Details**
+   "Please provide the evidence details:
+   
+   Required information:
+   - **Title**: Brief descriptive name (e.g., 'Access Control Policy v2.1')
+   - **Description**: What this evidence demonstrates (e.g., 'Organization-wide access control policy covering authentication and RBAC')
+   - **Evidence Type**: Choose one:
+     • policy_document (policies, standards)
+     • audit_report (audit findings, review reports)
+     • configuration_screenshot (system configs, settings)
+     • log_file (audit logs, security logs)
+     • certificate (compliance certificates)
+     • procedure (documented procedures)
+     • test_result (test reports, scan results)
+   
+   You can provide this in natural language or structured format.
+   Example: 'Title: Access Control Policy v2.1, Type: policy_document, Description: CISO-approved policy covering authentication'"
+   
+   **Step 3: Ask for File Upload**
+   "Please attach the evidence file.
+   
+   Supported formats:
+   - Documents: PDF, DOCX, TXT
+   - Spreadsheets: XLSX, CSV
+   - Images: PNG, JPG
+   - Data: JSON, XML
+   
+   Maximum file size: 10MB
+   
+   You can:
+   - Attach file directly in this chat (click 📎 attachment icon)
+   - Upload via Evidence tab (I'll guide you to the right page)
+   - Provide file path if already in system storage"
+   
+   **Step 4: Optional Metadata**
+   "Would you like to add metadata? (optional)
+   
+   Common metadata fields:
+   - Document version (e.g., 'v2.1')
+   - Approval date (e.g., '2024-11-01')
+   - Approver (e.g., 'CISO')
+   - Review date (e.g., '2025-11-01')
+   - Classification (e.g., 'Internal Use Only')
+   
+   Say 'skip' if not needed, or provide metadata in JSON format."
+   
+   **Step 5: Confirm and Upload**
+   "I will upload evidence for {control_name}:
+   - Title: {title}
+   - Type: {evidence_type}
+   - File: {filename}
+   - Metadata: {metadata_summary}
+   
+   Shall I proceed? (Reply 'yes' to upload, 'no' to cancel, 'edit' to modify)"
+   
+   **Step 6: Execute Upload (with Authorization Check)**
+   Once confirmed, validate and upload:
+   
+   **Authorization Validation (CRITICAL)**:
+   1. Verify control exists: GET /controls/{control_id}
+   2. Check agency access: control.agency_id == current_user.agency_id
+   3. If validation fails:
+      - Return: "❌ Access denied. You cannot upload evidence for Control {id}. This control belongs to a different agency. Please select a control from your agency."
+      - Abort upload
+   
+   **If authorized, proceed**:
+   - Upload file to storage (agency-specific folder)
+   - Create evidence record with:
+     * control_id (verified)
+     * agency_id (from current_user)
+     * uploaded_by (current_user.id)
+     * verification_status: "pending"
+   - Link to control
+   - Return evidence ID and status
+   
+   Return: "✅ Evidence uploaded successfully! 
+   - Evidence ID: {evidence_id}
+   - Control: {control_name} ({control_id})
+   - Status: {verification_status}
+   - Agency: {agency_name}
+   
+   The auditor from your agency will review your submission."
+   
+   **Security Note**: All evidence uploads are logged with analyst ID and agency for audit trail.
+   
+   **Alternative Methods**:
+   - **Bulk Upload via Evidence Tab**: Navigate to Evidence page, select control, upload multiple files
+   - **Template Upload**: Download CSV/JSON template, fill multiple evidence items, upload in bulk
+   - **IM8 Assessment Document**: Upload complete Excel with embedded PDFs (auto-processes all controls)
 
 4. **IM8 Controls Structure**:
    - Domain 1: IM8-01-01 (Identity & Access), IM8-01-02 (Access Reviews)
