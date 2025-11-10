@@ -57,6 +57,21 @@ const ControlsPage: React.FC = () => {
   // Ensure controls is an array
   const allControls = Array.isArray(controls) ? controls : []
   
+  // Get available domains from current controls (project-specific)
+  const availableDomains = useMemo(() => {
+    const domains = new Set<string>()
+    allControls.forEach((control: any) => {
+      if (control.control_type) {
+        // Extract domain prefix (e.g., "IM8-01" from "IM8-01-1")
+        const match = control.control_type.match(/^(IM8-\d{2})/)
+        if (match) {
+          domains.add(match[1])
+        }
+      }
+    })
+    return Array.from(domains).sort()
+  }, [allControls])
+
   // Filter by domain on frontend
   const controlsList = useMemo(() => {
     if (selectedDomain === 'all') return allControls
@@ -65,8 +80,8 @@ const ControlsPage: React.FC = () => {
     )
   }, [allControls, selectedDomain])
 
-  // IM8 Domains for filter
-  const im8Domains = [
+  // All IM8 Domains with labels
+  const allIm8Domains = [
     { value: 'IM8-01', label: 'IM8-01: Information Security Governance' },
     { value: 'IM8-02', label: 'IM8-02: Network Security' },
     { value: 'IM8-03', label: 'IM8-03: Data Protection' },
@@ -79,8 +94,20 @@ const ControlsPage: React.FC = () => {
     { value: 'IM8-10', label: 'IM8-10: Digital Service Standards' },
   ]
 
+  // Filter domains based on what's available in selected project
+  const im8Domains = useMemo(() => {
+    if (selectedProject === 'all') {
+      // Show all domains when no project is selected
+      return allIm8Domains
+    }
+    // Show only domains that exist in the current controls
+    return allIm8Domains.filter(domain => availableDomains.includes(domain.value))
+  }, [selectedProject, availableDomains])
+
   const handleProjectChange = (event: SelectChangeEvent<string>) => {
     setSelectedProject(event.target.value)
+    // Reset domain filter when project changes
+    setSelectedDomain('all')
   }
 
   const handleDomainChange = (event: SelectChangeEvent<string>) => {
@@ -198,13 +225,23 @@ const ControlsPage: React.FC = () => {
                 value={selectedDomain}
                 label="Filter by IM8 Domain"
                 onChange={handleDomainChange}
+                disabled={im8Domains.length === 0}
               >
-                <MenuItem value="all">All Domains</MenuItem>
-                {im8Domains.map((domain) => (
-                  <MenuItem key={domain.value} value={domain.value}>
-                    {domain.label}
-                  </MenuItem>
-                ))}
+                <MenuItem value="all">
+                  All Domains {selectedProject !== 'all' && `(${availableDomains.length})`}
+                </MenuItem>
+                {im8Domains.map((domain) => {
+                  // Count controls in this domain
+                  const controlCount = allControls.filter((c: any) => 
+                    c.control_type?.startsWith(domain.value)
+                  ).length
+                  
+                  return (
+                    <MenuItem key={domain.value} value={domain.value}>
+                      {domain.label} ({controlCount})
+                    </MenuItem>
+                  )
+                })}
               </Select>
             </FormControl>
 
