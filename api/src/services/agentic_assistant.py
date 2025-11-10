@@ -837,7 +837,7 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
                 final_answer = assistant_message.content
             
             # Detect rich UI opportunities
-            conversation_history = conversation_manager.get_messages(session_id)
+            conversation_history = conversation_manager.get_conversation_history(session_id)
             rich_ui = self._detect_rich_ui_opportunity(final_answer, conversation_history)
             
             # Save assistant response to conversation
