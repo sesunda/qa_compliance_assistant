@@ -1398,12 +1398,14 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
             "submit_for_review": "Submit for Review"
         }
         
+        
         title = title_map.get(function_name, "AI Assistant Task")
         description = f"Task created by AI Assistant: {function_name}"
         
         # Create and execute task
         from api.src.models import AgentTask
         from api.src.workers.task_worker import get_worker
+        import time
         
         task = AgentTask(
             task_type=task_type,
@@ -1420,11 +1422,28 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
         
         logger.info(f"Created task {task.id} for tool {function_name}")
         
-        # For now, return task creation confirmation
-        # Worker will execute in background
-        return {
+        # Wait for task to complete (max 30 seconds)
+        max_wait = 30
+        start_time = time.time()
+        while (time.time() - start_time) < max_wait:
+            db.refresh(task)
+            if task.status in ['completed', 'failed', 'error']:
+                break
+            time.sleep(0.5)  # Poll every 500ms
+        
+        # Return task result with actual data
+        result = {
             "task_id": task.id,
             "task_type": task_type,
-            "status": "created",
-            "message": f"Task {task.id} created successfully"
+            "status": task.status,
+            "message": f"Task {task.id} {task.status}"
         }
+        
+        # Include actual result data from task
+        if task.result:
+            if isinstance(task.result, dict):
+                result.update(task.result)
+            logger.info(f"Task {task.id} result: {task.result}")
+        
+        return result
+
