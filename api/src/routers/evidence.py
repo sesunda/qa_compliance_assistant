@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List, Optional
 from datetime import datetime
+import json
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
@@ -11,6 +12,8 @@ from api.src import models, schemas
 from api.src.auth import require_auditor, require_viewer, require_analyst, check_agency_access
 from api.src.database import get_db
 from api.src.services.evidence_storage import evidence_storage_service
+from api.src.services.excel_processor import get_excel_processor
+from api.src.services.im8_validator import get_im8_validator
 
 
 router = APIRouter(prefix="/evidence", tags=["evidence"])
@@ -66,6 +69,55 @@ async def upload_evidence(
         control_id=control.id
     )
 
+    # Initialize metadata_json and verification status
+    metadata_json = None
+    verification_status = "pending"
+    
+    # IM8 Assessment Document processing
+    if evidence_type == "im8_assessment_document":
+        try:
+            # Read file content for parsing
+            file_path = evidence_storage_service.resolve_file_path(storage_meta["relative_path"])
+            with open(file_path, "rb") as f:
+                file_content = f.read()
+            
+            # Parse IM8 Excel document
+            excel_processor = get_excel_processor()
+            parsed_data = excel_processor.parse_im8_document(file_content, file.filename)
+            
+            # Validate IM8 structure
+            validator = get_im8_validator()
+            is_valid, validation_errors = validator.validate_im8_document(parsed_data, strict_mode=False)
+            
+            # Calculate completion stats
+            completion_stats = excel_processor.calculate_completion_stats(parsed_data)
+            parsed_data["completion_stats"] = completion_stats
+            
+            # Store validation results
+            parsed_data["validation"] = {
+                "is_valid": is_valid,
+                "errors": validation_errors,
+                "validated_at": datetime.utcnow().isoformat()
+            }
+            
+            # Store parsed data in metadata_json
+            metadata_json = parsed_data
+            
+            # Auto-submit to "under_review" for valid IM8 documents
+            if is_valid:
+                verification_status = "under_review"
+            else:
+                # If validation errors, keep in pending with error details
+                verification_status = "pending"
+                
+        except Exception as e:
+            # If parsing/validation fails, store error in metadata
+            metadata_json = {
+                "evidence_type": "im8_assessment_document",
+                "processing_error": str(e),
+                "processed_at": datetime.utcnow().isoformat()
+            }
+
     db_evidence = models.Evidence(
         control_id=control.id,
         agency_id=control.agency_id,
@@ -80,7 +132,8 @@ async def upload_evidence(
         storage_backend=storage_meta["storage_backend"],
         uploaded_by=current_user["id"],
         submitted_by=current_user["id"],  # Maker-checker: Set submitter
-        verification_status="pending",  # Start in pending status
+        verification_status=verification_status,
+        metadata_json=metadata_json,  # Store parsed IM8 data
     )
 
     db.add(db_evidence)

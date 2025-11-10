@@ -1,0 +1,3 @@
+Control ID,Control Name,Description,Status,Evidence,Implementation Date,Notes
+IM8-02-01,Network Segmentation,Implement network segmentation between production development and DMZ zones with appropriate firewall rules,,[Embed PDF here],,
+IM8-02-02,Firewall Management,Maintain firewall rules following allow-by-exception principle with regular rule reviews,,[Embed PDF here],,

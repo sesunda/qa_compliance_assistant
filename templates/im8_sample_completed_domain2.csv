@@ -1,0 +1,3 @@
+Control ID,Control Name,Description,Status,Evidence,Implementation Date,Notes
+IM8-02-01,Network Segmentation,Implement network segmentation between production development and DMZ zones with appropriate firewall rules,Partial,[PDF: network_diagram.pdf embedded],2024-08-20,DMZ and production segmented. Internal network segmentation in progress (target: Q1 2026).
+IM8-02-02,Firewall Management,Maintain firewall rules following allow-by-exception principle with regular rule reviews,Implemented,[PDF: firewall_rules_review.pdf embedded],2024-07-10,"Annual rule review completed. 342 rules reviewed, 15 obsolete rules removed. Next review: July 2025."

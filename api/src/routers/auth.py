@@ -12,7 +12,7 @@ from api.src.auth_schemas import (
 )
 from api.src.auth import (
     verify_password, get_password_hash, create_access_token,
-    get_current_user, require_admin, require_auditor,
+    get_current_user, require_admin, require_auditor, require_analyst,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
 
@@ -196,9 +196,9 @@ def list_users(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_auditor)
+    current_user: dict = Depends(require_analyst)
 ):
-    """List all users (Auditor+ access)"""
+    """List all users (Analyst+ access - analysts, auditors, admins can view users)"""
     query = db.query(models.User)
     
     # Non-super-admin users can only see users from their agency
@@ -213,9 +213,9 @@ def list_users(
 def get_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_auditor)
+    current_user: dict = Depends(require_analyst)
 ):
-    """Get specific user (Auditor+ access)"""
+    """Get specific user (Analyst+ access)"""
     user = db.query(models.User).filter(models.User.id == user_id).first()
     
     if not user:
@@ -271,9 +271,9 @@ def update_user(
 @router.get("/agencies", response_model=list[AgencySummary])
 def list_agencies(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_admin)
+    current_user: dict = Depends(require_analyst)
 ):
-    """List agencies available to the current admin user"""
+    """List agencies (Analyst+ access - users can see their own agency, super_admin sees all)"""
     query = db.query(models.Agency)
 
     if current_user["role"] != "super_admin":

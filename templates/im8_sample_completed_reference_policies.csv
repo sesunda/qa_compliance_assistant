@@ -1,0 +1,5 @@
+Policy Name,Version,Approval Date,Document Location,Notes
+Access Control Policy,v2.1,2024-11-01,/policies/access_control_policy_v2.1.pdf,Approved by CISO
+Network Security Policy,v1.5,2024-06-15,/policies/network_security_policy.pdf,Updated after pentest
+Data Classification Standard,v1.0,2024-03-01,/policies/data_classification.pdf,Aligned with IM8
+Incident Response Plan,v2.0,2024-09-10,/policies/incident_response_plan.pdf,Tested via tabletop

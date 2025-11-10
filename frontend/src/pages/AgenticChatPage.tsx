@@ -464,6 +464,37 @@ const AgenticChatPage: React.FC = () => {
                     {message.content}
                   </Typography>
 
+                  {/* Template download links if mentioned in the message */}
+                  {message.role === 'assistant' && (message.content.includes('/templates/evidence-upload.csv') || message.content.includes('/templates/evidence-upload.json')) && (
+                    <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid rgba(0,0,0,0.1)' }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                        📥 Download Templates:
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        <Chip
+                          icon={<AttachFileIcon />}
+                          label="CSV Template"
+                          size="small"
+                          color="primary"
+                          component="a"
+                          href={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/templates/evidence-upload.csv`}
+                          download
+                          clickable
+                        />
+                        <Chip
+                          icon={<AttachFileIcon />}
+                          label="JSON Template"
+                          size="small"
+                          color="secondary"
+                          component="a"
+                          href={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/templates/evidence-upload.json`}
+                          download
+                          clickable
+                        />
+                      </Box>
+                    </Box>
+                  )}
+
                   {message.task_id && (
                     <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid rgba(0,0,0,0.1)' }}>
                       <Chip

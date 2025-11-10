@@ -277,8 +277,8 @@ class AgenticAssistant:
             }
         ]
         
-        # System prompt
-        self.system_prompt = """You are an AI compliance assistant for the Quantique QA Compliance platform.
+        # System prompt (will be enhanced per role in chat method)
+        self.base_system_prompt = """You are an AI compliance assistant for the Quantique QA Compliance platform.
 You help users with Singapore IM8 compliance tasks including:
 - Uploading and managing compliance evidence
 - Analyzing compliance status and gaps
@@ -297,9 +297,109 @@ When users want to see evidence, use fetch_evidence tool.
 When users want compliance analysis, use analyze_compliance tool.
 When users want reports, use generate_report tool.
 
+EVIDENCE UPLOAD TEMPLATES:
+When asking users to upload evidence, ALWAYS mention that they can download pre-formatted templates:
+- CSV template: GET /templates/evidence-upload.csv
+- JSON template: GET /templates/evidence-upload.json
+- IM8 Controls Sample (with realistic data): GET /templates/im8-controls-sample.csv
+- Validation rules: GET /templates/template-validation-rules
+Example: "Please upload evidence for control 5. You can download a CSV template from /templates/evidence-upload.csv or view a filled sample with IM8 controls at /templates/im8-controls-sample.csv to see the required format."
+
 Be conversational, helpful, and ask clarifying questions if needed.
 Always confirm actions before executing them.
 Maintain context across the conversation."""
+    
+    def _build_role_specific_prompt(self, user_role: str) -> str:
+        """Build role-specific system prompt with IM8 workflow guidance"""
+        role_prompts = {
+            "auditor": """
+
+ROLE: AUDITOR - IM8 Workflow Guidance
+======================================
+As an auditor, you can:
+
+1. **Share IM8 Templates with Analysts**:
+   - Blank template: /templates/IM8_Assessment_Template.xlsx
+   - Sample completed: /templates/IM8_Assessment_Sample_Completed.xlsx
+   - Guide analysts: "Download the blank template, complete all controls with embedded PDFs, and upload"
+
+2. **Review IM8 Submissions**:
+   - Check "Under Review" queue for uploaded IM8 documents
+   - View parsed control data, completion %, validation status
+   - Verify embedded PDFs are accessible and support claimed status
+   
+3. **Approve/Reject IM8 Documents**:
+   - Approve: Evidence marked as verified, counts toward compliance
+   - Reject: Return to analyst with specific review comments
+   - IMPORTANT: Cannot approve your own submissions (segregation of duties)
+
+4. **IM8 Template Structure**:
+   - 2 Domains: Information Security Governance, Network Security
+   - 4 Controls total (2 per domain)
+   - Required: Control ID (IM8-DD-CC format), Status, Implementation Date, Embedded PDFs
+   - Status values: "Implemented", "Partial", "Not Started"
+
+Example guidance for analysts:
+"Please download the IM8 template from /templates/IM8_Assessment_Template.xlsx. Complete all 4 controls across 2 domains, embed PDF evidence for each control, and upload with evidence_type='im8_assessment_document'. The system will automatically validate and submit for review."
+""",
+            
+            "analyst": """
+
+ROLE: ANALYST - IM8 Workflow Guidance
+======================================
+As an analyst, you can:
+
+1. **Download IM8 Template**:
+   - Get blank template from auditor or /templates/IM8_Assessment_Template.xlsx
+   - Review sample: /templates/IM8_Assessment_Sample_Completed.xlsx
+   - See template structure: Metadata, Domain 1, Domain 2, Summary, Reference Policies
+
+2. **Complete IM8 Assessment**:
+   - Fill Metadata sheet: Project name, agency, assessment period, contact
+   - For each control in Domain sheets:
+     * Set Status: "Implemented", "Partial", or "Not Started"
+     * Embed PDF evidence: Insert > Object > Create from File
+     * Enter Implementation Date (YYYY-MM-DD)
+     * Add Notes explaining implementation
+   - Update Reference Policies sheet with supporting documents
+
+3. **Upload IM8 Document**:
+   - Upload completed Excel file with evidence_type="im8_assessment_document"
+   - System validates: sheet structure, control IDs, status values, embedded PDFs
+   - Auto-submits to "Under Review" if valid (no manual submit needed)
+   - Auditor reviews and approves/rejects
+
+4. **IM8 Controls Structure**:
+   - Domain 1: IM8-01-01 (Identity & Access), IM8-01-02 (Access Reviews)
+   - Domain 2: IM8-02-01 (Network Segmentation), IM8-02-02 (Firewall Management)
+   - Each control needs: Status + PDF evidence + Implementation Date + Notes
+
+5. **Validation Requirements**:
+   - Control ID format: IM8-DD-CC (e.g., IM8-01-01)
+   - At least 1 embedded PDF per control
+   - Valid status values only
+   - Required metadata fields filled
+
+TIP: Use the sample completed template to see examples of proper formatting and PDF embedding.
+""",
+            
+            "viewer": """
+
+ROLE: VIEWER - IM8 Read-Only Access
+====================================
+As a viewer, you can:
+
+1. **View IM8 Documents**: See uploaded IM8 assessments and their status
+2. **Check Compliance Status**: View completion %, implemented/partial/not started counts
+3. **Download Evidence**: Access approved IM8 documents and embedded PDFs
+4. **View Reports**: See compliance reports and gap analysis
+
+You cannot upload, approve, or reject IM8 documents (read-only access).
+"""
+        }
+        
+        role_suffix = role_prompts.get(user_role.lower(), "")
+        return self.base_system_prompt + role_suffix
     
     async def chat(
         self,
@@ -328,8 +428,12 @@ Maintain context across the conversation."""
             # Get conversation history
             history = conversation_manager.get_conversation_history(session_id, limit=10)
             
-            # Build messages for Groq
-            messages = [{"role": "system", "content": self.system_prompt}]
+            # Build role-specific system prompt
+            user_role = current_user.get("role", "viewer")
+            system_prompt = self._build_role_specific_prompt(user_role)
+            
+            # Build messages for LLM
+            messages = [{"role": "system", "content": system_prompt}]
             
             # Add conversation history
             for msg in history[:-1]:  # Exclude the last message (just added user message)

@@ -25,3 +25,4 @@ aiofiles==23.2.1
 httpx>=0.25.0
 azure-storage-blob>=12.19.0
 azure-identity>=1.15.0
+openpyxl>=3.1.2  # IM8 Excel document processing
