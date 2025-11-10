@@ -24,7 +24,7 @@ import {
 } from '@mui/icons-material'
 import { useQuery } from 'react-query'
 import { api } from '../services/api'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../contexts/AuthContext'
 
 const ControlsPage: React.FC = () => {
   const { user } = useAuth()

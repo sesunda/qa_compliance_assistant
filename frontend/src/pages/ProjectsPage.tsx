@@ -32,7 +32,7 @@ import {
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { api } from '../services/api'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../contexts/AuthContext'
 
 const ProjectsPage: React.FC = () => {
   const { user } = useAuth()
