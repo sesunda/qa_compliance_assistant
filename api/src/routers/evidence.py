@@ -54,9 +54,9 @@ async def upload_evidence(
     evidence_type: Optional[str] = Form(None),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_auditor)
+    current_user: dict = Depends(require_analyst)
 ):
-    """Upload a new evidence file and persist metadata."""
+    """Upload a new evidence file and persist metadata. Only analysts can upload evidence."""
 
     control = _get_control(db, control_id)
 
@@ -146,9 +146,9 @@ async def upload_evidence(
 def create_evidence(
     evidence: schemas.EvidenceCreate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_auditor)
+    current_user: dict = Depends(require_analyst)
 ):
-    """Create an evidence record without uploading a file."""
+    """Create an evidence record without uploading a file. Only analysts can create evidence."""
 
     control = _get_control(db, evidence.control_id)
     if not check_agency_access(current_user, control.agency_id):
