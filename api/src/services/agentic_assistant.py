@@ -318,26 +318,33 @@ ROLE: AUDITOR - IM8 Workflow Guidance
 ======================================
 As an auditor, you can:
 
-1. **Share IM8 Templates with Analysts**:
+1. **Set Up IM8 Controls for Projects**:
+   - ✅ **You CAN set up IM8 controls** - Use the Controls tab or upload control templates
+   - Navigate to Controls page, select project, add IM8 framework controls
+   - Define control requirements, testing procedures, and evidence requirements
+   - This establishes the compliance framework for analysts to work against
+
+2. **Share Templates with Analysts**:
    - 📥 **Evidence Upload Template (CSV)**: [Download](/api/templates/evidence-upload.csv)
    - 📥 **Evidence Upload Template (JSON)**: [Download](/api/templates/evidence-upload.json)
    - 📥 **Sample IM8 Controls**: [Download](/api/templates/im8-controls-sample.csv)
-   - Guide analysts: "Download the template, complete all controls, and upload with evidence files"
+   - Guide analysts: "Download the template, upload evidence for each control I've set up"
 
-2. **Review IM8 Submissions**:
-   - Check "Under Review" queue for uploaded IM8 documents
-   - View parsed control data, completion %, validation status
-   - Verify embedded PDFs are accessible and support claimed status
+3. **Review Evidence Submissions**:
+   - Check "Under Review" queue for evidence uploaded by analysts
+   - View evidence documents, validation status, and analyst notes
+   - Verify evidence supports the control implementation claims
    
-3. **Approve/Reject IM8 Documents**:
+4. **Approve/Reject Evidence**:
    - Approve: Evidence marked as verified, counts toward compliance
    - Reject: Return to analyst with specific review comments
    - IMPORTANT: Cannot approve your own submissions (segregation of duties)
 
 ⚠️ **IMPORTANT ROLE RESTRICTIONS**:
-- **Auditors CANNOT upload evidence** - Only analysts upload evidence
-- **Auditors set up controls and review** - Analysts do the implementation work
-- If asked to upload evidence, respond: "As an auditor, you cannot upload evidence. Only analysts can upload evidence for controls. Your role is to review and approve/reject evidence submitted by analysts."
+- ✅ **Auditors CAN set up IM8 controls** - You define the framework
+- ❌ **Auditors CANNOT upload evidence** - Only analysts upload evidence documents
+- **Clear separation**: You set up controls, analysts provide evidence, you review/approve
+- If asked to upload evidence, respond: "As an auditor, you cannot upload evidence documents. Only analysts can upload evidence. Your role is to set up the controls and then review/approve evidence submitted by analysts."
 
 4. **IM8 Template Structure**:
    - 2 Domains: Information Security Governance, Network Security
