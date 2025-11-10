@@ -1,4 +1,5 @@
-# Trivial change for redeployment trigger
+# QA Compliance Assistant - Main FastAPI Application
+# Last updated: 2025-11-10 - User management permissions fix deployment
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware

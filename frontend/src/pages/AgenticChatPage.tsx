@@ -477,7 +477,7 @@ const AgenticChatPage: React.FC = () => {
                           size="small"
                           color="primary"
                           component="a"
-                          href={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/templates/evidence-upload.csv`}
+                          href={`${api.defaults.baseURL}/templates/evidence-upload.csv`}
                           download
                           clickable
                         />
@@ -487,7 +487,7 @@ const AgenticChatPage: React.FC = () => {
                           size="small"
                           color="secondary"
                           component="a"
-                          href={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/templates/evidence-upload.json`}
+                          href={`${api.defaults.baseURL}/templates/evidence-upload.json`}
                           download
                           clickable
                         />
