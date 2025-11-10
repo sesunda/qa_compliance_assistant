@@ -38,7 +38,7 @@ const ControlsPage: React.FC = () => {
   const controlsList = Array.isArray(controls) ? controls : []
   
   // Check if user can create/edit/delete controls (auditors and super_admin only)
-  const canManageControls = user?.role === 'auditor' || user?.role === 'super_admin'
+  const canManageControls = user?.role?.name === 'auditor' || user?.role?.name === 'super_admin'
 
   const getImplementationStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {

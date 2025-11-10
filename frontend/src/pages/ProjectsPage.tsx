@@ -51,7 +51,7 @@ const ProjectsPage: React.FC = () => {
   const queryClient = useQueryClient()
   
   // Check if user can create/edit/delete projects (auditors and super_admin only)
-  const canManageProjects = user?.role === 'auditor' || user?.role === 'super_admin'
+  const canManageProjects = user?.role?.name === 'auditor' || user?.role?.name === 'super_admin'
 
   const { data: projects, isLoading } = useQuery('projects', () =>
     api.get('/projects').then((res) => res.data)
