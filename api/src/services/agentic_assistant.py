@@ -836,6 +836,10 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
                 # No tool calls, just use assistant's response
                 final_answer = assistant_message.content
             
+            # Detect rich UI opportunities
+            conversation_history = conversation_manager.get_messages(session_id)
+            rich_ui = self._detect_rich_ui_opportunity(final_answer, conversation_history)
+            
             # Save assistant response to conversation
             conversation_manager.add_message(
                 session_id,
@@ -844,11 +848,18 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
                 tool_calls=tool_results if tool_results else None
             )
             
-            return {
+            result = {
                 "answer": final_answer,
                 "tool_calls": tool_results,
                 "session_id": session_id
             }
+            
+            # Add rich UI component if detected
+            if rich_ui:
+                result["rich_ui"] = rich_ui
+                logger.info(f"Rich UI component detected: {rich_ui['type']} - {rich_ui.get('form_type', 'unknown')}")
+            
+            return result
             
         except Exception as e:
             logger.error(f"Error in agentic chat: {str(e)}", exc_info=True)
@@ -959,6 +970,125 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
                 "sources": []
             }
     
+    def _validate_tool_parameters(
+        self,
+        function_name: str,
+        args: Dict[str, Any],
+        db: Session,
+        current_user: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Validate tool parameters BEFORE task creation
+        Prevents invalid tasks from being created
+        
+        Returns:
+            Dict with 'valid': bool, 'error': str, 'suggestion': str
+        """
+        # Validation for create_project
+        if function_name == "create_project":
+            # Check required fields
+            if not args.get("name") or not args.get("name").strip():
+                return {
+                    "valid": False,
+                    "error": "Project name is required and cannot be empty",
+                    "suggestion": "Please provide a project name"
+                }
+            
+            # Validate project_type enum
+            valid_types = ["compliance_assessment", "security_audit", "risk_management", "penetration_test"]
+            project_type = args.get("project_type", "compliance_assessment")
+            if project_type not in valid_types:
+                return {
+                    "valid": False,
+                    "error": f"Invalid project type: '{project_type}'. Must be one of: {', '.join(valid_types)}",
+                    "suggestion": f"Please choose from: {', '.join(valid_types)}"
+                }
+            
+            # Validate start_date format if provided
+            if args.get("start_date"):
+                try:
+                    from datetime import datetime
+                    datetime.strptime(args["start_date"], "%Y-%m-%d")
+                except ValueError:
+                    return {
+                        "valid": False,
+                        "error": f"Invalid start date format: '{args['start_date']}'. Expected YYYY-MM-DD",
+                        "suggestion": "Please use date format: YYYY-MM-DD (e.g., 2025-12-01)"
+                    }
+            
+            # Validate name length
+            if len(args["name"]) > 255:
+                return {
+                    "valid": False,
+                    "error": f"Project name too long ({len(args['name'])} characters). Maximum 255 characters",
+                    "suggestion": "Please shorten the project name"
+                }
+        
+        # Validation for upload_evidence
+        elif function_name == "upload_evidence" or function_name == "fetch_evidence":
+            # Check control_id exists and belongs to user's agency
+            if args.get("control_id"):
+                from api.src.models import Control
+                control = db.query(Control).filter(Control.id == args["control_id"]).first()
+                if not control:
+                    return {
+                        "valid": False,
+                        "error": f"Control ID {args['control_id']} not found",
+                        "suggestion": "Please provide a valid control ID from your projects"
+                    }
+                if control.agency_id != current_user.get("agency_id"):
+                    return {
+                        "valid": False,
+                        "error": f"Access denied: Control {args['control_id']} belongs to another agency",
+                        "suggestion": "You can only upload evidence to your agency's controls"
+                    }
+        
+        # Validation for submit_for_review
+        elif function_name == "submit_for_review":
+            if not args.get("evidence_id"):
+                return {
+                    "valid": False,
+                    "error": "Evidence ID is required",
+                    "suggestion": "Please provide the evidence ID to submit for review"
+                }
+            
+            # Check evidence exists and belongs to user's agency
+            from api.src.models import Evidence
+            evidence = db.query(Evidence).filter(Evidence.id == args["evidence_id"]).first()
+            if not evidence:
+                return {
+                    "valid": False,
+                    "error": f"Evidence ID {args['evidence_id']} not found",
+                    "suggestion": "Please provide a valid evidence ID"
+                }
+            if evidence.agency_id != current_user.get("agency_id"):
+                return {
+                    "valid": False,
+                    "error": f"Access denied: Evidence {args['evidence_id']} belongs to another agency",
+                    "suggestion": "You can only submit your agency's evidence"
+                }
+        
+        # Validation for generate_report
+        elif function_name == "generate_report":
+            if args.get("project_id"):
+                from api.src.models import Project
+                project = db.query(Project).filter(Project.id == args["project_id"]).first()
+                if not project:
+                    return {
+                        "valid": False,
+                        "error": f"Project ID {args['project_id']} not found",
+                        "suggestion": "Please provide a valid project ID"
+                    }
+                if project.agency_id != current_user.get("agency_id"):
+                    return {
+                        "valid": False,
+                        "error": f"Access denied: Project {args['project_id']} belongs to another agency",
+                        "suggestion": "You can only generate reports for your agency's projects"
+                    }
+        
+        # All validations passed
+        return {"valid": True}
+    
     def _coerce_argument_types(self, function_name: str, args: Dict[str, Any]) -> Dict[str, Any]:
         """Coerce argument types to match expected schema (fixes LLM string->int issues)"""
         # Define integer fields for each function
@@ -986,6 +1116,133 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
         
         return coerced
     
+    def _detect_rich_ui_opportunity(self, message: str, conversation_history: list) -> Optional[Dict[str, Any]]:
+        """
+        Detect if AI response should trigger rich UI component
+        
+        Returns:
+            Dict with UI component specification or None
+        """
+        message_lower = message.lower()
+        
+        # Detect project creation form request
+        if any(phrase in message_lower for phrase in [
+            "let's create a new project",
+            "please fill in the details",
+            "i'll need some details",
+            "project name",
+            "what should we call this project"
+        ]):
+            return {
+                "type": "form",
+                "form_type": "create_project",
+                "title": "Create New Project",
+                "fields": [
+                    {
+                        "name": "name",
+                        "label": "Project Name",
+                        "type": "text",
+                        "required": True,
+                        "placeholder": "e.g., Health Sciences Compliance 2025"
+                    },
+                    {
+                        "name": "description",
+                        "label": "Description",
+                        "type": "textarea",
+                        "required": False,
+                        "placeholder": "Brief description of the project"
+                    },
+                    {
+                        "name": "project_type",
+                        "label": "Project Type",
+                        "type": "select",
+                        "required": False,
+                        "default": "compliance_assessment",
+                        "options": [
+                            {"value": "compliance_assessment", "label": "Compliance Assessment"},
+                            {"value": "security_audit", "label": "Security Audit"},
+                            {"value": "risk_management", "label": "Risk Management"},
+                            {"value": "penetration_test", "label": "Penetration Test"}
+                        ]
+                    },
+                    {
+                        "name": "start_date",
+                        "label": "Start Date",
+                        "type": "date",
+                        "required": False,
+                        "placeholder": "YYYY-MM-DD"
+                    }
+                ],
+                "submit_label": "Create Project"
+            }
+        
+        # Detect IM8 domain selection request
+        if any(phrase in message_lower for phrase in [
+            "which im8 domains",
+            "im8 framework has 10 domains",
+            "select im8 domains",
+            "im8-01:",
+            "im8-02:"
+        ]):
+            return {
+                "type": "checkbox_grid",
+                "form_type": "select_im8_domains",
+                "title": "Select IM8 Domains",
+                "items": [
+                    {"value": "IM8-01", "label": "IM8-01: Information Security Governance", "count": 3},
+                    {"value": "IM8-02", "label": "IM8-02: Network Security", "count": 3},
+                    {"value": "IM8-03", "label": "IM8-03: Data Protection", "count": 3},
+                    {"value": "IM8-04", "label": "IM8-04: Vulnerability & Patch Management", "count": 3},
+                    {"value": "IM8-05", "label": "IM8-05: Secure Software Development", "count": 3},
+                    {"value": "IM8-06", "label": "IM8-06: Security Monitoring & Logging", "count": 3},
+                    {"value": "IM8-07", "label": "IM8-07: Third-Party Risk Management", "count": 3},
+                    {"value": "IM8-08", "label": "IM8-08: Change & Configuration Management", "count": 3},
+                    {"value": "IM8-09", "label": "IM8-09: Risk Assessment & Compliance", "count": 3},
+                    {"value": "IM8-10", "label": "IM8-10: Digital Service Standards", "count": 3}
+                ],
+                "select_all_label": "Select All (30 controls)",
+                "submit_label": "Confirm Selection"
+            }
+        
+        # Detect evidence upload request
+        if any(phrase in message_lower for phrase in [
+            "upload evidence",
+            "please upload",
+            "attach evidence",
+            "upload document"
+        ]):
+            return {
+                "type": "form",
+                "form_type": "upload_evidence",
+                "title": "Upload Evidence",
+                "fields": [
+                    {
+                        "name": "file",
+                        "label": "Evidence Document",
+                        "type": "file",
+                        "required": True,
+                        "accept": ".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg"
+                    },
+                    {
+                        "name": "control_id",
+                        "label": "Control",
+                        "type": "select",
+                        "required": True,
+                        "options": []  # Will be populated from user's controls
+                    },
+                    {
+                        "name": "description",
+                        "label": "Description",
+                        "type": "textarea",
+                        "required": False,
+                        "placeholder": "Describe the evidence being uploaded"
+                    }
+                ],
+                "submit_label": "Upload Evidence"
+            }
+        
+        return None
+    
     async def _execute_tool(
         self,
         function_name: str,
@@ -995,6 +1252,16 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
         file_path: Optional[str] = None
     ) -> Dict[str, Any]:
         """Execute a tool via AI Task Orchestrator"""
+        
+        # VALIDATION: Check parameters before creating task
+        validation_result = self._validate_tool_parameters(function_name, function_args, db, current_user)
+        if not validation_result["valid"]:
+            logger.error(f"Tool validation failed for {function_name}: {validation_result['error']}")
+            return {
+                "error": validation_result["error"],
+                "status": "validation_failed",
+                "suggestion": validation_result.get("suggestion", "Please check your inputs and try again.")
+            }
         
         # Map tool to task type
         task_type_map = {

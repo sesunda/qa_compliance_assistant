@@ -43,7 +43,9 @@ class Project(Base):
     agency_id = Column(Integer, ForeignKey("agencies.id"), nullable=False)
     name = Column(String(255), nullable=False)
     description = Column(Text)
+    project_type = Column(String(100), default="compliance_assessment")
     status = Column(String(50), default="active")
+    start_date = Column(Date, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

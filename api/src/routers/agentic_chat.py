@@ -48,6 +48,9 @@ class ChatResponse(BaseModel):
     conversation_id: Optional[str] = None
     can_edit: bool = True  # Allow user to edit previous answers
     
+    # Rich UI components
+    rich_ui: Optional[Dict[str, Any]] = None  # Structured UI component data
+    
     # RAG features
     sources: List[Dict[str, Any]] = []  # Document sources
     file_uploaded: bool = False  # File upload indicator
@@ -173,6 +176,7 @@ async def chat(
         # Extract response
         response_text = result.get("answer", "")
         tool_calls = result.get("tool_calls", [])
+        rich_ui = result.get("rich_ui")  # Extract rich UI component if present
         
         # Check if task was created
         task_created = len(tool_calls) > 0
@@ -191,7 +195,7 @@ async def chat(
         # Get smart suggestions if conversation ongoing
         # For now, provide generic suggestions based on whether a task was created
         suggested_responses = []
-        if not task_created:
+        if not task_created and not rich_ui:  # Don't show suggestions if rich UI is present
             # No task created yet - offer helpful next steps
             suggested_responses = [
                 "Show me recent projects",
@@ -220,6 +224,7 @@ async def chat(
             parameters_collected={},
             parameters_missing=[],
             can_edit=True,
+            rich_ui=rich_ui,  # Include rich UI component
             sources=sources,
             file_uploaded=file_path is not None
         )

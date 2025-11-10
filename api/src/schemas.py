@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional, List, Dict, Any
 
 
@@ -36,7 +36,9 @@ class Agency(AgencyBase):
 class ProjectBase(BaseModel):
     name: str
     description: Optional[str] = None
+    project_type: Optional[str] = "compliance_assessment"
     status: str = "active"
+    start_date: Optional[date] = None
 
 
 class ProjectCreate(ProjectBase):
@@ -46,11 +48,14 @@ class ProjectCreate(ProjectBase):
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    project_type: Optional[str] = None
     status: Optional[str] = None
+    start_date: Optional[date] = None
 
 
 class Project(ProjectBase):
     id: int
+    agency_id: int
     created_at: datetime
     updated_at: datetime
     

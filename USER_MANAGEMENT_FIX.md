@@ -99,58 +99,80 @@ All endpoints maintain agency isolation:
 
 ## Testing
 
-### Test User List Access
+### Once Deployment Completes (~15 minutes):
+
+#### Test 1: Analyst Can View Users ✅
 ```powershell
-# Login as analyst
-$analystToken = "..." # Get from login
+# Login to your Azure-deployed app
+# URL: https://<your-frontend-url>.azurecontainerapps.io
 
-# Verify analyst can see users
-curl -H "Authorization: Bearer $analystToken" http://localhost:8000/auth/users
-
-# Should return 200 OK with user list
+# 1. Login as analyst
+# 2. Navigate to Users page
+# 3. Verify: User list loads successfully
+# Expected: Should see users from your agency
 ```
 
-### Test Agencies Access
+#### Test 2: Auditor Can View Users ✅
 ```powershell
-# Verify analyst can see agencies
-curl -H "Authorization: Bearer $analystToken" http://localhost:8000/auth/agencies
-
-# Should return 200 OK with agency list (own agency for non-super-admin)
+# 1. Login as auditor
+# 2. Navigate to Users page  
+# 3. Verify: User list loads successfully
+# Expected: Should see users from your agency
 ```
 
-### Test User Creation (Admin Only)
+#### Test 3: Admin Can Create Users ✅
 ```powershell
-# Login as admin
-$adminToken = "..." # Get from login
+# 1. Login as admin
+# 2. Click "Add User" button
+# 3. Fill form and create user
+# Expected: User created successfully
+```
 
-# Create user (should work)
-curl -X POST -H "Authorization: Bearer $adminToken" \
-  -H "Content-Type: application/json" \
-  -d '{"username":"test","email":"test@example.com","password":"password123","role_id":1,"agency_id":1}' \
-  http://localhost:8000/auth/users
+### API Testing (Optional):
+If you want to test the API directly:
 
-# Try as analyst (should fail with 403)
-curl -X POST -H "Authorization: Bearer $analystToken" \
-  -H "Content-Type: application/json" \
-  -d '{"username":"test2","email":"test2@example.com","password":"password123","role_id":1,"agency_id":1}' \
-  http://localhost:8000/auth/users
+```bash
+# Replace with your Azure API URL
+API_URL="https://<your-api-url>.azurecontainerapps.io"
+
+# Login and get token
+TOKEN="your-jwt-token-here"
+
+# Test user list endpoint
+curl -H "Authorization: Bearer $TOKEN" $API_URL/auth/users
+
+# Should return 200 OK with user list (not 403 Forbidden)
 ```
 
 ## Deployment
 
-### Changes Required
-1. **API Restart**: Changes in `api/src/routers/auth.py` require API restart
+### Deployment Method: **GitHub Actions (Automatic)** ✅
+
+**Status**: Deployed automatically via GitHub Actions workflow when pushed to `main` branch.
+
+**Commit**: `46aa4c3` - "Fix user management access control and implement IM8 assessment workflow"
+
+### What Happens Automatically:
+1. ✅ GitHub Actions detects changes in `api/` directory
+2. ✅ Builds new Docker image with updated code
+3. ✅ Pushes to Azure Container Registry
+4. ✅ Deploys to Azure Container App: `ca-api-qca-dev`
+5. ✅ Installs `openpyxl>=3.1.2` dependency (for IM8 feature)
+6. ✅ API restarts with new revision
+
+### Timeline:
+- **Build**: ~5-10 minutes
+- **Deploy**: ~2-3 minutes
+- **Total**: ~15 minutes from push
+
+### Verification:
+Monitor deployment at: https://github.com/sesunda/qa_compliance_assistant/actions
+
+### Changes:
+1. **API Update**: Changes in `api/src/routers/auth.py` deployed automatically
 2. **No Database Migration**: No schema changes required
 3. **No Frontend Changes**: Frontend already implements correct logic
-
-### Deployment Steps
-```powershell
-# Restart API container
-docker-compose restart api
-
-# OR rebuild if needed
-docker-compose up -d --build api
-```
+4. **No Manual Steps**: Everything handled by CI/CD pipeline
 
 ## Files Modified
 - `api/src/routers/auth.py` (+3 lines changed, import + 3 endpoint permission changes)
