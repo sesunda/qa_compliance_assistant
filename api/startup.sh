@@ -35,6 +35,10 @@ except Exception as e:
     print(f'No existing alembic_version table or error: {e}')
 " || echo "Migration state check completed"
 
+# Run fix script if migration state needs correction
+echo "Running migration state fix if needed..."
+python -m api.scripts.fix_migration_state || echo "Fix script completed or not needed"
+
 alembic upgrade head || {
     echo "ERROR: Migration failed!"
     echo "Alembic config location:"
