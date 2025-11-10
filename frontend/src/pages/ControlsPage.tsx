@@ -24,8 +24,10 @@ import {
 } from '@mui/icons-material'
 import { useQuery } from 'react-query'
 import { api } from '../services/api'
+import { useAuth } from '../context/AuthContext'
 
 const ControlsPage: React.FC = () => {
+  const { user } = useAuth()
   const { data: controls, isLoading } = useQuery(
     'controls',
     () => api.get('/controls/').then((res) => res.data),
@@ -34,6 +36,9 @@ const ControlsPage: React.FC = () => {
 
   // Ensure controls is an array
   const controlsList = Array.isArray(controls) ? controls : []
+  
+  // Check if user can create/edit/delete controls (auditors and super_admin only)
+  const canManageControls = user?.role === 'auditor' || user?.role === 'super_admin'
 
   const getImplementationStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -109,9 +114,11 @@ const ControlsPage: React.FC = () => {
             Manage and monitor your security control implementations
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<Add />}>
-          Map New Control
-        </Button>
+        {canManageControls && (
+          <Button variant="contained" startIcon={<Add />}>
+            Map New Control
+          </Button>
+        )}
       </Box>
 
       {/* Control Statistics */}

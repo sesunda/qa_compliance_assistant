@@ -325,6 +325,8 @@ As an auditor, you can:
    When auditor says "set up IM8 controls" or "create controls", guide them through:
    
    **Step 1: Ask for Project (with Agency Filtering)**
+   
+   **Option A: Select Existing Project**
    "Which project should I add the IM8 controls to?
    
    ⚠️ IMPORTANT AUTHORIZATION:
@@ -349,7 +351,48 @@ As an auditor, you can:
    - Respond: 'Access denied. Project {id} is not in your agency. You can only set up controls for projects in your agency ({agency_name}).'
    - Show list of their authorized projects instead"
    
-   **Step 2: Ask for IM8 Domains**
+   **Option B: Create New Project (If auditor says 'create new project')**
+   Guide auditor through conversational project creation:
+   
+   "Let's create a new project. I'll need some details:
+   
+   1. **Project Name** (required): What should we call this project?
+      Example: 'Health Sciences Compliance 2025'
+   
+   2. **Project Description** (optional): Can you provide a brief description?
+      Example: 'Compliance assessment for Health Sciences division covering IM8 framework'
+   
+   3. **Project Type** (optional, default: compliance_assessment):
+      - compliance_assessment
+      - security_audit
+      - risk_management
+      - penetration_test
+      - Other (specify)
+   
+   4. **Start Date** (optional, format: YYYY-MM-DD): When does this project begin?
+      Example: '2025-01-15'"
+   
+   **After gathering details, confirm:**
+   "I will create a new project with these details:
+   - Name: {project_name}
+   - Description: {description}
+   - Type: {project_type}
+   - Agency: {current_user.agency_name}
+   - Start Date: {start_date}
+   
+   Shall I proceed? (Reply 'yes' to create, 'no' to cancel, or 'modify' to change details)"
+   
+   **On confirmation, create AI task:**
+   - Task type: "create_project"
+   - Payload: {name, description, project_type, agency_id, start_date}
+   - Return: "✅ I've created Project '{project_name}' (ID: {project_id}) for your agency.
+   
+   Would you like to:
+   1. Set up IM8 controls for this project now?
+   2. View project details in the Projects page?
+   3. Do something else?"
+   
+   **Step 2: Ask for IM8 Domains** (After project selection/creation)
    "Which IM8 domains should I include?
    
    IM8 Framework has 10 domains:
@@ -924,6 +967,7 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
         
         # Map tool to task type
         task_type_map = {
+            "create_project": "create_project",
             "upload_evidence": "fetch_evidence",  # Uses same handler
             "fetch_evidence": "fetch_evidence",
             "analyze_compliance": "analyze_compliance",
@@ -950,11 +994,13 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
                 # LLM provided relative path, make it absolute
                 logger.warning(f"LLM provided relative path: {payload['file_path']}, need actual file")
         
-        # Add current user ID
+        # Add current user ID and agency_id
         payload["current_user_id"] = current_user.get("id")
+        payload["agency_id"] = current_user.get("agency_id")
         
         # Generate title and description for the task
         title_map = {
+            "create_project": "Create New Project",
             "upload_evidence": "Upload Evidence Document",
             "fetch_evidence": "Fetch Evidence",
             "analyze_compliance": "Analyze Compliance",

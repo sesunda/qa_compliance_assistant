@@ -610,6 +610,80 @@ async def handle_generate_compliance_report_task(task_id: int, payload: Dict[str
         }
 
 
+async def handle_create_project_task(task_id: int, payload: Dict[str, Any], db: Session) -> Dict[str, Any]:
+    """
+    Create a new project
+    
+    Payload:
+        name: str - Project name (required)
+        description: str - Project description
+        project_type: str - Type of project (default: "compliance_assessment")
+        agency_id: int - Agency ID (from current user, required)
+        start_date: str - Start date (YYYY-MM-DD format, optional)
+        created_by: int - User ID who created it
+    """
+    logger.info(f"Create project task {task_id} started")
+    await update_progress(task_id, 20, "Creating project...")
+    
+    try:
+        from api.src.models import Project
+        from datetime import datetime
+        
+        # Validate required fields
+        if not payload.get("name"):
+            return {
+                "status": "error",
+                "message": "Project name is required"
+            }
+        
+        if not payload.get("agency_id"):
+            return {
+                "status": "error",
+                "message": "Agency ID is required"
+            }
+        
+        # Parse start_date if provided
+        start_date = None
+        if payload.get("start_date"):
+            try:
+                start_date = datetime.strptime(payload["start_date"], "%Y-%m-%d").date()
+            except ValueError:
+                start_date = None
+        
+        project = Project(
+            name=payload["name"],
+            description=payload.get("description", ""),
+            project_type=payload.get("project_type", "compliance_assessment"),
+            status="pending",
+            agency_id=payload["agency_id"],
+            start_date=start_date
+        )
+        
+        db.add(project)
+        db.commit()
+        db.refresh(project)
+        
+        await update_progress(task_id, 100, f"Project '{project.name}' created successfully")
+        
+        logger.info(f"Create project task {task_id} completed: Project {project.id} - {project.name}")
+        
+        return {
+            "status": "success",
+            "message": f"Project '{project.name}' created successfully",
+            "project_id": project.id,
+            "project_name": project.name,
+            "project_type": project.project_type,
+            "agency_id": project.agency_id
+        }
+    
+    except Exception as e:
+        logger.error(f"Create project task {task_id} failed: {e}")
+        return {
+            "status": "error",
+            "message": f"Failed to create project: {str(e)}"
+        }
+
+
 # Map of task types to their handlers
 TASK_HANDLERS = {
     "test": handle_test_task,
@@ -617,6 +691,7 @@ TASK_HANDLERS = {
     "generate_report": handle_generate_report_task,
     "analyze_compliance": handle_analyze_compliance_task,
     "create_controls": handle_create_controls_task,
+    "create_project": handle_create_project_task,
     "create_findings": handle_create_findings_task,
     "analyze_evidence": handle_analyze_evidence_task,
     "generate_compliance_report": handle_generate_compliance_report_task,

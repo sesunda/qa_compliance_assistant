@@ -32,8 +32,10 @@ import {
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import { api } from '../services/api'
+import { useAuth } from '../context/AuthContext'
 
 const ProjectsPage: React.FC = () => {
+  const { user } = useAuth()
   const [open, setOpen] = useState(false)
   const [selectedProject, setSelectedProject] = useState<any>(null)
   const [formData, setFormData] = useState({
@@ -47,6 +49,9 @@ const ProjectsPage: React.FC = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' })
 
   const queryClient = useQueryClient()
+  
+  // Check if user can create/edit/delete projects (auditors and super_admin only)
+  const canManageProjects = user?.role === 'auditor' || user?.role === 'super_admin'
 
   const { data: projects, isLoading } = useQuery('projects', () =>
     api.get('/projects').then((res) => res.data)
@@ -196,13 +201,15 @@ const ProjectsPage: React.FC = () => {
             Manage your compliance and security assessment projects
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={handleCreateProject}
-        >
-          New Project
-        </Button>
+        {canManageProjects && (
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={handleCreateProject}
+          >
+            New Project
+          </Button>
+        )}
       </Box>
 
       <Card>
@@ -248,16 +255,20 @@ const ProjectsPage: React.FC = () => {
                       <IconButton size="small" title="View">
                         <Visibility fontSize="small" />
                       </IconButton>
-                      <IconButton
-                        size="small"
-                        title="Edit"
-                        onClick={() => handleEditProject(project)}
-                      >
-                        <Edit fontSize="small" />
-                      </IconButton>
-                      <IconButton size="small" title="Delete" onClick={() => handleDelete(project.id)}>
-                        <Delete fontSize="small" />
-                      </IconButton>
+                      {canManageProjects && (
+                        <>
+                          <IconButton
+                            size="small"
+                            title="Edit"
+                            onClick={() => handleEditProject(project)}
+                          >
+                            <Edit fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" title="Delete" onClick={() => handleDelete(project.id)}>
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        </>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -272,13 +283,15 @@ const ProjectsPage: React.FC = () => {
                         <Typography variant="body2" color="textSecondary" paragraph>
                           Create your first project to get started with compliance management
                         </Typography>
-                        <Button
-                          variant="contained"
-                          startIcon={<Add />}
-                          onClick={handleCreateProject}
-                        >
-                          Create Project
-                        </Button>
+                        {canManageProjects && (
+                          <Button
+                            variant="contained"
+                            startIcon={<Add />}
+                            onClick={handleCreateProject}
+                          >
+                            Create Project
+                          </Button>
+                        )}
                       </Box>
                     </TableCell>
                   </TableRow>

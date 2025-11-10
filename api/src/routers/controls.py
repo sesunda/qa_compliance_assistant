@@ -4,19 +4,32 @@ from typing import List, Optional
 from datetime import datetime
 from api.src.database import get_db
 from api.src import models, schemas
-from api.src.auth import get_current_user
+from api.src.auth import get_current_user, require_auditor, require_viewer, check_agency_access
 
 router = APIRouter(prefix="/controls", tags=["controls"])
 
 
-@router.post("/", response_model=schemas.Control)
-def create_control(control: schemas.ControlCreate, db: Session = Depends(get_db)):
+@router.post("/", response_model=schemas.Control, status_code=status.HTTP_201_CREATED)
+def create_control(
+    control: schemas.ControlCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_auditor)
+):
+    """Create a new control. Only auditors can create controls."""
     # Verify project exists
     project = db.query(models.Project).filter(models.Project.id == control.project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
-    db_control = models.Control(**control.model_dump())
+    # Check agency access
+    if not check_agency_access(current_user, project.agency_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    
+    # Automatically set agency_id from current user
+    control_data = control.model_dump()
+    control_data["agency_id"] = current_user["agency_id"]
+    
+    db_control = models.Control(**control_data)
     db.add(db_control)
     db.commit()
     db.refresh(db_control)
@@ -24,27 +37,64 @@ def create_control(control: schemas.ControlCreate, db: Session = Depends(get_db)
 
 
 @router.get("/", response_model=List[schemas.Control])
-def list_controls(project_id: int = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def list_controls(
+    project_id: int = None,
+    agency_id: int = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_viewer)
+):
+    """List controls. Users see only their agency's controls (except super_admin)."""
     query = db.query(models.Control)
+    
+    # Filter by agency unless super_admin
+    if current_user.get("role") != "super_admin":
+        query = query.filter(models.Control.agency_id == current_user["agency_id"])
+    elif agency_id:
+        # Super admin can filter by specific agency
+        query = query.filter(models.Control.agency_id == agency_id)
+    
     if project_id:
         query = query.filter(models.Control.project_id == project_id)
+    
     controls = query.offset(skip).limit(limit).all()
     return controls
 
 
 @router.get("/{control_id}", response_model=schemas.Control)
-def get_control(control_id: int, db: Session = Depends(get_db)):
+def get_control(
+    control_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_viewer)
+):
+    """Get a specific control. Must belong to user's agency."""
     control = db.query(models.Control).filter(models.Control.id == control_id).first()
     if not control:
         raise HTTPException(status_code=404, detail="Control not found")
+    
+    # Check agency access
+    if not check_agency_access(current_user, control.agency_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    
     return control
 
 
 @router.put("/{control_id}", response_model=schemas.Control)
-def update_control(control_id: int, control: schemas.ControlUpdate, db: Session = Depends(get_db)):
+def update_control(
+    control_id: int,
+    control: schemas.ControlUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_auditor)
+):
+    """Update a control. Only auditors can update controls from their agency."""
     db_control = db.query(models.Control).filter(models.Control.id == control_id).first()
     if not db_control:
         raise HTTPException(status_code=404, detail="Control not found")
+    
+    # Check agency access
+    if not check_agency_access(current_user, db_control.agency_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     
     for key, value in control.model_dump(exclude_unset=True).items():
         setattr(db_control, key, value)
@@ -55,10 +105,19 @@ def update_control(control_id: int, control: schemas.ControlUpdate, db: Session 
 
 
 @router.delete("/{control_id}")
-def delete_control(control_id: int, db: Session = Depends(get_db)):
+def delete_control(
+    control_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_auditor)
+):
+    """Delete a control. Only auditors can delete controls from their agency."""
     db_control = db.query(models.Control).filter(models.Control.id == control_id).first()
     if not db_control:
         raise HTTPException(status_code=404, detail="Control not found")
+    
+    # Check agency access
+    if not check_agency_access(current_user, db_control.agency_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     
     db.delete(db_control)
     db.commit()
