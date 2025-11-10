@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useMemo } from 'react'
 import {
   Box,
   Typography,
@@ -14,6 +14,11 @@ import {
   TableHead,
   TableRow,
   LinearProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  SelectChangeEvent,
 } from '@mui/material'
 import {
   Security,
@@ -21,6 +26,7 @@ import {
   Warning,
   Error,
   Add,
+  FilterList,
 } from '@mui/icons-material'
 import { useQuery } from 'react-query'
 import { api } from '../services/api'
@@ -28,14 +34,58 @@ import { useAuth } from '../contexts/AuthContext'
 
 const ControlsPage: React.FC = () => {
   const { user } = useAuth()
+  const [selectedProject, setSelectedProject] = useState<string>('all')
+  const [selectedDomain, setSelectedDomain] = useState<string>('all')
+
+  // Fetch projects for filter dropdown
+  const { data: projects } = useQuery(
+    'projects',
+    () => api.get('/projects/').then((res) => res.data),
+    { refetchOnWindowFocus: false }
+  )
+
+  // Fetch controls with project filter
   const { data: controls, isLoading } = useQuery(
-    'controls',
-    () => api.get('/controls/').then((res) => res.data),
+    ['controls', selectedProject],
+    () => {
+      const params = selectedProject !== 'all' ? { project_id: selectedProject } : {}
+      return api.get('/controls/', { params }).then((res) => res.data)
+    },
     { refetchOnWindowFocus: false }
   )
 
   // Ensure controls is an array
-  const controlsList = Array.isArray(controls) ? controls : []
+  const allControls = Array.isArray(controls) ? controls : []
+  
+  // Filter by domain on frontend
+  const controlsList = useMemo(() => {
+    if (selectedDomain === 'all') return allControls
+    return allControls.filter((c: any) => 
+      c.control_type?.startsWith(selectedDomain)
+    )
+  }, [allControls, selectedDomain])
+
+  // IM8 Domains for filter
+  const im8Domains = [
+    { value: 'IM8-01', label: 'IM8-01: Information Security Governance' },
+    { value: 'IM8-02', label: 'IM8-02: Network Security' },
+    { value: 'IM8-03', label: 'IM8-03: Data Protection' },
+    { value: 'IM8-04', label: 'IM8-04: Vulnerability & Patch Management' },
+    { value: 'IM8-05', label: 'IM8-05: Secure Software Development' },
+    { value: 'IM8-06', label: 'IM8-06: Identity & Access Management' },
+    { value: 'IM8-07', label: 'IM8-07: Incident Response' },
+    { value: 'IM8-08', label: 'IM8-08: Change & Configuration Management' },
+    { value: 'IM8-09', label: 'IM8-09: Risk Assessment & Compliance' },
+    { value: 'IM8-10', label: 'IM8-10: Digital Service Standards' },
+  ]
+
+  const handleProjectChange = (event: SelectChangeEvent<string>) => {
+    setSelectedProject(event.target.value)
+  }
+
+  const handleDomainChange = (event: SelectChangeEvent<string>) => {
+    setSelectedDomain(event.target.value)
+  }
   
   // Check if user can create/edit/delete controls (auditors and super_admin only)
   const canManageControls = user?.role?.name === 'auditor' || user?.role?.name === 'super_admin'
@@ -121,6 +171,58 @@ const ControlsPage: React.FC = () => {
         )}
       </Box>
 
+      {/* Filters */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box display="flex" alignItems="center" gap={2} flexWrap="wrap">
+            <FilterList color="action" />
+            <FormControl size="small" sx={{ minWidth: 250 }}>
+              <InputLabel>Filter by Project</InputLabel>
+              <Select
+                value={selectedProject}
+                label="Filter by Project"
+                onChange={handleProjectChange}
+              >
+                <MenuItem value="all">All Projects</MenuItem>
+                {projects && Array.isArray(projects) && projects.map((project: any) => (
+                  <MenuItem key={project.id} value={project.id.toString()}>
+                    {project.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            
+            <FormControl size="small" sx={{ minWidth: 300 }}>
+              <InputLabel>Filter by IM8 Domain</InputLabel>
+              <Select
+                value={selectedDomain}
+                label="Filter by IM8 Domain"
+                onChange={handleDomainChange}
+              >
+                <MenuItem value="all">All Domains</MenuItem>
+                {im8Domains.map((domain) => (
+                  <MenuItem key={domain.value} value={domain.value}>
+                    {domain.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {(selectedProject !== 'all' || selectedDomain !== 'all') && (
+              <Button 
+                size="small" 
+                onClick={() => {
+                  setSelectedProject('all')
+                  setSelectedDomain('all')
+                }}
+              >
+                Clear Filters
+              </Button>
+            )}
+          </Box>
+        </CardContent>
+      </Card>
+
       {/* Control Statistics */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={3}>
@@ -201,6 +303,7 @@ const ControlsPage: React.FC = () => {
                   <TableCell>Control ID</TableCell>
                   <TableCell>Name</TableCell>
                   <TableCell>Type</TableCell>
+                  <TableCell>Project</TableCell>
                   <TableCell>Implementation Status</TableCell>
                   <TableCell>Progress</TableCell>
                   <TableCell>Last Updated</TableCell>
@@ -209,6 +312,10 @@ const ControlsPage: React.FC = () => {
               <TableBody>
                 {controlsList.map((control: any) => {
                   const implementationStatus = getImplementationStatusFromControl(control)
+                  const project = projects && Array.isArray(projects) 
+                    ? projects.find((p: any) => p.id === control.project_id)
+                    : null
+                  
                   return (
                     <TableRow key={control.id}>
                       <TableCell>
@@ -233,6 +340,17 @@ const ControlsPage: React.FC = () => {
                             size="small"
                             variant="outlined"
                           />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {project ? (
+                          <Typography variant="body2">
+                            {project.name}
+                          </Typography>
+                        ) : (
+                          <Typography variant="caption" color="textSecondary">
+                            N/A
+                          </Typography>
                         )}
                       </TableCell>
                       <TableCell>
@@ -265,7 +383,7 @@ const ControlsPage: React.FC = () => {
                 })}
                 {(!controls || controls.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={6} align="center">
+                    <TableCell colSpan={7} align="center">
                       <Box py={4}>
                         <Security sx={{ fontSize: 48, color: 'grey.400', mb: 2 }} />
                         <Typography variant="h6" color="textSecondary">
