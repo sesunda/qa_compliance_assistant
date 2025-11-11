@@ -5,12 +5,103 @@ Each handler orchestrates tasks by calling MCP tools.
 """
 import asyncio
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List
 from sqlalchemy.orm import Session
 from api.src.workers.task_worker import update_progress
 from api.src.mcp.client import mcp_client, MCPToolError
 
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# CONTROL REQUIREMENTS DATABASE (RAG Knowledge Base)
+# ============================================================================
+# Mapping of control_id to acceptance criteria for evidence validation
+CONTROL_REQUIREMENTS = {
+    1: {
+        "title": "Access Control Policy",
+        "domain": "IM8-01",
+        "requirements": [
+            "Document must define user access control procedures",
+            "Must include authentication and authorization policies",
+            "Should specify role-based access control (RBAC) implementation",
+            "Must include password complexity requirements",
+            "Should define periodic access review procedures"
+        ],
+        "evidence_types": ["document", "screenshot", "configuration"],
+        "keywords": ["access control", "authentication", "authorization", "RBAC", "password policy"]
+    },
+    3: {
+        "title": "Incident Response Plan",
+        "domain": "IM8-06",
+        "requirements": [
+            "Must define incident classification levels",
+            "Should include response team contact information",
+            "Must specify escalation procedures",
+            "Should include incident logging procedures",
+            "Must define post-incident review process"
+        ],
+        "evidence_types": ["document", "report"],
+        "keywords": ["incident", "response", "escalation", "notification", "remediation"]
+    },
+    4: {
+        "title": "Data Backup Procedure",
+        "domain": "IM8-07",
+        "requirements": [
+            "Must specify backup frequency and schedule",
+            "Should define backup retention periods",
+            "Must include restore testing procedures",
+            "Should specify offsite storage requirements",
+            "Must define backup encryption standards"
+        ],
+        "evidence_types": ["document", "configuration", "log"],
+        "keywords": ["backup", "restore", "retention", "recovery", "encryption"]
+    },
+    5: {
+        "title": "Security Awareness Training",
+        "domain": "IM8-02",
+        "requirements": [
+            "Must include training completion records",
+            "Should show training content and curriculum",
+            "Must demonstrate employee acknowledgment",
+            "Should include phishing awareness training",
+            "Must specify training frequency (annual minimum)"
+        ],
+        "evidence_types": ["document", "screenshot", "report"],
+        "keywords": ["training", "awareness", "phishing", "security", "education"]
+    }
+}
+
+# ============================================================================
+# CONTROL RELATIONSHIP GRAPH (Graph RAG Knowledge)
+# ============================================================================
+# Maps control_id to related controls in the same domain or with similar objectives
+CONTROL_GRAPH = {
+    1: {  # Access Control Policy
+        "same_domain": [],  # IM8-01 domain
+        "related": [3, 5],  # Incident Response (auth failures), Security Training
+        "upstream": [],  # Controls this depends on
+        "downstream": [3]  # Controls that depend on this
+    },
+    3: {  # Incident Response Plan
+        "same_domain": [],  # IM8-06 domain
+        "related": [1, 4],  # Access Control (breach), Backup (recovery)
+        "upstream": [1],  # Depends on Access Control
+        "downstream": []
+    },
+    4: {  # Data Backup Procedure
+        "same_domain": [],  # IM8-07 domain
+        "related": [3],  # Incident Response (disaster recovery)
+        "upstream": [],
+        "downstream": [3]  # Supports Incident Response
+    },
+    5: {  # Security Awareness Training
+        "same_domain": [],  # IM8-02 domain
+        "related": [1, 3],  # Access Control (training), Incident Response (reporting)
+        "upstream": [],
+        "downstream": [1, 3]  # Supports both
+    }
+}
 
 
 async def handle_test_task(task_id: int, payload: Dict[str, Any], db: Session) -> Dict[str, Any]:
@@ -684,6 +775,359 @@ async def handle_create_project_task(task_id: int, payload: Dict[str, Any], db: 
         }
 
 
+async def handle_request_evidence_upload_task(task_id: int, payload: Dict[str, Any], db: Session) -> Dict[str, Any]:
+    """
+    Handle evidence upload request - creates pending evidence record for analyst to upload file
+    
+    Payload:
+        control_id: int - Control ID (required)
+        title: str - Evidence title (required)
+        description: str - Evidence description
+        evidence_type: str - Type (document/screenshot/configuration/log/report/other)
+        current_user_id: int - User ID (required)
+    """
+    logger.info(f"Request evidence upload task {task_id} started")
+    await update_progress(task_id, 20, "Creating evidence upload request...")
+    
+    try:
+        from api.src.models import Evidence
+        import uuid
+        
+        control_id = payload.get("control_id")
+        title = payload.get("title")
+        current_user_id = payload.get("current_user_id") or payload.get("created_by")
+        
+        if not control_id or not title or not current_user_id:
+            return {
+                "status": "error",
+                "message": "control_id, title, and current_user_id are required"
+            }
+        
+        # Generate upload ID for frontend
+        upload_id = str(uuid.uuid4())
+        
+        # Create pending evidence record
+        evidence = Evidence(
+            control_id=control_id,
+            title=title,
+            description=payload.get("description", ""),
+            evidence_type=payload.get("evidence_type", "document"),
+            verification_status="pending",
+            uploaded_by=current_user_id,
+            file_path=f"/pending/{upload_id}",  # Placeholder path
+            original_filename="pending_upload"
+        )
+        
+        db.add(evidence)
+        db.commit()
+        db.refresh(evidence)
+        
+        await update_progress(task_id, 100, "Evidence upload request created")
+        
+        logger.info(f"Request evidence upload task {task_id} completed: Evidence {evidence.id}")
+        
+        # Get control info
+        control_info = CONTROL_REQUIREMENTS.get(control_id, {})
+        
+        return {
+            "status": "success",
+            "message": f"Evidence upload requested for control {control_id}",
+            "evidence_id": evidence.id,
+            "upload_id": upload_id,
+            "control_id": control_id,
+            "control_title": control_info.get("title", f"Control {control_id}"),
+            "accepted_types": control_info.get("evidence_types", ["document", "screenshot"]),
+            "instructions": f"Please upload evidence for: {title}. Accepted file types: PDF, DOCX, XLSX, PNG, JPG (max 10MB)"
+        }
+    
+    except Exception as e:
+        logger.error(f"Request evidence upload task {task_id} failed: {e}")
+        db.rollback()
+        return {
+            "status": "error",
+            "message": f"Failed to create evidence upload request: {str(e)}"
+        }
+
+
+async def handle_analyze_evidence_rag_task(task_id: int, payload: Dict[str, Any], db: Session) -> Dict[str, Any]:
+    """
+    Analyze evidence against control requirements using RAG
+    
+    Payload:
+        evidence_id: int - Evidence ID (required)
+        control_id: int - Control ID (optional, can be inferred)
+    """
+    logger.info(f"Analyze evidence RAG task {task_id} started")
+    await update_progress(task_id, 20, "Loading evidence and control requirements...")
+    
+    try:
+        from api.src.models import Evidence
+        
+        evidence_id = payload.get("evidence_id")
+        if not evidence_id:
+            return {
+                "status": "error",
+                "message": "evidence_id is required"
+            }
+        
+        # Fetch evidence
+        evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
+        if not evidence:
+            return {
+                "status": "error",
+                "message": f"Evidence {evidence_id} not found"
+            }
+        
+        control_id = payload.get("control_id") or evidence.control_id
+        control_reqs = CONTROL_REQUIREMENTS.get(control_id)
+        
+        if not control_reqs:
+            return {
+                "status": "error",
+                "message": f"Control {control_id} requirements not found in knowledge base"
+            }
+        
+        await update_progress(task_id, 50, "Validating evidence against requirements...")
+        
+        # RAG Analysis: Check evidence metadata against requirements
+        analysis = {
+            "evidence_id": evidence_id,
+            "control_id": control_id,
+            "control_title": control_reqs["title"],
+            "validation_results": []
+        }
+        
+        # Check evidence type matches accepted types
+        type_valid = evidence.evidence_type in control_reqs["evidence_types"]
+        analysis["validation_results"].append({
+            "criterion": "Evidence Type",
+            "expected": control_reqs["evidence_types"],
+            "actual": evidence.evidence_type,
+            "passed": type_valid
+        })
+        
+        # Check keywords in title/description (simple RAG)
+        keywords_found = []
+        text_to_check = f"{evidence.title} {evidence.description}".lower()
+        for keyword in control_reqs["keywords"]:
+            if keyword.lower() in text_to_check:
+                keywords_found.append(keyword)
+        
+        keyword_coverage = len(keywords_found) / len(control_reqs["keywords"]) * 100
+        analysis["validation_results"].append({
+            "criterion": "Keyword Coverage",
+            "expected": control_reqs["keywords"],
+            "actual": keywords_found,
+            "passed": keyword_coverage >= 40,  # 40% threshold
+            "coverage_percent": round(keyword_coverage, 1)
+        })
+        
+        # Overall assessment
+        passed_count = sum(1 for v in analysis["validation_results"] if v["passed"])
+        total_count = len(analysis["validation_results"])
+        overall_score = (passed_count / total_count) * 100
+        
+        analysis["overall_score"] = round(overall_score, 1)
+        analysis["passed"] = overall_score >= 60  # 60% threshold
+        analysis["recommendations"] = []
+        
+        if not type_valid:
+            analysis["recommendations"].append(
+                f"Consider providing evidence type: {', '.join(control_reqs['evidence_types'])}"
+            )
+        
+        if keyword_coverage < 60:
+            missing_keywords = [k for k in control_reqs["keywords"] if k not in keywords_found]
+            analysis["recommendations"].append(
+                f"Include more relevant keywords: {', '.join(missing_keywords[:3])}"
+            )
+        
+        await update_progress(task_id, 100, "Evidence analysis completed")
+        
+        logger.info(f"Analyze evidence RAG task {task_id} completed: Score {overall_score}%")
+        
+        return {
+            "status": "success",
+            "message": f"Evidence analysis completed (Score: {overall_score}%)",
+            "analysis": analysis
+        }
+    
+    except Exception as e:
+        logger.error(f"Analyze evidence RAG task {task_id} failed: {e}")
+        return {
+            "status": "error",
+            "message": f"Failed to analyze evidence: {str(e)}"
+        }
+
+
+async def handle_suggest_related_controls_task(task_id: int, payload: Dict[str, Any], db: Session) -> Dict[str, Any]:
+    """
+    Suggest related controls using Graph RAG
+    
+    Payload:
+        evidence_id: int - Evidence ID (required)
+        control_id: int - Primary control ID (required)
+        max_suggestions: int - Max suggestions to return (default 5)
+    """
+    logger.info(f"Suggest related controls task {task_id} started")
+    await update_progress(task_id, 30, "Analyzing control relationships...")
+    
+    try:
+        from api.src.models import Evidence, Control
+        
+        evidence_id = payload.get("evidence_id")
+        control_id = payload.get("control_id")
+        max_suggestions = payload.get("max_suggestions", 5)
+        
+        if not evidence_id or not control_id:
+            return {
+                "status": "error",
+                "message": "evidence_id and control_id are required"
+            }
+        
+        # Fetch evidence
+        evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
+        if not evidence:
+            return {
+                "status": "error",
+                "message": f"Evidence {evidence_id} not found"
+            }
+        
+        # Graph RAG: Get related controls from graph
+        control_relationships = CONTROL_GRAPH.get(control_id, {})
+        related_ids = (
+            control_relationships.get("same_domain", []) +
+            control_relationships.get("related", []) +
+            control_relationships.get("downstream", [])
+        )
+        
+        # Remove duplicates and limit
+        related_ids = list(set(related_ids))[:max_suggestions]
+        
+        await update_progress(task_id, 70, f"Found {len(related_ids)} related controls...")
+        
+        suggestions = []
+        for rel_id in related_ids:
+            control_info = CONTROL_REQUIREMENTS.get(rel_id)
+            if not control_info:
+                continue
+            
+            # Fetch control from DB
+            control = db.query(Control).filter(Control.id == rel_id).first()
+            
+            # Calculate relevance score based on evidence type and keywords
+            relevance_score = 50  # Base score
+            
+            # Boost if evidence type matches
+            if evidence.evidence_type in control_info.get("evidence_types", []):
+                relevance_score += 30
+            
+            # Boost for keyword overlap
+            text_to_check = f"{evidence.title} {evidence.description}".lower()
+            keyword_matches = sum(1 for kw in control_info["keywords"] if kw.lower() in text_to_check)
+            relevance_score += min(keyword_matches * 5, 20)
+            
+            suggestions.append({
+                "control_id": rel_id,
+                "control_title": control_info["title"],
+                "domain": control_info["domain"],
+                "relevance_score": min(relevance_score, 100),
+                "reason": f"Related through {control_relationships.get('related', []).__contains__(rel_id) and 'similar objectives' or 'domain relationship'}",
+                "status": control.status if control else "unknown"
+            })
+        
+        # Sort by relevance score
+        suggestions.sort(key=lambda x: x["relevance_score"], reverse=True)
+        
+        await update_progress(task_id, 100, f"Generated {len(suggestions)} suggestions")
+        
+        logger.info(f"Suggest related controls task {task_id} completed: {len(suggestions)} suggestions")
+        
+        return {
+            "status": "success",
+            "message": f"Found {len(suggestions)} related controls",
+            "primary_control_id": control_id,
+            "evidence_id": evidence_id,
+            "suggestions": suggestions
+        }
+    
+    except Exception as e:
+        logger.error(f"Suggest related controls task {task_id} failed: {e}")
+        return {
+            "status": "error",
+            "message": f"Failed to suggest related controls: {str(e)}"
+        }
+
+
+async def handle_submit_evidence_for_review_task(task_id: int, payload: Dict[str, Any], db: Session) -> Dict[str, Any]:
+    """
+    Submit evidence for auditor review (maker-checker workflow)
+    
+    Payload:
+        evidence_id: int - Evidence ID (required)
+        comments: str - Submission comments (optional)
+        current_user_id: int - User ID (required)
+    """
+    logger.info(f"Submit evidence for review task {task_id} started")
+    await update_progress(task_id, 30, "Submitting evidence for review...")
+    
+    try:
+        from api.src.models import Evidence
+        from datetime import datetime
+        
+        evidence_id = payload.get("evidence_id")
+        current_user_id = payload.get("current_user_id") or payload.get("created_by")
+        
+        if not evidence_id or not current_user_id:
+            return {
+                "status": "error",
+                "message": "evidence_id and current_user_id are required"
+            }
+        
+        # Fetch evidence
+        evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
+        if not evidence:
+            return {
+                "status": "error",
+                "message": f"Evidence {evidence_id} not found"
+            }
+        
+        # Validate current status
+        if evidence.verification_status not in ["pending", "rejected"]:
+            return {
+                "status": "error",
+                "message": f"Evidence cannot be submitted - current status: {evidence.verification_status}"
+            }
+        
+        # Update evidence status
+        evidence.verification_status = "under_review"
+        evidence.submitted_by = current_user_id
+        evidence.review_comments = payload.get("comments", "")
+        
+        db.commit()
+        db.refresh(evidence)
+        
+        await update_progress(task_id, 100, "Evidence submitted for review")
+        
+        logger.info(f"Submit evidence for review task {task_id} completed: Evidence {evidence_id}")
+        
+        return {
+            "status": "success",
+            "message": f"Evidence '{evidence.title}' submitted for auditor review",
+            "evidence_id": evidence_id,
+            "verification_status": evidence.verification_status,
+            "submitted_by": current_user_id
+        }
+    
+    except Exception as e:
+        logger.error(f"Submit evidence for review task {task_id} failed: {e}")
+        db.rollback()
+        return {
+            "status": "error",
+            "message": f"Failed to submit evidence: {str(e)}"
+        }
+
+
 # Map of task types to their handlers
 TASK_HANDLERS = {
     "test": handle_test_task,
@@ -693,6 +1137,10 @@ TASK_HANDLERS = {
     "create_controls": handle_create_controls_task,
     "create_project": handle_create_project_task,
     "create_findings": handle_create_findings_task,
-    "analyze_evidence": handle_analyze_evidence_task,
+    "analyze_evidence": handle_analyze_evidence_task,  # Original MCP version
+    "analyze_evidence_rag": handle_analyze_evidence_rag_task,  # New RAG version
     "generate_compliance_report": handle_generate_compliance_report_task,
+    "request_evidence_upload": handle_request_evidence_upload_task,
+    "suggest_related_controls": handle_suggest_related_controls_task,
+    "submit_evidence_for_review": handle_submit_evidence_for_review_task,
 }

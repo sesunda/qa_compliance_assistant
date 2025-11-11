@@ -171,6 +171,105 @@ class AgenticAssistant:
             {
                 "type": "function",
                 "function": {
+                    "name": "request_evidence_upload",
+                    "description": "Request evidence upload from analyst. Creates a pending evidence record and instructs user to upload file. Use when analyst wants to submit evidence for a control. Returns upload_id for frontend to use.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "control_id": {
+                                "type": "integer",
+                                "description": "Control ID this evidence relates to (required)"
+                            },
+                            "title": {
+                                "type": "string",
+                                "description": "Brief title for the evidence (e.g., 'Access Control Policy Document')"
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Detailed description of what evidence will be provided"
+                            },
+                            "evidence_type": {
+                                "type": "string",
+                                "enum": ["document", "screenshot", "configuration", "log", "report", "other"],
+                                "description": "Type of evidence",
+                                "default": "document"
+                            }
+                        },
+                        "required": ["control_id", "title"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "analyze_evidence",
+                    "description": "Analyze uploaded evidence against control requirements using RAG. Validates if evidence satisfies control acceptance criteria and suggests improvements. Use after evidence is uploaded to provide intelligent feedback.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "evidence_id": {
+                                "type": "integer",
+                                "description": "Evidence ID to analyze (required)"
+                            },
+                            "control_id": {
+                                "type": "integer",
+                                "description": "Control ID the evidence relates to (optional, can be inferred from evidence)"
+                            }
+                        },
+                        "required": ["evidence_id"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "suggest_related_controls",
+                    "description": "Suggest other controls that uploaded evidence might apply to using Graph RAG. Identifies related controls in the same domain or with similar requirements. Use to help analyst reuse evidence across multiple controls.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "evidence_id": {
+                                "type": "integer",
+                                "description": "Evidence ID to analyze (required)"
+                            },
+                            "control_id": {
+                                "type": "integer",
+                                "description": "Primary control ID (required)"
+                            },
+                            "max_suggestions": {
+                                "type": "integer",
+                                "description": "Maximum number of suggestions to return",
+                                "default": 5
+                            }
+                        },
+                        "required": ["evidence_id", "control_id"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "submit_evidence_for_review",
+                    "description": "Submit evidence for auditor review and approval. Updates evidence status from 'pending' to 'under_review'. Use when analyst confirms they want to submit evidence after reviewing AI analysis.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "evidence_id": {
+                                "type": "integer",
+                                "description": "Evidence ID to submit (required)"
+                            },
+                            "comments": {
+                                "type": "string",
+                                "description": "Optional comments for the auditor"
+                            }
+                        },
+                        "required": ["evidence_id"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
                     "name": "create_project",
                     "description": "Create a new compliance or security project. Use when auditor wants to set up a new project for IM8 controls, security audit, risk assessment, etc. IMPORTANT: After successful creation, you MUST explicitly tell the user the project_id in your response (e.g., 'Project created successfully with ID: 11').",
                     "parameters": {
@@ -382,7 +481,14 @@ Maintain context across the conversation."""
         """
         # Define role-specific tool permissions
         AUDITOR_ONLY_TOOLS = ['create_project', 'create_controls']
-        ANALYST_ONLY_TOOLS = ['upload_evidence', 'submit_for_review']
+        ANALYST_ONLY_TOOLS = [
+            'upload_evidence', 
+            'submit_for_review', 
+            'request_evidence_upload', 
+            'analyze_evidence', 
+            'suggest_related_controls', 
+            'submit_evidence_for_review'
+        ]
         COMMON_TOOLS = ['mcp_fetch_evidence', 'generate_report']
         
         user_role_lower = user_role.lower()
@@ -1405,7 +1511,14 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
         
         # Define role-tool permissions
         AUDITOR_ONLY_TOOLS = ['create_project', 'create_controls']
-        ANALYST_ONLY_TOOLS = ['upload_evidence', 'submit_for_review']
+        ANALYST_ONLY_TOOLS = [
+            'upload_evidence', 
+            'submit_for_review', 
+            'request_evidence_upload', 
+            'analyze_evidence', 
+            'suggest_related_controls', 
+            'submit_evidence_for_review'
+        ]
         
         # Enforce role-based tool access
         if function_name in AUDITOR_ONLY_TOOLS:
@@ -1444,7 +1557,11 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
             "fetch_evidence": "fetch_evidence",
             "analyze_compliance": "analyze_compliance",
             "generate_report": "generate_report",
-            "submit_for_review": "submit_for_review"
+            "submit_for_review": "submit_for_review",
+            "request_evidence_upload": "request_evidence_upload",
+            "analyze_evidence": "analyze_evidence_rag",  # Use RAG version
+            "suggest_related_controls": "suggest_related_controls",
+            "submit_evidence_for_review": "submit_evidence_for_review"
         }
         
         task_type = task_type_map.get(function_name)
