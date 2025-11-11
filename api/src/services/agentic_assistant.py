@@ -202,13 +202,13 @@ class AgenticAssistant:
                 "type": "function",
                 "function": {
                     "name": "create_controls",
-                    "description": "Create IM8 compliance controls for a project. Use when auditor wants to set up IM8 controls by selecting domains (1-10). Creates multiple controls based on selected domains.",
+                    "description": "Create IM8 compliance controls for a project. IMPORTANT: Before calling this tool, you MUST ask the user which project_id to use. Never assume or guess the project_id. Use when auditor wants to set up IM8 controls by selecting domains (1-10). Creates multiple controls based on selected domains.",
                     "parameters": {
                         "type": "object",
                         "properties": {
                             "project_id": {
                                 "type": "integer",
-                                "description": "Project ID to add controls to (required)"
+                                "description": "Project ID to add controls to (REQUIRED - must ask user if not provided)"
                             },
                             "domains": {
                                 "type": "array",
@@ -1105,8 +1105,8 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
             if not args.get("project_id"):
                 return {
                     "valid": False,
-                    "error": "Project ID is required",
-                    "suggestion": "Please specify which project to add controls to"
+                    "error": "Missing required parameter: project_id",
+                    "suggestion": "I need to know which project to add these controls to. Let me check your existing projects first. Please hold on."
                 }
             
             # Check project exists and belongs to user's agency
