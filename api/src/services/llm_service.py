@@ -12,13 +12,14 @@ logger = logging.getLogger(__name__)
 
 
 class LLMService:
-    """Service for interacting with Azure OpenAI / OpenAI for agentic capabilities"""
+    """Service for interacting with Azure OpenAI / OpenAI / Groq for agentic capabilities"""
     
     def __init__(self):
-        # Try Azure OpenAI first, fall back to OpenAI
+        # Try Azure OpenAI first, then OpenAI, finally Groq
         self.azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
         self.azure_api_key = os.getenv("AZURE_OPENAI_API_KEY")
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        self.groq_api_key = os.getenv("GROQ_API_KEY")
         self.model = os.getenv("AZURE_OPENAI_MODEL", "gpt-4")
         
         if self.azure_endpoint and self.azure_api_key:
@@ -34,10 +35,16 @@ class LLMService:
             self.client = OpenAI(api_key=self.openai_api_key)
             self.provider = "openai"
             logger.info("Initialized OpenAI client")
+        elif self.groq_api_key:
+            from groq import Groq
+            self.client = Groq(api_key=self.groq_api_key)
+            self.model = "llama-3.3-70b-versatile"  # Groq's best model for structured output
+            self.provider = "groq"
+            logger.info("Initialized Groq client with llama-3.3-70b-versatile")
         else:
             self.client = None
             self.provider = None
-            logger.warning("No LLM provider configured. Set AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_API_KEY or OPENAI_API_KEY")
+            logger.warning("No LLM provider configured. Set AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_API_KEY, OPENAI_API_KEY, or GROQ_API_KEY")
     
     def is_available(self) -> bool:
         """Check if LLM service is available"""
