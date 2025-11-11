@@ -70,20 +70,25 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }
 
   const menuItems = [
-    { text: 'Dashboard', icon: Dashboard, path: '/dashboard' },
-    { text: 'Assessments', icon: Policy, path: '/assessments' },
-    { text: 'Findings', icon: BugReport, path: '/findings' },
-    { text: 'QA Review', icon: RateReview, path: '/qa-review' },
-    { text: 'Controls', icon: Security, path: '/controls' },
-    { text: 'Evidence', icon: Description, path: '/evidence' },
-    { text: 'Projects', icon: Assignment, path: '/projects' },
-    { text: 'Reports', icon: Assessment, path: '/reports' },
-    // { text: 'AI Assistant (Deprecated)', icon: Psychology, path: '/rag' },  // DEPRECATED: Replaced by Agentic Chat
-    { text: 'Agentic Chat', icon: SmartToy, path: '/agentic-chat' },
-    { text: 'Agent Tasks', icon: SmartToy, path: '/agent-tasks' },
-    { text: 'Agencies', icon: Business, path: '/agencies' },
-    { text: 'Users', icon: People, path: '/users' },
+    { text: 'Dashboard', icon: Dashboard, path: '/dashboard', roles: ['auditor', 'analyst', 'viewer', 'super_admin', 'agency_admin', 'senior_management'] },
+    { text: 'Assessments', icon: Policy, path: '/assessments', roles: ['auditor', 'analyst', 'super_admin', 'agency_admin'] },
+    { text: 'Findings', icon: BugReport, path: '/findings', roles: ['auditor', 'analyst', 'super_admin', 'agency_admin'] },
+    { text: 'QA Review', icon: RateReview, path: '/qa-review', roles: ['auditor', 'super_admin', 'agency_admin'] },
+    { text: 'Controls', icon: Security, path: '/controls', roles: ['auditor', 'viewer', 'super_admin', 'agency_admin', 'senior_management'] },
+    { text: 'Evidence', icon: Description, path: '/evidence', roles: ['auditor', 'analyst', 'viewer', 'super_admin', 'agency_admin'] },
+    { text: 'Projects', icon: Assignment, path: '/projects', roles: ['auditor', 'viewer', 'super_admin', 'agency_admin', 'senior_management'] },
+    { text: 'Reports', icon: Assessment, path: '/reports', roles: ['auditor', 'analyst', 'viewer', 'super_admin', 'agency_admin', 'senior_management'] },
+    { text: 'Agentic Chat', icon: SmartToy, path: '/agentic-chat', roles: ['auditor', 'analyst', 'super_admin', 'agency_admin'] },
+    { text: 'Agent Tasks', icon: SmartToy, path: '/agent-tasks', roles: ['auditor', 'analyst', 'super_admin', 'agency_admin'] },
+    { text: 'Agencies', icon: Business, path: '/agencies', roles: ['super_admin'] },
+    { text: 'Users', icon: People, path: '/users', roles: ['super_admin', 'agency_admin'] },
   ]
+
+  // Filter menu items based on user role
+  const filteredMenuItems = menuItems.filter(item => {
+    const userRole = user?.role?.name
+    return !item.roles || item.roles.includes(userRole)
+  })
 
   const drawer = (
     <div>
@@ -92,7 +97,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </Box>
       <Divider />
       <List>
-                  {menuItems.map((item) => {
+                  {filteredMenuItems.map((item) => {
             const IconComponent = item.icon;
             return (
               <ListItem key={item.text} disablePadding>
