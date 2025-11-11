@@ -86,7 +86,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   // Filter menu items based on user role
   const filteredMenuItems = menuItems.filter(item => {
-    const userRole = user?.role?.name || ''
+    const userRole = (user?.role?.name || '').toLowerCase()
     return !item.roles || item.roles.includes(userRole)
   })
 
