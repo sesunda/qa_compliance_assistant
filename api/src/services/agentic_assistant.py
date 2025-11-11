@@ -55,8 +55,8 @@ class AgenticAssistant:
                 self.model = "llama-3.1-8b-instant"  # Fallback to stable model
             logger.info(f"Using Groq with {self.model}")
         
-        # Define tools available to the agent
-        self.tools = [
+        # Define ALL tools (will be filtered by role at runtime)
+        self.all_tools = [
             {
                 "type": "function",
                 "function": {
@@ -369,6 +369,47 @@ Example: "Please upload evidence for control 5. You can download a CSV template 
 Be conversational, helpful, and ask clarifying questions if needed.
 Always confirm actions before executing them.
 Maintain context across the conversation."""
+    
+    def _get_tools_for_role(self, user_role: str) -> list:
+        """
+        Filter tools based on user role to enforce RBAC
+        
+        Role Permissions:
+        - auditor: Can create projects, create controls, generate reports (NO evidence upload)
+        - analyst: Can upload evidence, submit for review (NO project/control creation)
+        - viewer: Can only view (NO tool access)
+        - super_admin: Full access to all tools
+        """
+        # Define role-specific tool permissions
+        AUDITOR_ONLY_TOOLS = ['create_project', 'create_controls']
+        ANALYST_ONLY_TOOLS = ['upload_evidence', 'submit_for_review']
+        COMMON_TOOLS = ['mcp_fetch_evidence', 'generate_report']
+        
+        user_role_lower = user_role.lower()
+        
+        if user_role_lower == 'super_admin':
+            # Super admin has access to all tools
+            logger.info(f"Role '{user_role}': Granting access to ALL tools")
+            return self.all_tools
+        
+        elif user_role_lower == 'auditor':
+            # Auditor: project/control creation + common tools (NO evidence upload)
+            allowed_tools = AUDITOR_ONLY_TOOLS + COMMON_TOOLS
+            filtered_tools = [t for t in self.all_tools if t['function']['name'] in allowed_tools]
+            logger.info(f"Role '{user_role}': Granting access to {len(filtered_tools)} tools: {allowed_tools}")
+            return filtered_tools
+        
+        elif user_role_lower == 'analyst':
+            # Analyst: evidence upload/submit + common tools (NO project/control creation)
+            allowed_tools = ANALYST_ONLY_TOOLS + COMMON_TOOLS
+            filtered_tools = [t for t in self.all_tools if t['function']['name'] in allowed_tools]
+            logger.info(f"Role '{user_role}': Granting access to {len(filtered_tools)} tools: {allowed_tools}")
+            return filtered_tools
+        
+        else:
+            # Viewer or unknown: No tool access
+            logger.info(f"Role '{user_role}': NO tool access granted (read-only)")
+            return []
     
     def _build_role_specific_prompt(self, user_role: str) -> str:
         """Build role-specific system prompt with IM8 workflow guidance"""
@@ -755,6 +796,9 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
             user_role = current_user.get("role", "viewer")
             system_prompt = self._build_role_specific_prompt(user_role)
             
+            # Get role-specific tools (RBAC enforcement)
+            filtered_tools = self._get_tools_for_role(user_role)
+            
             # Build messages for LLM
             messages = [{"role": "system", "content": system_prompt}]
             
@@ -775,13 +819,13 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
                 "content": user_content
             })
             
-            # Call Groq with tool calling
-            logger.info(f"Calling Groq LLM for session {session_id}")
+            # Call Groq with tool calling (using filtered tools)
+            logger.info(f"Calling Groq LLM for session {session_id} with {len(filtered_tools)} role-filtered tools")
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                tools=self.tools,
-                tool_choice="auto",
+                tools=filtered_tools if filtered_tools else None,  # Pass None if no tools
+                tool_choice="auto" if filtered_tools else "none",
                 max_tokens=2000,
                 temperature=0.7
             )
@@ -1333,6 +1377,32 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
         file_path: Optional[str] = None
     ) -> Dict[str, Any]:
         """Execute a tool via AI Task Orchestrator"""
+        
+        # RBAC: Check role permissions before execution
+        user_role = current_user.get("role", "").lower()
+        
+        # Define role-tool permissions
+        AUDITOR_ONLY_TOOLS = ['create_project', 'create_controls']
+        ANALYST_ONLY_TOOLS = ['upload_evidence', 'submit_for_review']
+        
+        # Enforce role-based tool access
+        if function_name in AUDITOR_ONLY_TOOLS:
+            if user_role not in ['auditor', 'super_admin']:
+                logger.error(f"RBAC violation: User role '{user_role}' attempted to use auditor-only tool '{function_name}'")
+                return {
+                    "error": "Access denied",
+                    "status": "forbidden",
+                    "message": f"Only auditors can use '{function_name}'. Your role: {user_role}"
+                }
+        
+        if function_name in ANALYST_ONLY_TOOLS:
+            if user_role not in ['analyst', 'auditor', 'super_admin']:
+                logger.error(f"RBAC violation: User role '{user_role}' attempted to use analyst tool '{function_name}'")
+                return {
+                    "error": "Access denied",
+                    "status": "forbidden",
+                    "message": f"Only analysts/auditors can use '{function_name}'. Your role: {user_role}"
+                }
         
         # VALIDATION: Check parameters before creating task
         validation_result = self._validate_tool_parameters(function_name, function_args, db, current_user)
