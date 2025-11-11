@@ -218,6 +218,7 @@ const ProjectsPage: React.FC = () => {
             <Table>
               <TableHead>
                 <TableRow>
+                  <TableCell>ID</TableCell>
                   <TableCell>Project Name</TableCell>
                   <TableCell>Type</TableCell>
                   <TableCell>Agency</TableCell>
@@ -229,6 +230,11 @@ const ProjectsPage: React.FC = () => {
               <TableBody>
                 {projectsList.map((project: any) => (
                   <TableRow key={project.id}>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="bold">
+                        {project.id}
+                      </Typography>
+                    </TableCell>
                     <TableCell>
                       <Box>
                         <Typography variant="body2" fontWeight="bold">
@@ -252,7 +258,11 @@ const ProjectsPage: React.FC = () => {
                       {new Date(project.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <IconButton size="small" title="View">
+                      <IconButton 
+                        size="small" 
+                        title="View Details"
+                        onClick={() => handleEditProject(project)}
+                      >
                         <Visibility fontSize="small" />
                       </IconButton>
                       {canManageProjects && (

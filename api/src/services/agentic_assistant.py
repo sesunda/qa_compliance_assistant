@@ -172,7 +172,7 @@ class AgenticAssistant:
                 "type": "function",
                 "function": {
                     "name": "create_project",
-                    "description": "Create a new compliance or security project. Use when auditor wants to set up a new project for IM8 controls, security audit, risk assessment, etc.",
+                    "description": "Create a new compliance or security project. Use when auditor wants to set up a new project for IM8 controls, security audit, risk assessment, etc. IMPORTANT: After successful creation, you MUST explicitly tell the user the project_id in your response (e.g., 'Project created successfully with ID: 11').",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -487,7 +487,13 @@ As an auditor, you can:
    **On confirmation, create AI task:**
    - Task type: "create_project"
    - Payload: {name, description, project_type, agency_id, start_date}
-   - Return: "✅ I've created Project '{project_name}' (ID: {project_id}) for your agency.
+   - **CRITICAL**: Wait for task completion and extract project_id from result
+   - Return: "✅ Project created successfully!
+   
+   **Project ID: {project_id}**
+   Project Name: {project_name}
+   Type: {project_type}
+   Agency: {agency_name}
    
    Would you like to:
    1. Set up IM8 controls for this project now?
