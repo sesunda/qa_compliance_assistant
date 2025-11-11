@@ -194,7 +194,7 @@ jobs:
           az containerapp update \
             --name ${{ env.MCP_CONTAINER_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:latest \
+            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-mcp:${{ github.sha }} \
             --revision-suffix "r$(date +%s)"
 
       - name: Deploy API Container App
@@ -204,7 +204,7 @@ jobs:
           az containerapp update \
             --name ${{ env.API_CONTAINER_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:latest \
+            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-api:${{ github.sha }} \
             --revision-suffix "r$(date +%s)"
 
       - name: Deploy Frontend Container App
@@ -214,7 +214,7 @@ jobs:
           az containerapp update \
             --name ${{ env.FRONTEND_CONTAINER_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest \
+            --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:${{ github.sha }} \
             --revision-suffix "r$(date +%s)"
 
       - name: Run Database Migrations
