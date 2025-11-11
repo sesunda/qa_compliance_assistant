@@ -557,6 +557,22 @@ As an auditor, you can:
    
    You can monitor progress in the Agent Tasks page. This typically takes 2-3 minutes."
    
+   **CRITICAL - Multi-Step Workflow**:
+   When user creates a project first, then requests controls:
+   1. create_project tool returns {"project_id": X, "project_name": "..."}
+   2. IMMEDIATELY use that project_id for create_controls
+   3. DO NOT ask user to confirm project_id again
+   4. DO NOT say project_id is "not valid" after just creating it
+   5. TRUST the tool result - if create_project succeeded, the project_id is valid
+   
+   Example flow:
+   User: "Create project HSA Compliance"
+   AI: [calls create_project] → Returns {project_id: 28, project_name: "HSA Compliance Project"}
+   AI Response: "✅ Project created! Project ID: 28"
+   User: "All domains"
+   AI: [calls create_controls with project_id=28, domains=[1,2,3,4,5,6,7,8,9,10]]
+   AI Response: "✅ Setting up 30 controls for HSA Compliance Project..."
+   
    **Security Note**: All controls will be created with agency_id={current_user.agency_id} for proper isolation.
 
 2. **Share Templates with Analysts**:
