@@ -37,6 +37,7 @@ import { useAuth } from '../contexts/AuthContext'
 const ProjectsPage: React.FC = () => {
   const { user } = useAuth()
   const [open, setOpen] = useState(false)
+  const [viewMode, setViewMode] = useState(false)
   const [selectedProject, setSelectedProject] = useState<any>(null)
   const [formData, setFormData] = useState({
     name: '',
@@ -144,6 +145,21 @@ const ProjectsPage: React.FC = () => {
 
   const handleEditProject = (project: any) => {
     setSelectedProject(project)
+    setViewMode(false)
+    setFormData({
+      name: project.name || '',
+      description: project.description || '',
+      project_type: project.project_type || '',
+      status: project.status || 'Pending',
+      start_date: project.start_date ? project.start_date.split('T')[0] : '',
+      agency_id: project.agency_id || 1,
+    })
+    setOpen(true)
+  }
+
+  const handleViewProject = (project: any) => {
+    setSelectedProject(project)
+    setViewMode(true)
     setFormData({
       name: project.name || '',
       description: project.description || '',
@@ -158,6 +174,7 @@ const ProjectsPage: React.FC = () => {
   const handleClose = () => {
     setOpen(false)
     setSelectedProject(null)
+    setViewMode(false)
     setFormData({
       name: '',
       description: '',
@@ -261,7 +278,7 @@ const ProjectsPage: React.FC = () => {
                       <IconButton 
                         size="small" 
                         title="View Details"
-                        onClick={() => handleEditProject(project)}
+                        onClick={() => handleViewProject(project)}
                       >
                         <Visibility fontSize="small" />
                       </IconButton>
@@ -284,7 +301,7 @@ const ProjectsPage: React.FC = () => {
                 ))}
                 {(!projects || projects.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={6} align="center">
+                    <TableCell colSpan={7} align="center">
                       <Box py={4}>
                         <Assignment sx={{ fontSize: 48, color: 'grey.400', mb: 2 }} />
                         <Typography variant="h6" color="textSecondary">
@@ -315,7 +332,7 @@ const ProjectsPage: React.FC = () => {
       {/* Create/Edit Project Dialog */}
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <DialogTitle>
-          {selectedProject ? 'Edit Project' : 'Create New Project'}
+          {viewMode ? 'View Project Details' : selectedProject ? 'Edit Project' : 'Create New Project'}
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -325,6 +342,8 @@ const ProjectsPage: React.FC = () => {
                 label="Project Name"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
+                disabled={viewMode}
+                InputProps={{ readOnly: viewMode }}
               />
             </Grid>
             <Grid item xs={12}>
@@ -335,6 +354,8 @@ const ProjectsPage: React.FC = () => {
                 rows={3}
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
+                disabled={viewMode}
+                InputProps={{ readOnly: viewMode }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -344,6 +365,8 @@ const ProjectsPage: React.FC = () => {
                 label="Project Type"
                 value={formData.project_type}
                 onChange={(e) => handleInputChange('project_type', e.target.value)}
+                disabled={viewMode}
+                InputProps={{ readOnly: viewMode }}
               >
                 {projectTypes.map((type) => (
                   <MenuItem key={type} value={type}>
@@ -359,6 +382,8 @@ const ProjectsPage: React.FC = () => {
                 label="Status"
                 value={formData.status}
                 onChange={(e) => handleInputChange('status', e.target.value)}
+                disabled={viewMode}
+                InputProps={{ readOnly: viewMode }}
               >
                 <MenuItem value="Pending">Pending</MenuItem>
                 <MenuItem value="Active">Active</MenuItem>
@@ -373,6 +398,8 @@ const ProjectsPage: React.FC = () => {
                 label="Agency"
                 value={formData.agency_id}
                 onChange={(e) => handleInputChange('agency_id', parseInt(e.target.value))}
+                disabled={viewMode}
+                InputProps={{ readOnly: viewMode }}
               >
                 {agenciesList.map((agency: any) => (
                   <MenuItem key={agency.id} value={agency.id}>
@@ -389,19 +416,25 @@ const ProjectsPage: React.FC = () => {
                 InputLabelProps={{ shrink: true }}
                 value={formData.start_date}
                 onChange={(e) => handleInputChange('start_date', e.target.value)}
+                disabled={viewMode}
+                InputProps={{ readOnly: viewMode }}
               />
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button 
-            variant="contained" 
-            onClick={handleSubmit}
-            disabled={createProjectMutation.isLoading || updateProjectMutation.isLoading}
-          >
-            {selectedProject ? 'Update' : 'Create'}
+          <Button onClick={handleClose}>
+            {viewMode ? 'Close' : 'Cancel'}
           </Button>
+          {!viewMode && (
+            <Button 
+              variant="contained" 
+              onClick={handleSubmit}
+              disabled={createProjectMutation.isLoading || updateProjectMutation.isLoading}
+            >
+              {selectedProject ? 'Update' : 'Create'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 
