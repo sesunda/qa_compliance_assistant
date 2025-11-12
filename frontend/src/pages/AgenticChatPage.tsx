@@ -875,7 +875,13 @@ const AgenticChatPage: React.FC = () => {
                   )}
                 </Paper>
                 <Typography variant="caption" color="text.secondary" sx={{ ml: 1, mt: 0.5, display: 'block' }}>
-                  {new Date(message.timestamp.toLocaleString('en-US', { timeZone: 'Asia/Singapore' })).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  {new Date(message.timestamp).toLocaleTimeString('en-SG', { 
+                    timeZone: 'Asia/Singapore',
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                  })} SGT
                 </Typography>
               </Box>
             </Box>

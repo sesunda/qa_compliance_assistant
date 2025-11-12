@@ -30,9 +30,12 @@ class MCPClient:
             server_url: MCP server URL (default: from environment)
             timeout: Request timeout in seconds
         """
+        # Default to Azure MCP endpoint (production)
+        # Environment variable MCP_SERVER_URL can override this
+        default_mcp_url = "https://ca-mcp-qca-dev.victoriousmushroom-f7d2d81f.westus2.azurecontainerapps.io"
         self.server_url = server_url or os.getenv(
             "MCP_SERVER_URL",
-            "http://mcp_server:8001"
+            default_mcp_url
         )
         self.timeout = timeout
         
