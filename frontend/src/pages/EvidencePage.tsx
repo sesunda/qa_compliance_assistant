@@ -115,6 +115,7 @@ const EvidencePage: React.FC = () => {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [statusFilter, setStatusFilter] = useState<string>('all')
 
   // Simple permission checks
   // Allow users with 'update' permission to submit for review and manage workflow (maker-checker)
@@ -210,7 +211,35 @@ const EvidencePage: React.FC = () => {
     },
   })
 
+  const approveMutation = useMutation(approveEvidence, {
+    onSuccess: () => {
+      toast.success('Evidence approved successfully')
+      queryClient.invalidateQueries(['evidence'])
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail ?? 'Failed to approve evidence'
+      toast.error(message)
+    },
+  })
+
+  const rejectMutation = useMutation(rejectEvidence, {
+    onSuccess: () => {
+      toast.success('Evidence rejected')
+      queryClient.invalidateQueries(['evidence'])
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail ?? 'Failed to reject evidence'
+      toast.error(message)
+    },
+  })
+
   const evidenceItems = Array.isArray(evidenceQuery.data) ? evidenceQuery.data : []
+
+  // Filter evidence items by status
+  const filteredEvidenceItems = useMemo(() => {
+    if (statusFilter === 'all') return evidenceItems
+    return evidenceItems.filter(item => item.verification_status === statusFilter)
+  }, [evidenceItems, statusFilter])
 
   const evidenceStats = useMemo(() => ({
     total: evidenceItems.length,
@@ -403,6 +432,24 @@ const EvidencePage: React.FC = () => {
         </Grid>
       </Grid>
 
+      {/* Status Filter */}
+      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Typography variant="body1">Filter by Status:</Typography>
+        <TextField
+          select
+          size="small"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          sx={{ minWidth: 200 }}
+        >
+          <MenuItem value="all">All ({evidenceStats.total})</MenuItem>
+          <MenuItem value="pending">Pending ({evidenceStats.pending})</MenuItem>
+          <MenuItem value="under_review">Under Review ({evidenceStats.underReview})</MenuItem>
+          <MenuItem value="approved">Approved ({evidenceStats.verified})</MenuItem>
+          <MenuItem value="rejected">Rejected ({evidenceStats.rejected})</MenuItem>
+        </TextField>
+      </Box>
+
       {canUploadEvidence && (
         <Card sx={{ mb: 3 }}>
           <CardContent>
@@ -446,7 +493,23 @@ const EvidencePage: React.FC = () => {
         <CardContent>
           <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h6">Evidence Repository</Typography>
-            {evidenceQuery.isFetching && <CircularProgress size={20} />}
+            <Box display="flex" alignItems="center" gap={2}>
+              <TextField
+                select
+                size="small"
+                label="Filter by Status"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                sx={{ minWidth: 180 }}
+              >
+                <MenuItem value="all">All Statuses</MenuItem>
+                <MenuItem value="pending">Pending</MenuItem>
+                <MenuItem value="under_review">Under Review</MenuItem>
+                <MenuItem value="approved">Approved</MenuItem>
+                <MenuItem value="rejected">Rejected</MenuItem>
+              </TextField>
+              {evidenceQuery.isFetching && <CircularProgress size={20} />}
+            </Box>
           </Stack>
           <TableContainer>
             <Table>
@@ -458,13 +521,15 @@ const EvidencePage: React.FC = () => {
                   <TableCell>Uploaded</TableCell>
                   <TableCell>Size</TableCell>
                   <TableCell>Status</TableCell>
+                  <TableCell>Submitted By</TableCell>
+                  <TableCell>Reviewed By</TableCell>
                   <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {evidenceQuery.isLoading && (
                   <TableRow>
-                    <TableCell colSpan={7} align="center">
+                    <TableCell colSpan={9} align="center">
                       <Box py={4} display="flex" justifyContent="center">
                         <CircularProgress size={32} />
                       </Box>
@@ -474,7 +539,7 @@ const EvidencePage: React.FC = () => {
 
                 {evidenceQuery.isError && !evidenceQuery.isLoading && (
                   <TableRow>
-                    <TableCell colSpan={7} align="center">
+                    <TableCell colSpan={9} align="center">
                       <Box py={4}>
                         <Typography color="error">Unable to load evidence records</Typography>
                       </Box>
@@ -482,20 +547,20 @@ const EvidencePage: React.FC = () => {
                   </TableRow>
                 )}
 
-                {!evidenceQuery.isLoading && evidenceItems.length === 0 && (
+                {!evidenceQuery.isLoading && filteredEvidenceItems.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} align="center">
+                    <TableCell colSpan={9} align="center">
                       <Box py={4}>
                         <CloudUpload sx={{ fontSize: 48, color: 'grey.400', mb: 2 }} />
                         <Typography variant="h6" color="text.secondary">
-                          No evidence uploaded yet
+                          {statusFilter === 'all' ? 'No evidence uploaded yet' : `No evidence with status: ${statusFilter}`}
                         </Typography>
                       </Box>
                     </TableCell>
                   </TableRow>
                 )}
 
-                {evidenceItems.map(item => {
+                {filteredEvidenceItems.map(item => {
                   const control = controlMap.get(item.control_id)
                   const controlLabel = control ? `${control.name}` : `Control #${item.control_id}`
                   const uploadedAt = item.uploaded_at || item.created_at
@@ -535,6 +600,8 @@ const EvidencePage: React.FC = () => {
                           )
                         })()}
                       </TableCell>
+                      <TableCell>{item.submitted_by ? `User #${item.submitted_by}` : '—'}</TableCell>
+                      <TableCell>{item.reviewed_by ? `User #${item.reviewed_by}` : '—'}</TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
                           {/* Submit for Review button */}
@@ -568,19 +635,12 @@ const EvidencePage: React.FC = () => {
                                 size="small"
                                 title="Approve Evidence"
                                 onClick={() => {
-                                  const comments = window.prompt('Approval comments (optional):')
-                                  if (comments !== null) {
-                                    approveEvidence(item.id, comments || undefined)
-                                      .then(() => {
-                                        toast.success('Evidence approved')
-                                        queryClient.invalidateQueries(['evidence'])
-                                      })
-                                      .catch((err) => {
-                                        toast.error(err.response?.data?.detail || 'Failed to approve evidence')
-                                      })
+                                  if (window.confirm('Approve this evidence?')) {
+                                    approveMutation.mutate(item.id)
                                   }
                                 }}
                                 color="success"
+                                disabled={approveMutation.isLoading}
                               >
                                 <ThumbUp fontSize="small" />
                               </IconButton>
@@ -588,19 +648,13 @@ const EvidencePage: React.FC = () => {
                                 size="small"
                                 title="Reject Evidence"
                                 onClick={() => {
-                                  const comments = window.prompt('Rejection reason (required):')
-                                  if (comments) {
-                                    rejectEvidence(item.id, comments)
-                                      .then(() => {
-                                        toast.success('Evidence rejected')
-                                        queryClient.invalidateQueries(['evidence'])
-                                      })
-                                      .catch((err) => {
-                                        toast.error(err.response?.data?.detail || 'Failed to reject evidence')
-                                      })
+                                  const reason = window.prompt('Rejection reason (required):')
+                                  if (reason && reason.trim()) {
+                                    rejectMutation.mutate(item.id)
                                   }
                                 }}
                                 color="error"
+                                disabled={rejectMutation.isLoading}
                               >
                                 <ThumbDown fontSize="small" />
                               </IconButton>

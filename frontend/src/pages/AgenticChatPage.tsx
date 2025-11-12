@@ -20,6 +20,8 @@ import TaskIcon from '@mui/icons-material/Task';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import AddIcon from '@mui/icons-material/Add';
 import api from '../services/api';
+import EvidenceUploadWidget from '../components/EvidenceUploadWidget';
+import EvidenceCard from '../components/EvidenceCard';
 
 interface ChatMessage {
   id: string;
@@ -100,6 +102,22 @@ const AgenticChatPage: React.FC = () => {
   const [conversationContext, setConversationContext] = useState<any>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  
+  // Evidence workflow state
+  const [pendingUpload, setPendingUpload] = useState<{
+    evidenceId: number;
+    uploadId: string;
+    controlId: number;
+    controlTitle: string;
+    title: string;
+    acceptedTypes: string[];
+  } | null>(null);
+  const [evidenceResults, setEvidenceResults] = useState<{
+    evidence: any;
+    analysis?: any;
+    suggestions?: any[];
+  } | null>(null);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -297,6 +315,18 @@ const AgenticChatPage: React.FC = () => {
 
       setMessages(prev => [...prev, assistantMessage]);
       
+      // Evidence workflow detection
+      if (response.data.task_type === 'request_evidence_upload' && response.data.task_id) {
+        // Poll for task completion to get upload details
+        pollEvidenceUploadTask(response.data.task_id);
+      } else if (response.data.task_type === 'analyze_evidence' && response.data.task_id) {
+        // Poll for analysis results
+        pollAnalysisTask(response.data.task_id);
+      } else if (response.data.task_type === 'suggest_related_controls' && response.data.task_id) {
+        // Poll for suggestions
+        pollSuggestionsTask(response.data.task_id);
+      }
+      
       // Update conversation state
       if (response.data.is_clarifying) {
         setConversationContext(response.data.conversation_context);
@@ -385,6 +415,78 @@ const AgenticChatPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const pollEvidenceUploadTask = async (taskId: number) => {
+    try {
+      // Poll task status
+      const response = await api.get(`/agent-tasks/${taskId}`);
+      const task = response.data;
+      
+      if (task.status === 'completed' && task.result?.status === 'success') {
+        // Show upload widget
+        setPendingUpload({
+          evidenceId: task.result.evidence_id,
+          uploadId: task.result.upload_id,
+          controlId: task.result.control_id,
+          controlTitle: task.result.control_title || `Control ${task.result.control_id}`,
+          title: task.result.instructions || 'Upload evidence',
+          acceptedTypes: task.result.accepted_types || ['document', 'screenshot']
+        });
+      } else if (task.status === 'pending' || task.status === 'running') {
+        // Keep polling
+        setTimeout(() => pollEvidenceUploadTask(taskId), 2000);
+      }
+    } catch (error) {
+      console.error('Error polling evidence upload task:', error);
+    }
+  };
+
+  const pollAnalysisTask = async (taskId: number) => {
+    try {
+      const response = await api.get(`/agent-tasks/${taskId}`);
+      const task = response.data;
+      
+      if (task.status === 'completed' && task.result?.status === 'success') {
+        setEvidenceResults(prev => ({
+          ...prev,
+          evidence: prev?.evidence,
+          analysis: task.result.analysis
+        }));
+      } else if (task.status === 'pending' || task.status === 'running') {
+        setTimeout(() => pollAnalysisTask(taskId), 2000);
+      }
+    } catch (error) {
+      console.error('Error polling analysis task:', error);
+    }
+  };
+
+  const pollSuggestionsTask = async (taskId: number) => {
+    try {
+      const response = await api.get(`/agent-tasks/${taskId}`);
+      const task = response.data;
+      
+      if (task.status === 'completed' && task.result?.status === 'success') {
+        setEvidenceResults(prev => ({
+          ...prev,
+          evidence: prev?.evidence,
+          analysis: prev?.analysis,
+          suggestions: task.result.suggestions
+        }));
+      } else if (task.status === 'pending' || task.status === 'running') {
+        setTimeout(() => pollSuggestionsTask(taskId), 2000);
+      }
+    } catch (error) {
+      console.error('Error polling suggestions task:', error);
+    }
+  };
+
+  const handleEvidenceUploadComplete = (evidence: any) => {
+    setPendingUpload(null);
+    setEvidenceResults({ evidence, analysis: null, suggestions: null });
+    
+    // Auto-trigger analysis
+    handleSendMessage(`Analyze evidence ${evidence.id} for compliance`);
   };
 
   const handleSuggestedResponse = (suggestion: string) => {
@@ -646,6 +748,53 @@ const AgenticChatPage: React.FC = () => {
             </Box>
           </Box>
         ))}
+
+        {/* Evidence Upload Widget */}
+        {pendingUpload && (
+          <Box sx={{ mb: 3 }}>
+            <EvidenceUploadWidget
+              evidenceId={pendingUpload.evidenceId}
+              uploadId={pendingUpload.uploadId}
+              controlId={pendingUpload.controlId}
+              controlTitle={pendingUpload.controlTitle}
+              title={pendingUpload.title}
+              acceptedTypes={pendingUpload.acceptedTypes}
+              onUploadComplete={handleEvidenceUploadComplete}
+              onCancel={() => setPendingUpload(null)}
+            />
+          </Box>
+        )}
+
+        {/* Evidence Results Card */}
+        {evidenceResults && (
+          <Box sx={{ mb: 3 }}>
+            <EvidenceCard
+              evidence={evidenceResults.evidence}
+              showAnalysis={true}
+            />
+            {evidenceResults.suggestions && evidenceResults.suggestions.length > 0 && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="h6" gutterBottom>
+                  📊 Related Controls (Graph RAG)
+                </Typography>
+                {evidenceResults.suggestions.map((suggestion: any) => (
+                  <Paper key={suggestion.control_id} sx={{ p: 2, mb: 1 }}>
+                    <Typography variant="subtitle2">
+                      {suggestion.control_id}: {suggestion.control_title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Relevance: {(suggestion.relevance_score * 100).toFixed(0)}% | 
+                      Relationship: {suggestion.relationship_type}
+                    </Typography>
+                    <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                      {suggestion.reasoning}
+                    </Typography>
+                  </Paper>
+                ))}
+              </Box>
+            )}
+          </Box>
+        )}
 
         {loading && (
           <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
