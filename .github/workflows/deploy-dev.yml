@@ -131,8 +131,7 @@ jobs:
         if: steps.changes.outputs.build_frontend == 'true'
         run: |
           docker buildx build \
-            --cache-from=type=registry,ref=${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest \
-            --cache-to=type=inline \
+            --no-cache \
             --push \
             -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:${{ github.sha }} \
             -t ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:latest \
@@ -210,12 +209,22 @@ jobs:
       - name: Deploy Frontend Container App
         if: steps.changes.outputs.deploy_frontend == 'true'
         run: |
-          echo "Deploying Frontend..."
+          echo "Deploying Frontend with image: qca-frontend:${{ github.sha }}"
           az containerapp update \
             --name ${{ env.FRONTEND_CONTAINER_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --image ${{ needs.get-acr-name.outputs.acr_login_server }}/qca-frontend:${{ github.sha }} \
-            --revision-suffix "r$(date +%s)"
+            --revision-suffix "sha-$(echo ${{ github.sha }} | cut -c1-7)"
+          
+          echo "Waiting for new revision to be ready..."
+          sleep 10
+          
+          # Verify new revision is receiving traffic
+          LATEST_REVISION=$(az containerapp revision list \
+            --name ${{ env.FRONTEND_CONTAINER_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "sort_by([?properties.trafficWeight > \`0\`], &properties.createdTime)[-1].name" -o tsv)
+          echo "Latest active revision: $LATEST_REVISION"
 
       - name: Run Database Migrations
         if: steps.changes.outputs.deploy_api == 'true'
