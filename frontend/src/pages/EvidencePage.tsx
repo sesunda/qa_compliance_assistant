@@ -116,7 +116,6 @@ const EvidencePage: React.FC = () => {
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [domainFilter, setDomainFilter] = useState<string>('all')
 
   // Simple permission checks
   // Allow users with 'update' permission to submit for review and manage workflow (maker-checker)
@@ -242,36 +241,11 @@ const EvidencePage: React.FC = () => {
 
   const evidenceItems = Array.isArray(evidenceQuery.data) ? evidenceQuery.data : []
 
-  // Get unique domains from controls
-  const uniqueDomains = useMemo(() => {
-    const domains = new Set<string>()
-    controls.forEach(control => {
-      if (control.domain) {
-        domains.add(control.domain)
-      }
-    })
-    return Array.from(domains).sort()
-  }, [controls])
-
-  // Filter evidence items by status and domain
+  // Filter evidence items by status
   const filteredEvidenceItems = useMemo(() => {
-    let filtered = evidenceItems
-    
-    // Filter by status
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(item => item.verification_status === statusFilter)
-    }
-    
-    // Filter by domain
-    if (domainFilter !== 'all') {
-      filtered = filtered.filter(item => {
-        const control = controlMap.get(item.control_id)
-        return control?.domain === domainFilter
-      })
-    }
-    
-    return filtered
-  }, [evidenceItems, statusFilter, domainFilter, controlMap])
+    if (statusFilter === 'all') return evidenceItems
+    return evidenceItems.filter(item => item.verification_status === statusFilter)
+  }, [evidenceItems, statusFilter])
 
   const evidenceStats = useMemo(() => ({
     total: evidenceItems.length,
