@@ -190,8 +190,22 @@ class AgenticAssistant:
                             },
                             "evidence_type": {
                                 "type": "string",
-                                "enum": ["document", "screenshot", "configuration", "log", "report", "other"],
-                                "description": "Type of evidence",
+                                "enum": [
+                                    "policy_document",
+                                    "procedure", 
+                                    "audit_report",
+                                    "configuration_screenshot",
+                                    "log_file",
+                                    "certificate",
+                                    "test_result",
+                                    "document",
+                                    "screenshot",
+                                    "configuration",
+                                    "log",
+                                    "report",
+                                    "other"
+                                ],
+                                "description": "Type of evidence - choose most specific type that matches",
                                 "default": "document"
                             }
                         },
