@@ -167,6 +167,25 @@ const AgenticChatPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Update welcome message when user role changes
+  useEffect(() => {
+    if (user) {
+      setMessages(prev => {
+        // Update the first message (welcome message) with role-specific content
+        if (prev.length > 0 && prev[0].id === '0') {
+          return [
+            {
+              ...prev[0],
+              content: getWelcomeMessage()
+            },
+            ...prev.slice(1)
+          ];
+        }
+        return prev;
+      });
+    }
+  }, [user?.role?.name]);
+
   useEffect(() => {
     // Fetch available capabilities
     fetchCapabilities();
@@ -554,8 +573,8 @@ const AgenticChatPage: React.FC = () => {
     }
   };
 
-  // Role-based example prompts
-  const getExamplePrompts = () => {
+  // Role-based example prompts (recalculates when user changes)
+  const examplePrompts = React.useMemo(() => {
     const userRole = user?.role?.name?.toLowerCase();
     
     if (userRole === 'analyst') {
@@ -580,9 +599,7 @@ const AgenticChatPage: React.FC = () => {
         "View evidence summary"
       ];
     }
-  };
-
-  const examplePrompts = getExamplePrompts();
+  }, [user]);
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
