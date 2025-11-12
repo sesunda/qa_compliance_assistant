@@ -20,6 +20,7 @@ import TaskIcon from '@mui/icons-material/Task';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import AddIcon from '@mui/icons-material/Add';
 import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import EvidenceUploadWidget from '../components/EvidenceUploadWidget';
 import EvidenceCard from '../components/EvidenceCard';
 
@@ -77,11 +78,48 @@ interface ChatResponse {
 }
 
 const AgenticChatPage: React.FC = () => {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '0',
-      role: 'assistant',
-      content: `👋 Hello! I'm your AI Compliance Assistant. I can help you automate compliance workflows using natural language.
+  const { user } = useAuth();
+  
+  // Role-based welcome message and example prompts
+  const getWelcomeMessage = () => {
+    const userRole = user?.role?.toLowerCase();
+    
+    if (userRole === 'analyst') {
+      return `👋 Hello! I'm your AI Compliance Assistant for Evidence Management.
+
+**As an Analyst, you can:**
+
+📤 **Upload Evidence** - "Upload evidence for Control 5" or "Add evidence to MFA control"
+🔍 **Analyze Evidence** - "Analyze my evidence for Control 3" 
+📊 **Get Suggestions** - "Suggest related controls for network security evidence"
+✅ **Submit for Review** - "Submit evidence #12 for review"
+
+**Evidence Workflow:**
+1. I'll help you upload evidence documents via chat
+2. AI will automatically analyze and validate your evidence
+3. Graph RAG will suggest related controls
+4. You can submit for auditor review
+
+💡 **Tip**: Just say "upload evidence" and I'll guide you through the process!`;
+    } else if (userRole === 'auditor') {
+      return `👋 Hello! I'm your AI Compliance Assistant for Control Setup and Evidence Review.
+
+**As an Auditor, you can:**
+
+🛡️ **Set Up Controls** - "Set up IM8 controls for project 1"
+🔍 **Create Findings** - "Generate findings: SQL injection (critical), XSS (high)"
+📊 **Query Evidence** - "Show me evidence relationships for Control 5"
+🔗 **Graph Analysis** - "What controls are related to network security?"
+📄 **Generate Reports** - "Generate executive compliance report"
+
+**Evidence Workflow:**
+- Analysts upload evidence documents
+- You review and approve/reject via the Evidence page
+- Use chat to query evidence relationships with Graph RAG
+
+💡 **Tip**: Go to Evidence page to approve/reject submissions!`;
+    } else {
+      return `👋 Hello! I'm your AI Compliance Assistant. I can help you automate compliance workflows using natural language.
 
 **Here's what I can do:**
 
@@ -92,7 +130,15 @@ const AgenticChatPage: React.FC = () => {
 
 **Just describe what you need, and I'll guide you through the process!**
 
-💡 **Tip**: I'll ask clarifying questions if I need more information. You can also provide complete details upfront for faster execution.`,
+💡 **Tip**: I'll ask clarifying questions if I need more information.`;
+    }
+  };
+
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: '0',
+      role: 'assistant',
+      content: getWelcomeMessage(),
       timestamp: new Date()
     }
   ]);
@@ -508,12 +554,35 @@ const AgenticChatPage: React.FC = () => {
     }
   };
 
-  const examplePrompts = [
-    "Set up IM8 controls",
-    "Create security findings",
-    "Generate compliance report",
-    "Upload 30 IM8 controls for all domains to project 1"  // Expert mode example
-  ];
+  // Role-based example prompts
+  const getExamplePrompts = () => {
+    const userRole = user?.role?.toLowerCase();
+    
+    if (userRole === 'analyst') {
+      return [
+        "Upload evidence for Control 5",
+        "Analyze my evidence for MFA control",
+        "Suggest related controls for network security",
+        "Submit evidence #12 for review"
+      ];
+    } else if (userRole === 'auditor') {
+      return [
+        "Set up IM8 controls",
+        "Create security findings",
+        "Show evidence relationships for Control 3",
+        "Generate compliance report"
+      ];
+    } else {
+      return [
+        "Generate compliance report",
+        "Show project status",
+        "List all controls",
+        "View evidence summary"
+      ];
+    }
+  };
+
+  const examplePrompts = getExamplePrompts();
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>

@@ -439,11 +439,10 @@ class AgenticAssistant:
         
         # System prompt (will be enhanced per role in chat method)
         self.base_system_prompt = """You are an AI compliance assistant for the Quantique QA Compliance platform.
-You help users with Singapore IM8 compliance tasks including:
-- Uploading and managing compliance evidence
-- Analyzing compliance status and gaps
-- Generating compliance reports
-- Managing maker-checker workflows
+You help users with Singapore IM8 compliance tasks based on their role:
+- **Auditors**: Set up controls, review evidence, approve/reject submissions
+- **Analysts**: Upload evidence, analyze compliance, submit for review
+- **Viewers**: View compliance status and reports (read-only)
 
 IMPORTANT: Available control IDs in the system are: 1, 3, 4, 5
 - Control 1: Test Control
@@ -451,23 +450,20 @@ IMPORTANT: Available control IDs in the system are: 1, 3, 4, 5
 - Control 4: Encrypt data at rest
 - Control 5: Enforce MFA for privileged accounts
 
-When users upload files or mention evidence, use the upload_evidence tool with a valid control_id (1, 3, 4, or 5).
-If the user doesn't specify a control, use control_id=1 as default.
-When users want to see evidence, use fetch_evidence tool.
-When users want compliance analysis, use analyze_compliance tool.
-When users want reports, use generate_report tool.
+**Role-Based Capabilities**:
+- If user is ANALYST: They can upload evidence, analyze evidence, get suggestions, submit for review
+- If user is AUDITOR: They can create controls, fetch evidence for review, approve/reject via Evidence page
+- If user is VIEWER: They can only view status and reports
 
-EVIDENCE UPLOAD TEMPLATES:
-When asking users to upload evidence, ALWAYS mention that they can download pre-formatted templates:
-- CSV template: GET /templates/evidence-upload.csv
-- JSON template: GET /templates/evidence-upload.json
-- IM8 Controls Sample (with realistic data): GET /templates/im8-controls-sample.csv
-- Validation rules: GET /templates/template-validation-rules
-Example: "Please upload evidence for control 5. You can download a CSV template from /templates/evidence-upload.csv or view a filled sample with IM8 controls at /templates/im8-controls-sample.csv to see the required format."
+EVIDENCE WORKFLOW:
+- **Analysts** upload evidence documents via chat or Evidence page
+- **Auditors** review and approve/reject via Evidence page (not in chat)
+- **Auditors** can query evidence relationships via chat using Graph RAG
 
 Be conversational, helpful, and ask clarifying questions if needed.
 Always confirm actions before executing them.
-Maintain context across the conversation."""
+Maintain context across the conversation.
+IMPORTANT: Only suggest actions that are appropriate for the user's role."""
     
     def _get_tools_for_role(self, user_role: str) -> list:
         """
@@ -485,9 +481,11 @@ Maintain context across the conversation."""
             'upload_evidence', 
             'submit_for_review', 
             'request_evidence_upload', 
-            'analyze_evidence', 
-            'suggest_related_controls', 
             'submit_evidence_for_review'
+        ]
+        EVIDENCE_QUERY_TOOLS = [
+            'analyze_evidence',  # Auditors can query evidence analysis
+            'suggest_related_controls'  # Auditors can use Graph RAG for relationships
         ]
         COMMON_TOOLS = ['mcp_fetch_evidence', 'generate_report']
         
@@ -499,15 +497,15 @@ Maintain context across the conversation."""
             return self.all_tools
         
         elif user_role_lower == 'auditor':
-            # Auditor: project/control creation + common tools (NO evidence upload)
-            allowed_tools = AUDITOR_ONLY_TOOLS + COMMON_TOOLS
+            # Auditor: project/control creation + evidence queries + common tools (NO evidence upload)
+            allowed_tools = AUDITOR_ONLY_TOOLS + EVIDENCE_QUERY_TOOLS + COMMON_TOOLS
             filtered_tools = [t for t in self.all_tools if t['function']['name'] in allowed_tools]
             logger.info(f"Role '{user_role}': Granting access to {len(filtered_tools)} tools: {allowed_tools}")
             return filtered_tools
         
         elif user_role_lower == 'analyst':
-            # Analyst: evidence upload/submit + common tools (NO project/control creation)
-            allowed_tools = ANALYST_ONLY_TOOLS + COMMON_TOOLS
+            # Analyst: evidence upload/submit + evidence queries + common tools (NO project/control creation)
+            allowed_tools = ANALYST_ONLY_TOOLS + EVIDENCE_QUERY_TOOLS + COMMON_TOOLS
             filtered_tools = [t for t in self.all_tools if t['function']['name'] in allowed_tools]
             logger.info(f"Role '{user_role}': Granting access to {len(filtered_tools)} tools: {allowed_tools}")
             return filtered_tools
@@ -1511,12 +1509,11 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
         
         # Define role-tool permissions
         AUDITOR_ONLY_TOOLS = ['create_project', 'create_controls']
+        AUDITOR_ONLY_TOOLS = ['create_project', 'create_controls']
         ANALYST_ONLY_TOOLS = [
             'upload_evidence', 
             'submit_for_review', 
             'request_evidence_upload', 
-            'analyze_evidence', 
-            'suggest_related_controls', 
             'submit_evidence_for_review'
         ]
         
@@ -1527,16 +1524,16 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
                 return {
                     "error": "Access denied",
                     "status": "forbidden",
-                    "message": f"Only auditors can use '{function_name}'. Your role: {user_role}"
+                    "message": f"Only auditors can use '{function_name}'. Your role: {user_role}. Auditors set up controls and projects."
                 }
         
         if function_name in ANALYST_ONLY_TOOLS:
-            if user_role not in ['analyst', 'auditor', 'super_admin']:
+            if user_role not in ['analyst', 'super_admin']:
                 logger.error(f"RBAC violation: User role '{user_role}' attempted to use analyst tool '{function_name}'")
                 return {
                     "error": "Access denied",
                     "status": "forbidden",
-                    "message": f"Only analysts/auditors can use '{function_name}'. Your role: {user_role}"
+                    "message": f"Only analysts can use '{function_name}'. Your role: {user_role}. Analysts upload and manage evidence documents. Auditors should use the Evidence page for review/approval."
                 }
         
         # VALIDATION: Check parameters before creating task
