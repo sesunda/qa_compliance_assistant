@@ -32,7 +32,8 @@ class AITaskOrchestrator:
                 'submit document',
                 'upload file',
                 'attach file',
-                'submit file'
+                'submit file',
+                'im8-'  # IM8 control format (e.g., IM8-01-03)
             ],
             'fetch_evidence': [
                 'fetch evidence',
@@ -164,6 +165,35 @@ class AITaskOrchestrator:
                 if word in ['control', 'control_id']:
                     if i + 1 < len(words) and words[i + 1].isdigit():
                         entities['control_id'] = int(words[i + 1])
+        
+        # Extract IM8 control format (e.g., IM8-01-03, IM8-02-01)
+        import re
+        im8_pattern = r'im8[- ]?(\d{2})[- ]?(\d{2})'
+        im8_match = re.search(im8_pattern, message_lower)
+        if im8_match and 'control_id' not in entities:
+            domain_num = im8_match.group(1)
+            control_num = im8_match.group(2)
+            im8_code = f"IM8-{domain_num}-{control_num}"
+            logger.info(f"Detected IM8 control format: {im8_code}")
+            
+            # Map IM8 code to control using name matching and domain
+            if db:
+                from api.src.models import Control
+                # Try to find control by searching for IM8 reference in name or description
+                # Since controls don't have a control_number field, we use keyword matching
+                controls = db.query(Control).filter(Control.status == 'active').all()
+                
+                # Try direct IM8 code match in name or description
+                for control in controls:
+                    control_name = (control.name or '').lower()
+                    control_desc = (control.description or '').lower()
+                    if im8_code.lower() in control_name or im8_code.lower() in control_desc:
+                        entities['control_id'] = control.id
+                        logger.info(f"Matched {im8_code} to control_id {control.id} by name/description")
+                        break
+                
+                if 'control_id' not in entities:
+                    logger.info(f"IM8 code {im8_code} detected but not matched to specific control - will proceed with intent")
         
         # Intelligent control matching (if db provided and control_id not explicitly set)
         if db and 'control_id' not in entities and intent in ['fetch_evidence', 'upload_evidence']:

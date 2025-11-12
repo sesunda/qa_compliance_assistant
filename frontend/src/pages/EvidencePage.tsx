@@ -116,6 +116,7 @@ const EvidencePage: React.FC = () => {
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [domainFilter, setDomainFilter] = useState<string>('all')
 
   // Simple permission checks
   // Allow users with 'update' permission to submit for review and manage workflow (maker-checker)
@@ -241,11 +242,36 @@ const EvidencePage: React.FC = () => {
 
   const evidenceItems = Array.isArray(evidenceQuery.data) ? evidenceQuery.data : []
 
-  // Filter evidence items by status
+  // Get unique domains from controls
+  const uniqueDomains = useMemo(() => {
+    const domains = new Set<string>()
+    controls.forEach(control => {
+      if (control.domain) {
+        domains.add(control.domain)
+      }
+    })
+    return Array.from(domains).sort()
+  }, [controls])
+
+  // Filter evidence items by status and domain
   const filteredEvidenceItems = useMemo(() => {
-    if (statusFilter === 'all') return evidenceItems
-    return evidenceItems.filter(item => item.verification_status === statusFilter)
-  }, [evidenceItems, statusFilter])
+    let filtered = evidenceItems
+    
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(item => item.verification_status === statusFilter)
+    }
+    
+    // Filter by domain
+    if (domainFilter !== 'all') {
+      filtered = filtered.filter(item => {
+        const control = controlMap.get(item.control_id)
+        return control?.domain === domainFilter
+      })
+    }
+    
+    return filtered
+  }, [evidenceItems, statusFilter, domainFilter, controlMap])
 
   const evidenceStats = useMemo(() => ({
     total: evidenceItems.length,
@@ -513,6 +539,21 @@ const EvidencePage: React.FC = () => {
                 <MenuItem value="under_review">Under Review</MenuItem>
                 <MenuItem value="approved">Approved</MenuItem>
                 <MenuItem value="rejected">Rejected</MenuItem>
+              </TextField>
+              <TextField
+                select
+                size="small"
+                label="Filter by Domain"
+                value={domainFilter}
+                onChange={(e) => setDomainFilter(e.target.value)}
+                sx={{ minWidth: 180 }}
+              >
+                <MenuItem value="all">All Domains</MenuItem>
+                {uniqueDomains.map(domain => (
+                  <MenuItem key={domain} value={domain}>
+                    {domain}
+                  </MenuItem>
+                ))}
               </TextField>
               {evidenceQuery.isFetching && <CircularProgress size={20} />}
             </Box>

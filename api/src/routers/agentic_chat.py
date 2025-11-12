@@ -353,5 +353,43 @@ async def get_session_messages(
         logger.error(f"Error fetching session messages: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
+
+
+@router.get("/sessions/recent")
+async def get_recent_session(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get the most recent active conversation session for the current user"""
+    try:
+        conv_manager = ConversationManager(db, current_user["id"])
+        sessions = conv_manager.get_active_sessions(limit=1)
+        
+        if not sessions or len(sessions) == 0:
+            return {
+                "session_id": None,
+                "title": None,
+                "messages": [],
+                "created_at": None,
+                "last_activity": None
+            }
+        
+        session = sessions[0]
+        
+        return {
+            "session_id": session.session_id,
+            "title": session.title,
+            "messages": session.messages or [],
+            "created_at": session.created_at.isoformat() if session.created_at else None,
+            "last_activity": session.last_activity.isoformat() if session.last_activity else None
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching recent session: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Error fetching recent conversation session"
+        )
+
             detail=f"Error fetching session messages: {str(e)}"
         )

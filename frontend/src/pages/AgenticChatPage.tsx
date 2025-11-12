@@ -195,13 +195,20 @@ const AgenticChatPage: React.FC = () => {
     // Fetch available capabilities
     fetchCapabilities();
     
-    // Restore session from localStorage
-    const savedSession = localStorage.getItem('agentic_session_id');
-    if (savedSession) {
-      setConversationId(savedSession);
-      // Restore message history
-      restoreMessageHistory(savedSession);
-    }
+    // Restore session from localStorage or load most recent session
+    const loadConversation = async () => {
+      const savedSession = localStorage.getItem('agentic_session_id');
+      if (savedSession) {
+        setConversationId(savedSession);
+        // Restore message history
+        await restoreMessageHistory(savedSession);
+      } else {
+        // No saved session - try to load the most recent active session
+        await loadRecentSession();
+      }
+    };
+    
+    loadConversation();
   }, []);
 
   useEffect(() => {
@@ -251,6 +258,41 @@ const AgenticChatPage: React.FC = () => {
         localStorage.removeItem('agentic_session_id');
         setConversationId(null);
       }
+    }
+  };
+
+  const loadRecentSession = async () => {
+    try {
+      const response = await api.get('/agentic-chat/sessions/recent');
+      const { session_id, messages: historyMessages } = response.data;
+      
+      // If no recent session exists, let welcome message show
+      if (!session_id) {
+        return;
+      }
+      
+      // Set conversation ID and restore messages
+      setConversationId(session_id);
+      localStorage.setItem('agentic_session_id', session_id);
+      
+      // Convert backend message format to frontend ChatMessage format
+      if (historyMessages && historyMessages.length > 0) {
+        const convertedMessages: ChatMessage[] = historyMessages.map((msg: any) => ({
+          id: msg.id || Date.now().toString(),
+          role: msg.role,
+          content: msg.content,
+          timestamp: new Date(msg.timestamp),
+          metadata: msg.metadata,
+          sources: msg.sources,
+          suggested_responses: msg.suggested_responses,
+          reasoning: msg.reasoning
+        }));
+        
+        setMessages(convertedMessages);
+      }
+    } catch (error) {
+      console.error('Error loading recent session:', error);
+      // Silently fail - user will start with fresh conversation
     }
   };
 
