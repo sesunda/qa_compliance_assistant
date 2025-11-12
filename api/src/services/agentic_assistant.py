@@ -172,7 +172,7 @@ class AgenticAssistant:
                 "type": "function",
                 "function": {
                     "name": "request_evidence_upload",
-                    "description": "Request evidence upload from analyst. Creates a pending evidence record and instructs user to upload file. Use when analyst wants to submit evidence for a control. Returns upload_id for frontend to use.",
+                    "description": "Request evidence upload from analyst. Creates a pending evidence record and instructs user to upload file. Use ONLY ONCE per control when analyst wants to submit evidence. After calling this tool successfully, DO NOT call it again even if user says 'yes' - the upload request is already created. Returns upload_id for frontend to use.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -849,8 +849,8 @@ As an analyst, you can:
       - Abort upload
    
    **If authorized, proceed**:
-   - Upload file to storage (agency-specific folder)
-   - Create evidence record with:
+   - Call request_evidence_upload tool ONCE
+   - Tool creates evidence record with:
      * control_id (verified)
      * agency_id (from current_user)
      * uploaded_by (current_user.id)
@@ -858,13 +858,22 @@ As an analyst, you can:
    - Link to control
    - Return evidence ID and status
    
-   Return: "✅ Evidence uploaded successfully! 
+   **CRITICAL - Upload Completion**:
+   - Once request_evidence_upload returns success, the upload is COMPLETE
+   - DO NOT call request_evidence_upload again for the same evidence
+   - DO NOT ask for confirmation again
+   - Simply inform user that evidence was successfully uploaded
+   - If user replies 'yes' after upload, acknowledge but DO NOT re-upload
+   
+   Return: "✅ Evidence upload request created successfully! 
    - Evidence ID: {evidence_id}
    - Control: {control_name} ({control_id})
-   - Status: {verification_status}
+   - Title: {title}
+   - File: {filename}
+   - Status: Pending review
    - Agency: {agency_name}
    
-   The auditor from your agency will review your submission."
+   Your evidence has been recorded and is awaiting file upload. The auditor from your agency will review your submission once the file is attached."
    
    **Security Note**: All evidence uploads are logged with analyst ID and agency for audit trail.
    
