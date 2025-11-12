@@ -36,7 +36,7 @@ interface EvidenceUploadWidgetProps {
 
 const EvidenceUploadWidget: React.FC<EvidenceUploadWidgetProps> = ({
   evidenceId,
-  uploadId,
+  uploadId: _uploadId, // Prefix with _ to indicate intentionally unused
   controlId,
   controlTitle,
   title,
@@ -51,32 +51,39 @@ const EvidenceUploadWidget: React.FC<EvidenceUploadWidgetProps> = ({
   const [isDragActive, setIsDragActive] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  // File type validation
-  const acceptedFileTypes = {
-    'application/pdf': ['.pdf'],
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-    'image/png': ['.png'],
-    'image/jpeg': ['.jpg', '.jpeg']
-  };
+  // File type validation - kept for potential future use
+  // const acceptedFileTypes = {
+  //   'application/pdf': ['.pdf'],
+  //   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+  //   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+  //   'image/png': ['.png'],
+  //   'image/jpeg': ['.jpg', '.jpeg']
+  // };
+  // const maxFileSize = 10 * 1024 * 1024; // 10MB
 
-  const maxFileSize = 10 * 1024 * 1024; // 10MB
-
-  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
+  const onDrop = useCallback((acceptedFiles: File[]) => {
     setError(null);
 
-    if (rejectedFiles.length > 0) {
-      const rejection = rejectedFiles[0];
-      if (rejection.errors.some((e: any) => e.code === 'file-too-large')) {
-        setError('File is too large. Maximum size is 10MB.');
-      } else {
-        setError('Invalid file type. Accepted: PDF, DOCX, XLSX, PNG, JPG');
-      }
-      return;
-    }
-
     if (acceptedFiles.length > 0) {
-      setFile(acceptedFiles[0]);
+      const selectedFile = acceptedFiles[0];
+      
+      // Validate file size
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        setError('File is too large. Maximum size is 10MB.');
+        return;
+      }
+
+      // Validate file type
+      const validTypes = ['.pdf', '.docx', '.xlsx', '.png', '.jpg', '.jpeg'];
+      const fileName = selectedFile.name.toLowerCase();
+      const isValidType = validTypes.some(ext => fileName.endsWith(ext));
+      
+      if (!isValidType) {
+        setError('Invalid file type. Accepted: PDF, DOCX, XLSX, PNG, JPG');
+        return;
+      }
+
+      setFile(selectedFile);
       setError(null);
     }
   }, []);

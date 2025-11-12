@@ -211,27 +211,33 @@ const EvidencePage: React.FC = () => {
     },
   })
 
-  const approveMutation = useMutation(approveEvidence, {
-    onSuccess: () => {
-      toast.success('Evidence approved successfully')
-      queryClient.invalidateQueries(['evidence'])
-    },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail ?? 'Failed to approve evidence'
-      toast.error(message)
-    },
-  })
+  const approveMutation = useMutation(
+    (evidenceId: number) => approveEvidence(evidenceId),
+    {
+      onSuccess: () => {
+        toast.success('Evidence approved successfully')
+        queryClient.invalidateQueries(['evidence'])
+      },
+      onError: (error: any) => {
+        const message = error?.response?.data?.detail ?? 'Failed to approve evidence'
+        toast.error(message)
+      },
+    }
+  )
 
-  const rejectMutation = useMutation(rejectEvidence, {
-    onSuccess: () => {
-      toast.success('Evidence rejected')
-      queryClient.invalidateQueries(['evidence'])
-    },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail ?? 'Failed to reject evidence'
-      toast.error(message)
-    },
-  })
+  const rejectMutation = useMutation(
+    (evidenceId: number) => rejectEvidence(evidenceId, ''),
+    {
+      onSuccess: () => {
+        toast.success('Evidence rejected')
+        queryClient.invalidateQueries(['evidence'])
+      },
+      onError: (error: any) => {
+        const message = error?.response?.data?.detail ?? 'Failed to reject evidence'
+        toast.error(message)
+      },
+    }
+  )
 
   const evidenceItems = Array.isArray(evidenceQuery.data) ? evidenceQuery.data : []
 

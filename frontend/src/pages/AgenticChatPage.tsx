@@ -82,7 +82,7 @@ const AgenticChatPage: React.FC = () => {
   
   // Role-based welcome message and example prompts
   const getWelcomeMessage = () => {
-    const userRole = user?.role?.toLowerCase();
+    const userRole = user?.role?.name?.toLowerCase();
     
     if (userRole === 'analyst') {
       return `👋 Hello! I'm your AI Compliance Assistant for Evidence Management.
@@ -529,7 +529,7 @@ const AgenticChatPage: React.FC = () => {
 
   const handleEvidenceUploadComplete = (evidence: any) => {
     setPendingUpload(null);
-    setEvidenceResults({ evidence, analysis: null, suggestions: null });
+    setEvidenceResults({ evidence, analysis: undefined, suggestions: undefined });
     
     // Auto-trigger analysis
     handleSendMessage(`Analyze evidence ${evidence.id} for compliance`);
@@ -556,7 +556,7 @@ const AgenticChatPage: React.FC = () => {
 
   // Role-based example prompts
   const getExamplePrompts = () => {
-    const userRole = user?.role?.toLowerCase();
+    const userRole = user?.role?.name?.toLowerCase();
     
     if (userRole === 'analyst') {
       return [
