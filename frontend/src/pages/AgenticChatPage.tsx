@@ -80,8 +80,8 @@ interface ChatResponse {
 const AgenticChatPage: React.FC = () => {
   const { user } = useAuth();
   
-  // Role-based welcome message and example prompts
-  const getWelcomeMessage = () => {
+  // Role-based welcome message (memoized to prevent unnecessary recalculations)
+  const welcomeMessage = React.useMemo(() => {
     const userRole = user?.role?.name?.toLowerCase();
     
     if (userRole === 'analyst') {
@@ -132,13 +132,13 @@ const AgenticChatPage: React.FC = () => {
 
 💡 **Tip**: I'll ask clarifying questions if I need more information.`;
     }
-  };
+  }, [user?.role?.name]);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '0',
       role: 'assistant',
-      content: getWelcomeMessage(),
+      content: welcomeMessage,
       timestamp: new Date()
     }
   ]);
@@ -176,7 +176,7 @@ const AgenticChatPage: React.FC = () => {
           return [
             {
               ...prev[0],
-              content: getWelcomeMessage()
+              content: welcomeMessage
             },
             ...prev.slice(1)
           ];
@@ -184,7 +184,7 @@ const AgenticChatPage: React.FC = () => {
         return prev;
       });
     }
-  }, [user?.role?.name]);
+  }, [welcomeMessage, user]);
 
   useEffect(() => {
     // Fetch available capabilities
