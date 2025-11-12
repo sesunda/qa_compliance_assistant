@@ -22,7 +22,6 @@ import {
   Description as FileIcon,
   Close as CloseIcon
 } from '@mui/icons-material';
-import { useDropzone } from 'react-dropzone';
 
 interface EvidenceUploadWidgetProps {
   evidenceId: number;
@@ -49,6 +48,7 @@ const EvidenceUploadWidget: React.FC<EvidenceUploadWidgetProps> = ({
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [isDragActive, setIsDragActive] = useState(false);
   const [success, setSuccess] = useState(false);
 
   // File type validation
@@ -81,13 +81,30 @@ const EvidenceUploadWidget: React.FC<EvidenceUploadWidgetProps> = ({
     }
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: acceptedFileTypes,
-    maxSize: maxFileSize,
-    maxFiles: 1,
-    disabled: uploading || success
-  });
+  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (selectedFile) {
+      onDrop([selectedFile]);
+    }
+  }, [onDrop]);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragActive(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragActive(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragActive(false);
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile) {
+      onDrop([droppedFile]);
+    }
+  };
 
   const handleUpload = async () => {
     if (!file) return;
@@ -237,7 +254,10 @@ const EvidenceUploadWidget: React.FC<EvidenceUploadWidgetProps> = ({
           </Box>
         ) : (
           <Box
-            {...getRootProps()}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => document.getElementById('evidence-file-input')?.click()}
             sx={{
               border: '2px dashed',
               borderColor: isDragActive ? 'primary.main' : 'grey.400',
@@ -253,7 +273,13 @@ const EvidenceUploadWidget: React.FC<EvidenceUploadWidgetProps> = ({
               }
             }}
           >
-            <input {...getInputProps()} />
+            <input
+              id="evidence-file-input"
+              type="file"
+              hidden
+              accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg"
+              onChange={handleFileChange}
+            />
             <UploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
             <Typography variant="body1" gutterBottom>
               {isDragActive ? 'Drop the file here' : 'Drag & drop file here, or click to select'}
