@@ -514,21 +514,6 @@ const EvidencePage: React.FC = () => {
                 <MenuItem value="approved">Approved</MenuItem>
                 <MenuItem value="rejected">Rejected</MenuItem>
               </TextField>
-              <TextField
-                select
-                size="small"
-                label="Filter by Domain"
-                value={domainFilter}
-                onChange={(e) => setDomainFilter(e.target.value)}
-                sx={{ minWidth: 180 }}
-              >
-                <MenuItem value="all">All Domains</MenuItem>
-                {uniqueDomains.map(domain => (
-                  <MenuItem key={domain} value={domain}>
-                    {domain}
-                  </MenuItem>
-                ))}
-              </TextField>
               {evidenceQuery.isFetching && <CircularProgress size={20} />}
             </Box>
           </Stack>
