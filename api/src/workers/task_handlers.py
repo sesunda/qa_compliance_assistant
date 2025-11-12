@@ -790,7 +790,7 @@ async def handle_request_evidence_upload_task(task_id: int, payload: Dict[str, A
     await update_progress(task_id, 20, "Creating evidence upload request...")
     
     try:
-        from api.src.models import Evidence
+        from api.src.models import Evidence, Control
         import uuid
         
         control_id = payload.get("control_id")
@@ -803,12 +803,21 @@ async def handle_request_evidence_upload_task(task_id: int, payload: Dict[str, A
                 "message": "control_id, title, and current_user_id are required"
             }
         
+        # Lookup control to get agency_id (required for Evidence record)
+        control = db.query(Control).filter(Control.id == control_id).first()
+        if not control:
+            return {
+                "status": "error",
+                "message": f"Control {control_id} not found"
+            }
+        
         # Generate upload ID for frontend
         upload_id = str(uuid.uuid4())
         
-        # Create pending evidence record
+        # Create pending evidence record with agency_id from control
         evidence = Evidence(
             control_id=control_id,
+            agency_id=control.agency_id,  # FIX: Set agency_id from control
             title=title,
             description=payload.get("description", ""),
             evidence_type=payload.get("evidence_type", "document"),

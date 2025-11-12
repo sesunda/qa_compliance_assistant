@@ -106,7 +106,7 @@ async def chat(
                 )
             
             # Check file type
-            allowed_extensions = {'.pdf', '.docx', '.txt', '.csv', '.json', '.xml', '.jpg', '.jpeg', '.png'}
+            allowed_extensions = {'.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt', '.csv', '.json', '.xml', '.jpg', '.jpeg', '.png'}
             file_extension = os.path.splitext(file.filename)[1].lower()
             if file_extension not in allowed_extensions:
                 raise HTTPException(
