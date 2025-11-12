@@ -134,14 +134,7 @@ const AgenticChatPage: React.FC = () => {
     }
   }, [user?.role?.name]);
 
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '0',
-      role: 'assistant',
-      content: welcomeMessage,
-      timestamp: new Date()
-    }
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [capabilities, setCapabilities] = useState<any>(null);
@@ -167,9 +160,21 @@ const AgenticChatPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Initialize welcome message when user loads
+  useEffect(() => {
+    if (user && messages.length === 0) {
+      setMessages([{
+        id: '0',
+        role: 'assistant',
+        content: welcomeMessage,
+        timestamp: new Date()
+      }]);
+    }
+  }, [user, welcomeMessage, messages.length]);
+
   // Update welcome message when user role changes
   useEffect(() => {
-    if (user) {
+    if (user && messages.length > 0) {
       setMessages(prev => {
         // Update the first message (welcome message) with role-specific content
         if (prev.length > 0 && prev[0].id === '0') {
@@ -184,7 +189,7 @@ const AgenticChatPage: React.FC = () => {
         return prev;
       });
     }
-  }, [welcomeMessage, user]);
+  }, [welcomeMessage, user, messages.length]);
 
   useEffect(() => {
     // Fetch available capabilities
