@@ -34,7 +34,7 @@ import {
   Schedule as ScheduleIcon,
 } from '@mui/icons-material';
 import { agentTasksService, AgentTask, AgentTaskCreate, TaskStats } from '../services/agentTasks';
-import { formatDateTimeSGT } from '../utils/dateUtils';
+import { formatSingaporeDateTime } from '../utils/datetime';
 
 const AgentTasksPage: React.FC = () => {
   const [tasks, setTasks] = useState<AgentTask[]>([]);
@@ -156,7 +156,7 @@ const AgentTasksPage: React.FC = () => {
   // Format timestamp in Singapore timezone
   const formatTimestamp = (timestamp: string | null): string => {
     if (!timestamp) return 'N/A';
-    return formatDateTimeSGT(timestamp);
+    return formatSingaporeDateTime(timestamp) + ' SGT';
   };
 
   // Calculate duration
