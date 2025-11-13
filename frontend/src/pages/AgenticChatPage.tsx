@@ -21,6 +21,7 @@ import AttachFileIcon from '@mui/icons-material/AttachFile';
 import AddIcon from '@mui/icons-material/Add';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { formatSingaporeDateTime } from '../utils/datetime';
 import EvidenceUploadWidget from '../components/EvidenceUploadWidget';
 import EvidenceCard from '../components/EvidenceCard';
 
@@ -875,13 +876,7 @@ const AgenticChatPage: React.FC = () => {
                   )}
                 </Paper>
                 <Typography variant="caption" color="text.secondary" sx={{ ml: 1, mt: 0.5, display: 'block' }}>
-                  {new Date(message.timestamp).toLocaleTimeString('en-SG', { 
-                    timeZone: 'Asia/Singapore',
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: true
-                  })} SGT
+                  {formatSingaporeDateTime(message.timestamp.toISOString())} SGT
                 </Typography>
               </Box>
             </Box>
