@@ -864,8 +864,11 @@ As an analyst, you can:
    - This is NOT the preferred workflow - encourage file attachment in chat
    
    **After upload_evidence completes**:
+   CRITICAL: Extract the REAL evidence_id from the tool result's evidence_ids array.
+   DO NOT make up or guess the evidence ID number.
+   
    Return: "✅ Evidence uploaded successfully! 
-   - Evidence ID: {evidence_id}
+   - Evidence ID: {evidence_ids[0]} (from tool result)
    - Control: {control_name} ({control_id})
    - Title: {title}
    - File: {filename} ({file_size})
@@ -875,8 +878,11 @@ As an analyst, you can:
    Next step: Would you like me to submit this evidence for auditor review?"
    
    **After request_evidence_upload completes**:
+   CRITICAL: Extract the REAL evidence_id from the tool result's evidence_ids array or evidence_id field.
+   DO NOT make up or guess the evidence ID number.
+   
    Return: "✅ Evidence placeholder created! 
-   - Evidence ID: {evidence_id}
+   - Evidence ID: {evidence_ids[0] or evidence_id} (from tool result)
    - Control: {control_name} ({control_id})
    - Title: {title}
    - Status: Awaiting file upload
