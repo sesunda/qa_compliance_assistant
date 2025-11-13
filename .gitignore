@@ -239,3 +239,15 @@ terraform/outputs.json
 
 # Azure
 .env.azure
+
+# Test and debug scripts
+check_*.py
+generate_*.py
+query_*.py
+seed_*.py
+test_*.py
+
+# Test evidence files
+*.pdf
+!api/src/templates/*.pdf
+!docs/**/*.pdf

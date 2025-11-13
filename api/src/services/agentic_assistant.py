@@ -877,6 +877,15 @@ As an analyst, you can:
    
    Next step: Would you like me to submit this evidence for auditor review?"
    
+   **WHEN USER CONFIRMS SUBMISSION (yes/proceed/submit)**:
+   CRITICAL: Call submit_evidence_for_review with the INTEGER evidence_id you just received.
+   - Use evidence_id from evidence_ids[0] (the integer you already have in memory)
+   - DO NOT parse evidence_id from user's text message
+   - ALWAYS pass evidence_id as INTEGER type, never as string
+   - Example: submit_evidence_for_review(evidence_id=48) NOT evidence_id="48"
+   
+   If user mentions a different evidence_id number, validate it matches but still use the integer from memory.
+   
    **After request_evidence_upload completes**:
    CRITICAL: Extract the REAL evidence_id from the tool result's evidence_ids array or evidence_id field.
    DO NOT make up or guess the evidence ID number.
