@@ -1373,7 +1373,10 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
             "analyze_compliance": ["control_id", "project_id"],
             "generate_report": ["project_id"],
             "submit_for_review": ["evidence_id"],
-            "create_project": ["agency_id"]
+            "submit_evidence_for_review": ["evidence_id"],
+            "request_evidence_upload": ["control_id"],
+            "create_project": ["agency_id"],
+            "create_controls": ["project_id"]
         }
         
         coerced = args.copy()
