@@ -61,7 +61,7 @@ class AgenticAssistant:
                 "type": "function",
                 "function": {
                     "name": "upload_evidence",
-                    "description": "Upload compliance evidence document for a control. Use when user wants to submit audit reports, assessment documents, or evidence files.",
+                    "description": "Upload compliance evidence document for a control. Use when user HAS attached a file and wants to submit audit reports, assessment documents, or evidence files. This tool handles the complete upload including file storage. Required: file_path from attached file.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -172,7 +172,7 @@ class AgenticAssistant:
                 "type": "function",
                 "function": {
                     "name": "request_evidence_upload",
-                    "description": "Request evidence upload from analyst. Creates a pending evidence record and instructs user to upload file. Use ONLY ONCE per control when analyst wants to submit evidence. After calling this tool successfully, DO NOT call it again even if user says 'yes' - the upload request is already created. Returns upload_id for frontend to use.",
+                    "description": "Request evidence upload from analyst when NO file is attached. Creates a pending evidence record as placeholder. User must upload file separately. Use ONLY when user has NOT attached a file in chat. If file IS attached, use upload_evidence instead. After calling this tool successfully, DO NOT call it again even if user says 'yes' - the upload request is already created.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -848,32 +848,40 @@ As an analyst, you can:
       - Return: "❌ Access denied. You cannot upload evidence for Control {id}. This control belongs to a different agency. Please select a control from your agency."
       - Abort upload
    
-   **If authorized, proceed**:
-   - Call request_evidence_upload tool ONCE
-   - Tool creates evidence record with:
-     * control_id (verified)
-     * agency_id (from current_user)
-     * uploaded_by (current_user.id)
-     * verification_status: "pending"
-   - Link to control
-   - Return evidence ID and status
+   **CRITICAL - Choose Correct Tool Based on File Attachment**:
    
-   **CRITICAL - Upload Completion**:
-   - Once request_evidence_upload returns success, the upload is COMPLETE
-   - DO NOT call request_evidence_upload again for the same evidence
-   - DO NOT ask for confirmation again
-   - Simply inform user that evidence was successfully uploaded
-   - If user replies 'yes' after upload, acknowledge but DO NOT re-upload
+   **CASE A: User HAS attached a file in chat**
+   - Use `upload_evidence` tool (NOT request_evidence_upload)
+   - This will create the evidence record AND attach the file immediately
+   - Pass control_id, file_path (from attached file), title, description, evidence_type
+   - Tool handles complete upload with file storage
+   - Status will be "pending" and ready for analyst to submit for review
    
-   Return: "✅ Evidence upload request created successfully! 
+   **CASE B: User has NOT attached a file**
+   - Use `request_evidence_upload` tool
+   - This creates a placeholder evidence record awaiting file upload
+   - User must upload file separately via Evidence page
+   - This is NOT the preferred workflow - encourage file attachment in chat
+   
+   **After upload_evidence completes**:
+   Return: "✅ Evidence uploaded successfully! 
    - Evidence ID: {evidence_id}
    - Control: {control_name} ({control_id})
    - Title: {title}
-   - File: {filename}
-   - Status: Pending review
+   - File: {filename} ({file_size})
+   - Status: Pending (ready to submit for review)
    - Agency: {agency_name}
    
-   Your evidence has been recorded and is awaiting file upload. The auditor from your agency will review your submission once the file is attached."
+   Next step: Would you like me to submit this evidence for auditor review?"
+   
+   **After request_evidence_upload completes**:
+   Return: "✅ Evidence placeholder created! 
+   - Evidence ID: {evidence_id}
+   - Control: {control_name} ({control_id})
+   - Title: {title}
+   - Status: Awaiting file upload
+   
+   Please upload the actual evidence file via the Evidence Management page, or attach the file in this chat and I can upload it for you."
    
    **Security Note**: All evidence uploads are logged with analyst ID and agency for audit trail.
    

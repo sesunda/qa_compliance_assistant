@@ -1,9 +1,23 @@
 # 🚀 Quick Start: Agentic AI Compliance Assistant
 
-## Login
-- **URL**: https://ca-app-qca-dev-victoriousmushroom-f7d2d81f.westus2.azurecontainerapps.io
-- **User**: admin@quantique.sg
-- **Pass**: SecurePass123!
+## 🔐 Test Users (DO NOT CHANGE WITHOUT PERMISSION)
+
+**Application URL**: https://ca-frontend-qca-dev.victoriousmushroom-f7d2d81f.westus2.azurecontainerapps.io
+
+| Username | Password | Full Name | Role | Agency | Use Case |
+|----------|----------|-----------|------|--------|----------|
+| **admin** | admin123 | System Administrator | Super Admin | Default | Full system access |
+| **alice** | pass123 | Alice Tan | Analyst | HSA | Evidence upload & testing |
+| **bob** | pass123 | Bob Lim | QA | HSA | Quality review |
+| **charlie** | pass123 | Charlie Wong | Analyst | IRAS | Evidence upload |
+| **diana** | pass123 | Diana Ng | QA | IRAS | Quality review |
+| **edward** | pass123 | Edward Koh | Auditor | Audit | Evidence review |
+| **fiona** | pass123 | Fiona Lee | Auditor | Audit | Evidence review |
+
+**Quick Test Login:**
+- **Analyst (Alice)**: `alice` / `pass123`
+- **Auditor (Edward)**: `edward` / `pass123`
+- **Admin**: `admin` / `admin123`
 
 ---
 
@@ -86,17 +100,6 @@ IM8 domain, and top 3 recommendations."
 "Send reminder for pending evidence reviews"
 "Escalate overdue critical findings"
 ```
-
----
-
-## 👥 User Roles
-
-| Role | Username | Responsibilities |
-|------|----------|------------------|
-| **Super Admin** | admin@quantique.sg | Full access, create users/agencies |
-| **Analyst** | analyst@quantique.sg | Upload evidence, create findings |
-| **Auditor** | auditor@quantique.sg | Review evidence, validate findings |
-| **Viewer** | viewer@quantique.sg | Read-only access |
 
 ---
 

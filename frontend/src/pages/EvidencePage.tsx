@@ -92,7 +92,12 @@ const formatFileSize = (bytes?: number | null) => {
 
 // Removed - now using formatSingaporeDateTime from utils
 
-const getVerificationStatusDisplay = (status: string) => {
+const getVerificationStatusDisplay = (status: string, hasFile: boolean) => {
+  // Special handling for pending status without file
+  if (status === 'pending' && !hasFile) {
+    return { label: 'Awaiting File Upload', color: 'warning' as const, icon: <CloudUpload /> }
+  }
+  
   switch (status) {
     case 'pending':
       return { label: 'Pending', color: 'default' as const, icon: <HourglassEmpty /> }
@@ -595,7 +600,7 @@ const EvidencePage: React.FC = () => {
                       <TableCell>{formatFileSize(item.file_size)}</TableCell>
                       <TableCell>
                         {(() => {
-                          const statusDisplay = getVerificationStatusDisplay(item.verification_status)
+                          const statusDisplay = getVerificationStatusDisplay(item.verification_status, hasFile)
                           return (
                             <Chip
                               label={statusDisplay.label}
@@ -682,9 +687,12 @@ const EvidencePage: React.FC = () => {
                           {canManageEvidence && (
                             <IconButton
                               size="small"
-                              title="Delete evidence"
+                              title={!hasFile && item.verification_status === 'pending' 
+                                ? "Delete pending upload (no file attached)" 
+                                : "Delete evidence"}
                               onClick={() => handleDeleteEvidence(item.id, item.title)}
                               disabled={deletingId === item.id}
+                              color={!hasFile && item.verification_status === 'pending' ? 'warning' : 'default'}
                             >
                               {deletingId === item.id ? (
                                 <CircularProgress size={18} />

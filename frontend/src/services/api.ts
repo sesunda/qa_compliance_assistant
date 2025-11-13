@@ -43,8 +43,16 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized access
-      window.location.href = '/login'
+      // Only redirect to login if we're NOT already on the login page
+      // and NOT attempting to login (don't redirect on failed login attempts)
+      const isLoginAttempt = error.config?.url?.includes('/auth/login')
+      const isAlreadyOnLoginPage = window.location.pathname === '/login'
+      
+      if (!isLoginAttempt && !isAlreadyOnLoginPage) {
+        // Handle unauthorized access (expired token, etc)
+        Cookies.remove('auth_token')
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }
