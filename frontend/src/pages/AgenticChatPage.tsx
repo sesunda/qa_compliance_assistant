@@ -160,10 +160,11 @@ const AgenticChatPage: React.FC = () => {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isRestoringSession = useRef(false);
 
-  // Initialize welcome message when user loads
+  // Initialize welcome message when user loads (but NOT when restoring session)
   useEffect(() => {
-    if (user && messages.length === 0) {
+    if (user && messages.length === 0 && !isRestoringSession.current) {
       setMessages([{
         id: '0',
         role: 'assistant',
@@ -200,12 +201,16 @@ const AgenticChatPage: React.FC = () => {
     const loadConversation = async () => {
       const savedSession = localStorage.getItem('agentic_session_id');
       if (savedSession) {
+        isRestoringSession.current = true;
         setConversationId(savedSession);
         // Restore message history
         await restoreMessageHistory(savedSession);
+        isRestoringSession.current = false;
       } else {
         // No saved session - try to load the most recent active session
+        isRestoringSession.current = true;
         await loadRecentSession();
+        isRestoringSession.current = false;
       }
     };
     
@@ -238,19 +243,25 @@ const AgenticChatPage: React.FC = () => {
       const response = await api.get(`/agentic-chat/sessions/${sessionId}/messages`);
       const { messages: historyMessages } = response.data;
       
-      // Convert backend message format to frontend ChatMessage format
-      const convertedMessages: ChatMessage[] = historyMessages.map((msg: any) => ({
-        id: msg.id || Date.now().toString(),
-        role: msg.role,
-        content: msg.content,
-        timestamp: new Date(msg.timestamp),
-        metadata: msg.metadata,
-        sources: msg.sources,
-        suggested_responses: msg.suggested_responses,
-        reasoning: msg.reasoning
-      }));
-      
-      setMessages(convertedMessages);
+      // Only restore if there are messages
+      if (historyMessages && historyMessages.length > 0) {
+        // Convert backend message format to frontend ChatMessage format
+        const convertedMessages: ChatMessage[] = historyMessages.map((msg: any) => ({
+          id: msg.id || Date.now().toString(),
+          role: msg.role,
+          content: msg.content,
+          timestamp: new Date(msg.timestamp),
+          metadata: msg.metadata,
+          sources: msg.sources,
+          suggested_responses: msg.suggested_responses,
+          reasoning: msg.reasoning
+        }));
+        
+        setMessages(convertedMessages);
+      } else {
+        // Session exists but no messages - show welcome message
+        isRestoringSession.current = false;
+      }
     } catch (error: any) {
       console.error('Error restoring message history:', error);
       
@@ -259,6 +270,9 @@ const AgenticChatPage: React.FC = () => {
         localStorage.removeItem('agentic_session_id');
         setConversationId(null);
       }
+      
+      // Allow welcome message to show
+      isRestoringSession.current = false;
     }
   };
 
