@@ -866,6 +866,10 @@ As an analyst, you can:
    **After upload_evidence completes**:
    CRITICAL: Extract the REAL evidence_id from the tool result's evidence_ids array.
    DO NOT make up or guess the evidence ID number.
+   DO NOT use task_id as evidence_id - they are different!
+   
+   The tool result MUST contain evidence_ids array: {"evidence_ids": [8], "status": "success", ...}
+   If evidence_ids is missing, respond: "Evidence upload encountered an issue. Please try again."
    
    Return: "✅ Evidence uploaded successfully! 
    - Evidence ID: {evidence_ids[0]} (from tool result)
@@ -1677,14 +1681,20 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
         
         logger.info(f"Created task {task.id} for tool {function_name}")
         
-        # Wait for task to complete (max 30 seconds)
-        max_wait = 30
+        # Wait for task to complete (max 60 seconds for file operations)
+        max_wait = 60
         start_time = time.time()
         while (time.time() - start_time) < max_wait:
             db.refresh(task)
             if task.status in ['completed', 'failed', 'error']:
                 break
             time.sleep(0.5)  # Poll every 500ms
+        
+        # Final refresh to ensure we have latest result
+        db.refresh(task)
+        
+        # Log task completion status
+        logger.info(f"Task {task.id} final status: {task.status}, result: {task.result}")
         
         # Return task result with actual data
         result = {
@@ -1694,11 +1704,20 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
             "message": f"Task {task.id} {task.status}"
         }
         
-        # Include actual result data from task
+        # CRITICAL: Include actual result data from task (includes evidence_ids for uploads)
         if task.result:
             if isinstance(task.result, dict):
                 result.update(task.result)
-            logger.info(f"Task {task.id} result: {task.result}")
+                logger.info(f"Task {task.id} merged result: {result}")
+            else:
+                logger.warning(f"Task {task.id} result is not a dict: {type(task.result)}")
+        else:
+            logger.warning(f"Task {task.id} has no result data (status={task.status})")
+        
+        # If still pending and this is upload_evidence, warn about timeout
+        if task.status == 'pending' and function_name == 'upload_evidence':
+            logger.error(f"Task {task.id} upload_evidence still pending after {max_wait}s - evidence_ids not available")
+            result["message"] = f"Task {task.id} timed out - evidence may not be ready"
         
         return result
 
