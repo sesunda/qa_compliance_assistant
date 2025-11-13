@@ -138,6 +138,113 @@ async def handle_test_task(task_id: int, payload: Dict[str, Any], db: Session) -
     return result
 
 
+async def handle_upload_evidence_task(task_id: int, payload: Dict[str, Any], db: Session) -> Dict[str, Any]:
+    """
+    Handler for direct evidence upload from chat (file already saved by API).
+    
+    This bypasses MCP and directly creates evidence record since file is already
+    stored in API container's storage.
+    
+    Args:
+        task_id: ID of the task
+        payload: Should contain:
+            - file_path: Path to uploaded file (already saved)
+            - control_id: Control ID
+            - title: Evidence title
+            - description: Evidence description
+            - current_user_id: User who uploaded
+            - agency_id: Agency ID
+        db: Database session
+        
+    Returns:
+        Evidence ID and success status
+    """
+    from api.src import models
+    
+    logger.info(f"Direct evidence upload task {task_id} started")
+    
+    await update_progress(task_id, 10, "Processing uploaded file...")
+    
+    try:
+        # Extract parameters
+        file_path = payload.get("file_path")
+        control_id = payload.get("control_id")
+        title = payload.get("title")
+        description = payload.get("description")
+        evidence_type = payload.get("evidence_type", "policy_document")
+        current_user_id = payload.get("current_user_id")
+        agency_id = payload.get("agency_id")
+        
+        if not file_path or not control_id or not current_user_id:
+            return {
+                "status": "error",
+                "message": "Missing required parameters",
+                "evidence_ids": []
+            }
+        
+        await update_progress(task_id, 30, "Creating evidence record...")
+        
+        # Get control to verify it exists
+        control = db.query(models.Control).filter(models.Control.id == control_id).first()
+        if not control:
+            return {
+                "status": "error",
+                "message": f"Control {control_id} not found",
+                "evidence_ids": []
+            }
+        
+        # Check if evidence record already exists for this file
+        existing = db.query(models.Evidence).filter(
+            models.Evidence.file_path == file_path
+        ).first()
+        
+        if existing:
+            logger.info(f"Evidence already exists with ID {existing.id}")
+            return {
+                "status": "success",
+                "message": f"Evidence record already exists",
+                "evidence_ids": [existing.id],
+                "total_fetched": 1
+            }
+        
+        # Create new evidence record
+        evidence = models.Evidence(
+            control_id=control.id,
+            agency_id=agency_id or control.agency_id,
+            title=title or "Evidence document",
+            description=description,
+            evidence_type=evidence_type,
+            file_path=file_path,
+            uploaded_by=current_user_id,
+            verification_status="pending"
+        )
+        
+        db.add(evidence)
+        db.commit()
+        db.refresh(evidence)
+        
+        await update_progress(task_id, 100, f"Evidence {evidence.id} created successfully")
+        
+        logger.info(f"Direct upload task {task_id} completed: Evidence {evidence.id} created")
+        
+        return {
+            "status": "success",
+            "message": f"Evidence {evidence.id} uploaded successfully",
+            "evidence_ids": [evidence.id],
+            "total_fetched": 1,
+            "total_failed": 0
+        }
+    
+    except Exception as e:
+        logger.error(f"Direct upload task {task_id} failed: {e}")
+        return {
+            "status": "error",
+            "message": f"Upload failed: {str(e)}",
+            "evidence_ids": [],
+            "total_fetched": 0
+        }
+
+
 async def handle_fetch_evidence_task(task_id: int, payload: Dict[str, Any], db: Session) -> Dict[str, Any]:
     """
     Handler for fetching evidence using MCP tool.
@@ -1140,6 +1247,7 @@ async def handle_submit_evidence_for_review_task(task_id: int, payload: Dict[str
 # Map of task types to their handlers
 TASK_HANDLERS = {
     "test": handle_test_task,
+    "upload_evidence": handle_upload_evidence_task,  # Direct upload (no MCP)
     "fetch_evidence": handle_fetch_evidence_task,
     "generate_report": handle_generate_report_task,
     "analyze_compliance": handle_analyze_compliance_task,

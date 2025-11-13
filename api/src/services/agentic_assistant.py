@@ -1584,8 +1584,8 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
         task_type_map = {
             "create_project": "create_project",
             "create_controls": "create_controls",
-            "upload_evidence": "fetch_evidence",  # Uses same handler
-            "fetch_evidence": "fetch_evidence",
+            "upload_evidence": "upload_evidence",  # Direct upload handler (no MCP)
+            "fetch_evidence": "fetch_evidence",  # MCP-based fetch
             "analyze_compliance": "analyze_compliance",
             "generate_report": "generate_report",
             "submit_for_review": "submit_for_review",
