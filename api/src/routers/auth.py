@@ -52,8 +52,12 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
         data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
     
-    # Get user with role information
-    user_with_role = db.query(models.User).filter(models.User.id == user.id).first()
+    # Get user with role and agency information (eager load to avoid lazy loading issues)
+    from sqlalchemy.orm import joinedload
+    user_with_role = db.query(models.User).options(
+        joinedload(models.User.role),
+        joinedload(models.User.agency)
+    ).filter(models.User.id == user.id).first()
     
     return {
         "access_token": access_token,
