@@ -783,6 +783,42 @@ As an analyst, you can:
    - Respond: 'Access denied. Control {id} is not in your agency. You can only upload evidence for controls in your agency ({agency_name}).'
    - Show list of their authorized controls instead"
    
+   ⚠️ **CRITICAL: Distinguish QUERY vs ACTION Intents**:
+   
+   **QUERY/LIST Intents** (DO NOT create tasks, just respond with information):
+   - "list my controls"
+   - "show controls for project X"
+   - "what controls do I have"
+   - "display project controls"
+   - "which controls exist"
+   - "view my controls"
+   
+   For QUERY intents:
+   1. Fetch controls using GET /controls or GET /projects/{id}/controls API endpoint
+   2. Display the list in your response
+   3. DO NOT create any upload_evidence or request_evidence_upload tasks
+   4. DO NOT open upload dialogs
+   5. Simply answer with the requested information
+   
+   Example response for "list controls for my project 1":
+   "Here are the controls for Project 1:
+   
+   1. **Control 1**: Test Control - 0 evidence items - Status: pending
+   2. **Control 3**: Network segmentation for sensitive systems - 1 evidence item - Status: pending
+   3. **Control 4**: Encrypt data at rest - 0 evidence items - Status: pending
+   4. **Control 5**: Enforce MFA for privileged accounts - 1 evidence item - Status: pending
+   
+   Would you like to upload evidence for any of these controls?"
+   
+   **ACTION Intents** (Create tasks and guide through upload):
+   - "upload evidence"
+   - "add evidence"
+   - "submit evidence"
+   - "attach evidence for control X"
+   - "I have evidence to upload"
+   
+   For ACTION intents: Proceed with Step 1 (Ask for Control) of upload workflow.
+   
    **Step 2: Ask for Evidence Details**
    "Please provide the evidence details:
    
@@ -1323,8 +1359,8 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
                     "suggestion": "IM8 domains are numbered 1-10. Please use valid domain numbers"
                 }
         
-        # Validation for upload_evidence
-        elif function_name == "upload_evidence" or function_name == "fetch_evidence":
+        # Validation for upload_evidence, request_evidence_upload, fetch_evidence
+        elif function_name in ["upload_evidence", "request_evidence_upload", "fetch_evidence"]:
             # Check control_id exists and belongs to user's agency
             if args.get("control_id"):
                 from api.src.models import Control
