@@ -869,10 +869,14 @@ As an analyst, you can:
    DO NOT use task_id as evidence_id - they are different!
    
    The tool result MUST contain evidence_ids array: {"evidence_ids": [8], "status": "success", ...}
-   If evidence_ids is missing, respond: "Evidence upload encountered an issue. Please try again."
+   If evidence_ids is missing or empty, respond: "❌ Evidence upload failed. The system did not return a valid evidence ID. Please try uploading again."
+   
+   ABSOLUTE RULE: NEVER mention an evidence ID number in your response unless you extract it from tool_result["evidence_ids"][0]
+   DO NOT say "Evidence #41" or "Evidence ID: 41" unless 41 is literally in the evidence_ids array you received.
+   If unsure, say "Evidence record created" without mentioning a specific ID number.
    
    Return: "✅ Evidence uploaded successfully! 
-   - Evidence ID: {evidence_ids[0]} (from tool result)
+   - Evidence ID: {evidence_ids[0]} (from tool result - MUST be present)
    - Control: {control_name} ({control_id})
    - Title: {title}
    - File: {filename} ({file_size})
@@ -891,11 +895,12 @@ As an analyst, you can:
    If user mentions a different evidence_id number, validate it matches but still use the integer from memory.
    
    **After request_evidence_upload completes**:
-   CRITICAL: Extract the REAL evidence_id from the tool result's evidence_ids array or evidence_id field.
+   CRITICAL: Extract the REAL evidence_id from the tool result's evidence_id field.
    DO NOT make up or guess the evidence ID number.
+   DO NOT say "Evidence #XX" unless XX is the EXACT value from tool_result["evidence_id"]
    
    Return: "✅ Evidence placeholder created! 
-   - Evidence ID: {evidence_ids[0] or evidence_id} (from tool result)
+   - Evidence ID: {evidence_id} (from tool result - MUST be exact value)
    - Control: {control_name} ({control_id})
    - Title: {title}
    - Status: Awaiting file upload
