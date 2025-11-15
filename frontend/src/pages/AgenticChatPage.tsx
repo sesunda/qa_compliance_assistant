@@ -905,7 +905,7 @@ const AgenticChatPage: React.FC = () => {
                   )}
                 </Paper>
                 <Typography variant="caption" color="text.secondary" sx={{ ml: 1, mt: 0.5, display: 'block' }}>
-                  {formatSingaporeDateTime(message.timestamp.toISOString())}
+                  {formatSingaporeDateTime(message.timestamp instanceof Date ? message.timestamp.toISOString() : message.timestamp)}
                 </Typography>
               </Box>
             </Box>
