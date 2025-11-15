@@ -1,10 +1,10 @@
 """
-Conversation Session Manager
+"""Conversation Session Manager
 Handles multi-turn conversation state and context management
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
@@ -103,10 +103,12 @@ class ConversationManager:
             raise ValueError(f"Session {session_id} not found")
         
         # Create message
+        # CRITICAL: Use datetime.now(timezone.utc) for proper timezone-aware timestamp
+        # This ensures ISO format includes 'Z' suffix for unambiguous UTC time
         message = {
             "role": role,
             "content": content,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "task_id": task_id,
             "tool_calls": tool_calls
         }
@@ -118,7 +120,7 @@ class ConversationManager:
         # Update session - IMPORTANT: flag_modified needed for JSONB updates
         session.messages = messages
         flag_modified(session, "messages")
-        session.last_activity = datetime.utcnow()
+        session.last_activity = datetime.now(timezone.utc)
         
         self.db.commit()
         self.db.refresh(session)
@@ -142,7 +144,7 @@ class ConversationManager:
         
         session.context = current_context
         flag_modified(session, "context")
-        session.last_activity = datetime.utcnow()
+        session.last_activity = datetime.now(timezone.utc)
         
         self.db.commit()
         self.db.refresh(session)
@@ -157,7 +159,7 @@ class ConversationManager:
             raise ValueError(f"Session {session_id} not found")
         
         session.active = False
-        session.last_activity = datetime.utcnow()
+        session.last_activity = datetime.now(timezone.utc)
         
         self.db.commit()
         self.db.refresh(session)

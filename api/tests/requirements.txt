@@ -1,0 +1,8 @@
+# Test dependencies for AI Task Orchestrator
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+
+# Already in main requirements but needed for tests
+sqlalchemy>=2.0.0
