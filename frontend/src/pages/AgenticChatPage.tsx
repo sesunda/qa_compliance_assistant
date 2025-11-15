@@ -246,18 +246,33 @@ const AgenticChatPage: React.FC = () => {
       // Only restore if there are messages
       if (historyMessages && historyMessages.length > 0) {
         // Convert backend message format to frontend ChatMessage format
-        const convertedMessages: ChatMessage[] = historyMessages.map((msg: any) => ({
-          id: msg.id || Date.now().toString(),
-          role: msg.role,
-          content: msg.content,
-          timestamp: new Date(msg.timestamp),
-          metadata: msg.metadata,
-          sources: msg.sources,
-          suggested_responses: msg.suggested_responses,
-          reasoning: msg.reasoning
-        }));
+        const convertedMessages: ChatMessage[] = historyMessages.map((msg: any) => {
+          // Parse timestamp: Backend sends ISO string, convert to Date object
+          // Important: The timestamp from backend is already in UTC, we need to parse it correctly
+          let timestampDate: Date;
+          if (msg.timestamp) {
+            // If timestamp is ISO string with Z (UTC), parse directly
+            // This preserves the actual moment in time
+            timestampDate = new Date(msg.timestamp);
+          } else {
+            timestampDate = new Date();
+          }
+          
+          return {
+            id: msg.id || Date.now().toString(),
+            role: msg.role,
+            content: msg.content,
+            timestamp: timestampDate,
+            metadata: msg.metadata,
+            sources: msg.sources,
+            suggested_responses: msg.suggested_responses,
+            reasoning: msg.reasoning
+          };
+        });
         
+        // Set messages to trigger re-render
         setMessages(convertedMessages);
+        console.log(`Restored ${convertedMessages.length} messages from session ${sessionId}`);
       } else {
         // Session exists but no messages - show welcome message
         isRestoringSession.current = false;
