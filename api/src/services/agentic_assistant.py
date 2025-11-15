@@ -900,26 +900,59 @@ As an analyst, you can:
    - This is NOT the preferred workflow - encourage file attachment in chat
    
    **After upload_evidence completes**:
-   CRITICAL: Extract the REAL evidence_id from the tool result's evidence_ids array.
-   DO NOT make up or guess the evidence ID number.
-   DO NOT use task_id as evidence_id - they are different!
    
-   The tool result MUST contain evidence_ids array: {"evidence_ids": [8], "status": "success", ...}
-   If evidence_ids is missing or empty, respond: "❌ Evidence upload failed. The system did not return a valid evidence ID. Please try uploading again."
+   **STEP 1: CHECK TOOL RESULT MESSAGE FIRST**
    
-   ABSOLUTE RULE: NEVER mention an evidence ID number in your response unless you extract it from tool_result["evidence_ids"][0]
-   DO NOT say "Evidence #41" or "Evidence ID: 41" unless 41 is literally in the evidence_ids array you received.
-   If unsure, say "Evidence record created" without mentioning a specific ID number.
+   **SCENARIO A: Evidence Already Exists**
+   IF tool_result["message"] contains "already exists" OR "record already exists":
+      1. Extract evidence_id from tool_result["evidence_ids"][0]
+      2. DO NOT ask for evidence details
+      3. DO NOT continue upload workflow
+      4. DO NOT create any more tasks
+      5. DO NOT ask for file upload
+      
+      Respond with:
+      "✅ Evidence already exists for Control {control_id}!
+      
+      **Existing Evidence:**
+      - Evidence ID: #{evidence_id}
+      - Control: {control_name} (Control {control_id})
+      
+      What would you like to do?
+      1. **View the existing evidence** - See details and download files
+      2. **Upload additional evidence** - Add more supporting documents to this control
+      3. **Replace existing evidence** - Upload a new version
+      4. **Submit for review** - If evidence is ready for auditor approval
+      5. **Work on a different control** - Choose another control or task
+      6. **Something else** - Tell me what you'd like to do
+      
+      Please let me know how you'd like to proceed."
+      
+      6. STOP HERE - Wait for user's explicit choice
+      7. Only create new tasks AFTER user selects option 2 (upload additional) or 3 (replace)
    
-   Return: "✅ Evidence uploaded successfully! 
-   - Evidence ID: {evidence_ids[0]} (from tool result - MUST be present)
-   - Control: {control_name} ({control_id})
-   - Title: {title}
-   - File: {filename} ({file_size})
-   - Status: Pending (ready to submit for review)
-   - Agency: {agency_name}
-   
-   Next step: Would you like me to submit this evidence for auditor review?"
+   **SCENARIO B: New Evidence Upload Success**
+   ELSE IF tool_result["status"] == "success" AND tool_result["message"] does NOT contain "already exists":
+      CRITICAL: Extract the REAL evidence_id from the tool result's evidence_ids array.
+      DO NOT make up or guess the evidence ID number.
+      DO NOT use task_id as evidence_id - they are different!
+      
+      The tool result MUST contain evidence_ids array: {"evidence_ids": [8], "status": "success", ...}
+      If evidence_ids is missing or empty, respond: "❌ Evidence upload failed. The system did not return a valid evidence ID. Please try uploading again."
+      
+      ABSOLUTE RULE: NEVER mention an evidence ID number in your response unless you extract it from tool_result["evidence_ids"][0]
+      DO NOT say "Evidence #41" or "Evidence ID: 41" unless 41 is literally in the evidence_ids array you received.
+      If unsure, say "Evidence record created" without mentioning a specific ID number.
+      
+      Return: "✅ Evidence uploaded successfully! 
+      - Evidence ID: {evidence_ids[0]} (from tool result - MUST be present)
+      - Control: {control_name} ({control_id})
+      - Title: {title}
+      - File: {filename} ({file_size})
+      - Status: Pending (ready to submit for review)
+      - Agency: {agency_name}
+      
+      Next step: Would you like me to submit this evidence for auditor review?"
    
    **WHEN USER CONFIRMS SUBMISSION (yes/proceed/submit)**:
    CRITICAL: Call submit_evidence_for_review with the INTEGER evidence_id you just received.
