@@ -156,7 +156,7 @@ const AgentTasksPage: React.FC = () => {
   // Format timestamp in Singapore timezone
   const formatTimestamp = (timestamp: string | null): string => {
     if (!timestamp) return 'N/A';
-    return formatSingaporeDateTime(timestamp) + ' SGT';
+    return formatSingaporeDateTime(timestamp); // SGT suffix already included
   };
 
   // Calculate duration

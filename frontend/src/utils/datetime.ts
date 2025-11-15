@@ -24,11 +24,13 @@ export const toSingaporeTime = (utcDateString: string | null | undefined): Date 
  * Format datetime to Singapore Time string
  * @param utcDateString - ISO datetime string from backend (in UTC)
  * @param options - Intl.DateTimeFormatOptions for customization
+ * @param includeSGT - Whether to append " SGT" suffix (default: true)
  * @returns Formatted datetime string in SGT, or fallback string
  */
 export const formatSingaporeDateTime = (
   utcDateString: string | null | undefined,
-  options?: Intl.DateTimeFormatOptions
+  options?: Intl.DateTimeFormatOptions,
+  includeSGT: boolean = true
 ): string => {
   if (!utcDateString) return '—';
   
@@ -47,9 +49,11 @@ export const formatSingaporeDateTime = (
   };
   
   try {
-    return new Intl.DateTimeFormat('en-SG', defaultOptions).format(date);
+    const formatted = new Intl.DateTimeFormat('en-SG', defaultOptions).format(date);
+    return includeSGT ? `${formatted} SGT` : formatted;
   } catch {
-    return date.toLocaleString();
+    const fallback = date.toLocaleString();
+    return includeSGT ? `${fallback} SGT` : fallback;
   }
 };
 
