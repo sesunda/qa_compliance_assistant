@@ -5,10 +5,12 @@ Each handler orchestrates tasks by calling MCP tools.
 """
 import asyncio
 import logging
+from datetime import datetime, timedelta
 from typing import Dict, Any, List
 from sqlalchemy.orm import Session
 from api.src.workers.task_worker import update_progress
 from api.src.mcp.client import mcp_client, MCPToolError
+from api.src.utils.datetime_utils import now_sgt
 
 logger = logging.getLogger(__name__)
 
@@ -555,8 +557,6 @@ async def handle_create_findings_task(task_id: int, payload: Dict[str, Any], db:
     """
     from api.src.services.llm_service import get_llm_service
     from api.src.models import Finding
-    from datetime import datetime, timedelta
-from api.src.utils.datetime_utils import now_sgt
     
     logger.info(f"Create findings task {task_id} started")
     await update_progress(task_id, 10, "Initializing LLM service...")
