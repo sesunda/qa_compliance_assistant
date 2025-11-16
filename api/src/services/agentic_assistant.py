@@ -48,8 +48,8 @@ class AgenticAssistant:
             
         else:  # groq (default)
             self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-            # Use fastest model for optimal response time (3-5x faster than 70B)
-            self.model = "llama-3.1-8b-instant"
+            # Use llama3-groq-70b-8192-tool-use-preview for proper function calling support
+            self.model = "llama3-groq-70b-8192-tool-use-preview"
             logger.info(f"Using Groq with {self.model}")
         
         # Define ALL tools (will be filtered by role at runtime)
