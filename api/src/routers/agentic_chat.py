@@ -287,10 +287,12 @@ async def get_capabilities():
     try:
         assistant = AgenticAssistant()
         provider = assistant.provider
+        model = assistant.model
         status = "active"
     except Exception as e:
         logger.error(f"Error initializing AgenticAssistant: {e}")
         provider = None
+        model = None
         status = "unavailable"
     
     return {
@@ -321,7 +323,8 @@ async def get_capabilities():
             }
         ],
         "status": status,
-        "provider": provider
+        "provider": provider,
+        "model": model
     }
 
 

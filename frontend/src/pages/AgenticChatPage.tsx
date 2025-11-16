@@ -691,7 +691,7 @@ const AgenticChatPage: React.FC = () => {
               Natural language interface for compliance automation
               {capabilities && (
                 <Chip 
-                  label={`${capabilities.provider || 'AI'} Active`} 
+                  label={`${capabilities.provider || 'AI'} ${capabilities.model ? `(${capabilities.model})` : ''} Active`} 
                   color="success" 
                   size="small" 
                   sx={{ ml: 1 }} 
