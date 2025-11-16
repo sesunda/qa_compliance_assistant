@@ -1,0 +1,24 @@
+# Fast application Dockerfile using pre-built base image
+FROM acrqcadev2f37g0.azurecr.io/ca-api-qca-dev:base
+
+WORKDIR /app
+
+# Copy application code (changes frequently - fast layer)
+COPY . /app/api/
+
+# Copy startup script
+COPY startup.sh /app/startup.sh
+RUN chmod +x /app/startup.sh
+
+# Set PYTHONPATH
+ENV PYTHONPATH=/app
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+ENTRYPOINT ["/bin/bash"]
+CMD ["/app/startup.sh"]

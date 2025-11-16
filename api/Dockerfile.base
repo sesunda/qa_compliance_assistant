@@ -1,0 +1,17 @@
+# Base image with all heavy dependencies pre-installed
+# Build this ONCE and reuse for faster application deployments
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir --upgrade pip
+
+# Copy and install Python dependencies (3.5GB+)
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# This image can be reused - only rebuild when requirements.txt changes

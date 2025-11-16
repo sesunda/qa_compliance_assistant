@@ -70,12 +70,21 @@ class AgenticAssistant:
                                 "type": "string",
                                 "description": "Path to the uploaded file"
                             },
+                            "title": {
+                                "type": "string",
+                                "description": "Specific, descriptive title for the evidence (e.g., 'MFA Policy v2.1', 'Access Control Audit Report Q4 2025')"
+                            },
                             "description": {
                                 "type": "string",
                                 "description": "Description of the evidence"
+                            },
+                            "evidence_type": {
+                                "type": "string",
+                                "enum": ["policy_document", "audit_report", "configuration_screenshot", "log_file", "certificate", "procedure", "test_result"],
+                                "description": "Type of evidence: policy_document, audit_report, configuration_screenshot, log_file, certificate, procedure, or test_result"
                             }
                         },
-                        "required": ["file_path"]
+                        "required": ["file_path", "title", "evidence_type"]
                     }
                 }
             },

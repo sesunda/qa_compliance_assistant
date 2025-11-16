@@ -283,6 +283,16 @@ async def chat(
 @router.get("/capabilities")
 async def get_capabilities():
     """Get list of available agentic capabilities"""
+    # Get provider from AgenticAssistant (not LLMService) for accurate display
+    try:
+        assistant = AgenticAssistant()
+        provider = assistant.provider
+        status = "active"
+    except Exception as e:
+        logger.error(f"Error initializing AgenticAssistant: {e}")
+        provider = None
+        status = "unavailable"
+    
     return {
         "capabilities": [
             {
@@ -310,8 +320,8 @@ async def get_capabilities():
                 "parameters": ["assessment_id", "report_type"]
             }
         ],
-        "status": "active" if get_llm_service().is_available() else "unavailable",
-        "provider": get_llm_service().provider
+        "status": status,
+        "provider": provider
     }
 
 
