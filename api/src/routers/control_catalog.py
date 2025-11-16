@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from api.src.database import get_db
 from api.src import models, schemas
+from api.src.utils.datetime_utils import now_sgt
 
 router: APIRouter = APIRouter(prefix="/control-catalog", tags=["control_catalog"])
 
@@ -66,8 +67,6 @@ def approve_catalog(catalog_id: int, approved_domain_code: str = Body(...), appr
 
     item.approved_domain_id = domain.id
     item.approved_by = approved_by
-    from datetime import datetime
-from api.src.utils.datetime_utils import now_sgt
     item.approved_at = now_sgt()
     db.commit()
     db.refresh(item)
