@@ -48,8 +48,8 @@ class AgenticAssistant:
             
         else:  # groq (default)
             self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-            # Use llama3-groq-70b-8192-tool-use-preview for proper function calling support
-            self.model = "llama3-groq-70b-8192-tool-use-preview"
+            # Use mixtral-8x7b-32768 for fast and reliable function calling
+            self.model = "mixtral-8x7b-32768"
             logger.info(f"Using Groq with {self.model}")
         
         # Define ALL tools (will be filtered by role at runtime)
