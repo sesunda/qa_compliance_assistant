@@ -23,8 +23,8 @@ class AgenticAssistant:
     """Agentic conversational agent with tool calling (supports multiple providers)"""
     
     def __init__(self):
-        # Detect which provider to use
-        self.provider = os.getenv("LLM_PROVIDER", "groq")  # groq, github, openai
+        # Detect which provider to use (default to github for reliable tool calling)
+        self.provider = os.getenv("LLM_PROVIDER", "github")  # github, groq, openai
         
         if self.provider == "github":
             # GitHub Models (free tier)
@@ -46,7 +46,7 @@ class AgenticAssistant:
             self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
             logger.info(f"Using OpenAI with {self.model}")
             
-        else:  # groq (default)
+        else:  # groq
             self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
             # Use llama-3.3-70b-versatile - Production model with tool use support
             self.model = "llama-3.3-70b-versatile"
