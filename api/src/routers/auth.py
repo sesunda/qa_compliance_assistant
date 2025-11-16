@@ -43,7 +43,7 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     
     # Update last login
     from datetime import datetime
-    user.last_login = datetime.utcnow()
+    user.last_login = now_sgt()
     db.commit()
     
     # Create access token

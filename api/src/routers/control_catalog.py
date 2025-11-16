@@ -67,7 +67,8 @@ def approve_catalog(catalog_id: int, approved_domain_code: str = Body(...), appr
     item.approved_domain_id = domain.id
     item.approved_by = approved_by
     from datetime import datetime
-    item.approved_at = datetime.utcnow()
+from api.src.utils.datetime_utils import now_sgt
+    item.approved_at = now_sgt()
     db.commit()
     db.refresh(item)
     return item

@@ -10,14 +10,19 @@
 # COST SAVINGS CALCULATION
 # Assumptions (approximate):
 # - PostgreSQL Burstable B1ms: $0.023/hour = $16.56/month (if running 24/7)
-# - Container Apps (3 apps): $0.05/hour combined = $36/month (if running 24/7)
+# - Container Apps (3 apps with scale-to-zero): $0.05/hour when active = $36/month (if running 24/7)
 # - Total monthly cost (24/7): ~$52.56
 
-# With Scheduled Shutdown:
+# With Scheduled Shutdown (Working Hours Only):
 # - Working hours: 50 hours/week * 4 weeks = 200 hours/month
 # - PostgreSQL: $0.023 * 200 = $4.60/month (save $11.96 = 72%)
-# - Container Apps (scale-to-zero): $0.05 * 200 = $10/month (save $26 = 72%)
+# - Container Apps (scale-to-zero during idle): ~$10/month (save $26 = 72%)
 # - Total: ~$14.60/month (save $37.96 = 72%)
+
+# NOTE: Resource right-sizing was tested but reverted.
+# API container needs full 1Gi memory for ML model (llama-3.1-8b-instant).
+# Reducing to 0.5Gi caused container health issues.
+# Scale-to-zero (minReplicas=0) already provides significant cost savings during idle periods.
 
 # IMPLEMENTATION OPTIONS:
 
@@ -52,9 +57,11 @@
 Write-Host "📊 Azure Cost Optimization Summary" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "✅ Optimizations Applied:" -ForegroundColor Green
-Write-Host "   1. Scale-to-Zero: minReplicas=0 for all Container Apps" -ForegroundColor Gray
-Write-Host "   2. Resource Right-Sizing: Reduced CPU/Memory by 50%" -ForegroundColor Gray
-Write-Host "   3. Scheduled Shutdown: Scripts created for automation" -ForegroundColor Gray
+Write-Host "   1. Scale-to-Zero: minReplicas=0 for all Container Apps ✅ APPLIED" -ForegroundColor Gray
+Write-Host "   2. Resource Right-Sizing: Kept original resources (API needs 1Gi for ML model)" -ForegroundColor Gray
+Write-Host "   3. Scheduled Shutdown: Scripts ready for automation ✅ READY" -ForegroundColor Gray
+Write-Host "   4. Model Optimization: Switched to 8B model (3-5x faster) ✅ DEPLOYED" -ForegroundColor Gray
+Write-Host "   5. Image Cleanup: Removed obsolete ACR images ✅ COMPLETED" -ForegroundColor Gray
 Write-Host ""
 Write-Host "💰 Expected Monthly Savings:" -ForegroundColor Yellow
 Write-Host "   Before: ~$52.56/month (24/7 operation)" -ForegroundColor Red

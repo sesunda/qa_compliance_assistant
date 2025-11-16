@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
+from api.src.utils.datetime_utils import now_sgt
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy import desc
 
@@ -50,7 +51,7 @@ class ConversationManager:
         
         # Generate default title if not provided
         if not title:
-            title = f"Conversation {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+            title = f"Conversation {now_sgt().strftime('%Y-%m-%d %H:%M')}"
         
         db_session = ConversationSession(
             session_id=session_id,
@@ -107,7 +108,7 @@ class ConversationManager:
         message = {
             "role": role,
             "content": content,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": now_sgt().isoformat(),
             "task_id": task_id,
             "tool_calls": tool_calls
         }
@@ -119,7 +120,7 @@ class ConversationManager:
         # Update session - IMPORTANT: flag_modified needed for JSONB updates
         session.messages = messages
         flag_modified(session, "messages")
-        session.last_activity = datetime.now(timezone.utc)
+        session.last_activity = now_sgt()
         
         self.db.commit()
         self.db.refresh(session)
@@ -143,7 +144,7 @@ class ConversationManager:
         
         session.context = current_context
         flag_modified(session, "context")
-        session.last_activity = datetime.now(timezone.utc)
+        session.last_activity = now_sgt()
         
         self.db.commit()
         self.db.refresh(session)
@@ -158,7 +159,7 @@ class ConversationManager:
             raise ValueError(f"Session {session_id} not found")
         
         session.active = False
-        session.last_activity = datetime.now(timezone.utc)
+        session.last_activity = now_sgt()
         
         self.db.commit()
         self.db.refresh(session)

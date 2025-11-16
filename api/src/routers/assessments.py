@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime
+from api.src.utils.datetime_utils import now_sgt
 
 from api.src.database import get_db
 from api.src.auth import get_current_user, require_admin
@@ -328,7 +329,7 @@ async def update_progress(
         assessment.status = "in_progress"
     else:
         assessment.status = "completed"
-        assessment.completed_at = datetime.utcnow()
+        assessment.completed_at = now_sgt()
     
     db.commit()
     
@@ -509,7 +510,7 @@ async def complete_assessment(
         )
     
     assessment.status = "completed"
-    assessment.completed_at = datetime.utcnow()
+    assessment.completed_at = now_sgt()
     assessment.progress_percentage = 100
     
     db.commit()

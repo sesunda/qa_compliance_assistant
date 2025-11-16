@@ -556,6 +556,7 @@ async def handle_create_findings_task(task_id: int, payload: Dict[str, Any], db:
     from api.src.services.llm_service import get_llm_service
     from api.src.models import Finding
     from datetime import datetime, timedelta
+from api.src.utils.datetime_utils import now_sgt
     
     logger.info(f"Create findings task {task_id} started")
     await update_progress(task_id, 10, "Initializing LLM service...")
@@ -604,9 +605,9 @@ async def handle_create_findings_task(task_id: int, payload: Dict[str, Any], db:
                 remediation=finding_data.get("remediation"),
                 priority=finding_data.get("priority", severity),
                 assigned_to=assigned_to,
-                due_date=datetime.utcnow() + timedelta(days=due_days),
+                due_date=now_sgt() + timedelta(days=due_days),
                 resolution_status="open",
-                created_at=datetime.utcnow()
+                created_at=now_sgt()
             )
             db.add(finding)
             created_findings.append(finding_data.get("title"))

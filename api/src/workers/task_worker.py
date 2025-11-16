@@ -7,6 +7,7 @@ without blocking API requests.
 import asyncio
 import logging
 from datetime import datetime
+from api.src.utils.datetime_utils import now_sgt
 from typing import Dict, Any, Callable, Optional
 from sqlalchemy.orm import Session
 
@@ -132,8 +133,8 @@ class TaskWorker:
                 return
             
             task.status = TaskStatus.RUNNING.value
-            task.started_at = datetime.utcnow()
-            task.updated_at = datetime.utcnow()
+            task.started_at = now_sgt()
+            task.updated_at = now_sgt()
             db.commit()
             
             logger.info(f"Executing task {task_id} (type: {task_type})")
@@ -164,8 +165,8 @@ class TaskWorker:
             
             task.progress = 100
             task.result = result
-            task.completed_at = datetime.utcnow()
-            task.updated_at = datetime.utcnow()
+            task.completed_at = now_sgt()
+            task.updated_at = now_sgt()
             db.commit()
         
         except asyncio.CancelledError:
@@ -174,8 +175,8 @@ class TaskWorker:
             task = db.query(AgentTask).filter(AgentTask.id == task_id).first()
             if task:
                 task.status = TaskStatus.CANCELLED.value
-                task.completed_at = datetime.utcnow()
-                task.updated_at = datetime.utcnow()
+                task.completed_at = now_sgt()
+                task.updated_at = now_sgt()
                 db.commit()
             raise
         
@@ -186,8 +187,8 @@ class TaskWorker:
             if task:
                 task.status = TaskStatus.FAILED.value
                 task.error_message = str(e)
-                task.completed_at = datetime.utcnow()
-                task.updated_at = datetime.utcnow()
+                task.completed_at = now_sgt()
+                task.updated_at = now_sgt()
                 db.commit()
         
         finally:
@@ -207,7 +208,7 @@ class TaskWorker:
             task = db.query(AgentTask).filter(AgentTask.id == task_id).first()
             if task:
                 task.progress = max(0, min(100, progress))
-                task.updated_at = datetime.utcnow()
+                task.updated_at = now_sgt()
                 if message and task.result:
                     # Add progress message to result
                     if isinstance(task.result, dict):

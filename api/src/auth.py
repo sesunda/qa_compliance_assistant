@@ -1,7 +1,8 @@
 """Authentication and authorization utilities"""
 
 from datetime import datetime, timedelta
-from typing import Optional, List
+from typing import Optional, Dict
+from api.src.utils.datetime_utils import now_sgt, SGT
 import hashlib
 from jose import JWTError, jwt
 from fastapi import HTTPException, status, Depends
@@ -34,9 +35,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """Create a JWT access token"""
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = now_sgt() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = now_sgt() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)

@@ -87,7 +87,7 @@ class IM8ExcelProcessor:
             "evidence_type": "im8_assessment_document",
             "framework": "IM8",
             "filename": filename,
-            "parsed_at": datetime.utcnow().isoformat(),
+            "parsed_at": now_sgt().isoformat(),
             "metadata": metadata,
             "domains": [domain_1, domain_2],
             "reference_policies": reference_policies,

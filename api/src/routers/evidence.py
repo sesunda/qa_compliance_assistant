@@ -14,6 +14,7 @@ from api.src.database import get_db
 from api.src.services.evidence_storage import evidence_storage_service
 from api.src.services.excel_processor import get_excel_processor
 from api.src.services.im8_validator import get_im8_validator
+from api.src.utils.datetime_utils import now_sgt
 
 
 router = APIRouter(prefix="/evidence", tags=["evidence"])
@@ -97,7 +98,7 @@ async def upload_evidence(
             parsed_data["validation"] = {
                 "is_valid": is_valid,
                 "errors": validation_errors,
-                "validated_at": datetime.utcnow().isoformat()
+                "validated_at": now_sgt().isoformat()
             }
             
             # Store parsed data in metadata_json
@@ -115,7 +116,7 @@ async def upload_evidence(
             metadata_json = {
                 "evidence_type": "im8_assessment_document",
                 "processing_error": str(e),
-                "processed_at": datetime.utcnow().isoformat()
+                "processed_at": now_sgt().isoformat()
             }
 
     db_evidence = models.Evidence(
@@ -338,7 +339,7 @@ def approve_evidence(
     db_evidence.verification_status = 'approved'
     db_evidence.verified = True
     db_evidence.reviewed_by = current_user["id"]
-    db_evidence.reviewed_at = datetime.utcnow()
+    db_evidence.reviewed_at = now_sgt()
     if request.comments:
         db_evidence.review_comments = request.comments
 
@@ -374,7 +375,7 @@ def reject_evidence(
     db_evidence.verification_status = 'rejected'
     db_evidence.verified = False
     db_evidence.reviewed_by = current_user["id"]
-    db_evidence.reviewed_at = datetime.utcnow()
+    db_evidence.reviewed_at = now_sgt()
     db_evidence.review_comments = request.comments
 
     db.commit()

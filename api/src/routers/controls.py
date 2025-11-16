@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime
+from api.src.utils.datetime_utils import now_sgt
 from api.src.database import get_db
 from api.src import models, schemas
 from api.src.auth import get_current_user, require_auditor, require_viewer, check_agency_access
@@ -148,7 +149,7 @@ async def test_control(
         )
     
     # Update control testing information
-    control.last_tested_at = datetime.utcnow()
+    control.last_tested_at = now_sgt()
     control.review_status = test_data.test_result  # passed, failed, not_applicable
     control.reviewed_by = current_user["id"]
     
@@ -206,7 +207,7 @@ async def review_control(
         if not control.metadata_json:
             control.metadata_json = {}
         control.metadata_json["review_notes"] = review_data.review_notes
-        control.metadata_json["reviewed_at"] = datetime.utcnow().isoformat()
+        control.metadata_json["reviewed_at"] = now_sgt().isoformat()
     
     db.commit()
     

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 from typing import Optional
 from datetime import datetime, timedelta
+from api.src.utils.datetime_utils import now_sgt
 
 from api.src.database import get_db
 from api.src.auth import get_current_user, require_admin
@@ -92,7 +93,7 @@ async def get_dashboard_metrics(
     
     # Overdue Findings
     overdue_findings = findings_query.filter(
-        Finding.due_date < datetime.utcnow(),
+        Finding.due_date < now_sgt(),
         Finding.resolution_status.notin_(["resolved", "validated", "closed"])
     ).count()
     
@@ -122,7 +123,7 @@ async def get_dashboard_metrics(
     ).count()
     
     # Recent Activity (last 30 days)
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    thirty_days_ago = now_sgt() - timedelta(days=30)
     
     recent_assessments = db.query(Assessment).filter(
         Assessment.agency_id == agency_id,
@@ -198,7 +199,7 @@ async def get_assessment_trends(
     user = db.query(User).filter(User.id == current_user["id"]).first()
     agency_id = user.agency_id
     
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = now_sgt() - timedelta(days=days)
     
     # Assessments created per day
     created_trends = db.query(
@@ -235,7 +236,7 @@ async def get_finding_trends(
     user = db.query(User).filter(User.id == current_user["id"]).first()
     agency_id = user.agency_id
     
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = now_sgt() - timedelta(days=days)
     
     # Findings created per day
     created_trends = db.query(
@@ -328,14 +329,14 @@ async def get_control_testing_stats(
     ).count()
     
     # Tested in last 30 days
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    thirty_days_ago = now_sgt() - timedelta(days=30)
     recently_tested = db.query(Control).filter(
         Control.agency_id == agency_id,
         Control.last_tested_at >= thirty_days_ago
     ).count()
     
     # Tested in last 90 days
-    ninety_days_ago = datetime.utcnow() - timedelta(days=90)
+    ninety_days_ago = now_sgt() - timedelta(days=90)
     tested_90_days = db.query(Control).filter(
         Control.agency_id == agency_id,
         Control.last_tested_at >= ninety_days_ago
@@ -395,16 +396,16 @@ async def get_my_workload(
     # Overdue findings
     my_overdue = db.query(Finding).join(Assessment).filter(
         Finding.assigned_to == current_user["id"],
-        Finding.due_date < datetime.utcnow(),
+        Finding.due_date < now_sgt(),
         Finding.resolution_status.in_(["open", "in_progress"])
     ).count()
     
     # Findings due soon (next 7 days)
-    seven_days = datetime.utcnow() + timedelta(days=7)
+    seven_days = now_sgt() + timedelta(days=7)
     due_soon = db.query(Finding).join(Assessment).filter(
         Finding.assigned_to == current_user["id"],
         Finding.due_date <= seven_days,
-        Finding.due_date >= datetime.utcnow(),
+        Finding.due_date >= now_sgt(),
         Finding.resolution_status.in_(["open", "in_progress"])
     ).count()
     

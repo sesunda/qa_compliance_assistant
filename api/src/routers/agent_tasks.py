@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from typing import Optional, List
 from datetime import datetime
+from api.src.utils.datetime_utils import now_sgt
 
 from api.src.database import get_db
 from api.src.models import AgentTask, User
@@ -197,8 +198,8 @@ def cancel_agent_task(
         )
     
     task.status = TaskStatus.CANCELLED.value
-    task.updated_at = datetime.utcnow()
-    task.completed_at = datetime.utcnow()
+    task.updated_at = now_sgt()
+    task.completed_at = now_sgt()
     
     db.commit()
     db.refresh(task)
@@ -240,7 +241,7 @@ def update_agent_task(
     if task_update.status is not None:
         task.status = task_update.status
         if task_update.status in [TaskStatus.COMPLETED.value, TaskStatus.FAILED.value, TaskStatus.CANCELLED.value]:
-            task.completed_at = datetime.utcnow()
+            task.completed_at = now_sgt()
     
     if task_update.progress is not None:
         task.progress = task_update.progress
@@ -251,7 +252,7 @@ def update_agent_task(
     if task_update.error_message is not None:
         task.error_message = task_update.error_message
     
-    task.updated_at = datetime.utcnow()
+    task.updated_at = now_sgt()
     
     db.commit()
     db.refresh(task)

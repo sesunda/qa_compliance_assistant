@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime, timedelta
+from api.src.utils.datetime_utils import now_sgt
 
 from api.src.database import get_db
 from api.src.auth import get_current_user, require_admin
@@ -85,7 +86,7 @@ async def create_finding(
         risk_rating=finding_data.risk_rating,
         affected_systems=finding_data.affected_systems,
         remediation_recommendation=finding_data.remediation_recommendation,
-        due_date=finding_data.due_date or (datetime.utcnow() + timedelta(days=30)),
+        due_date=finding_data.due_date or (now_sgt() + timedelta(days=30)),
         metadata_json=finding_data.metadata or {}
     )
     
@@ -348,7 +349,7 @@ async def resolve_finding(
     
     finding.resolution_status = "resolved"
     finding.resolved_by = current_user["id"]
-    finding.resolved_at = datetime.utcnow()
+    finding.resolved_at = now_sgt()
     finding.remediation_notes = resolution.remediation_notes
     
     # Add resolution comment
@@ -408,7 +409,7 @@ async def validate_finding(
     if validation.approved:
         finding.resolution_status = "validated"
         finding.validated_by = current_user["id"]
-        finding.validated_at = datetime.utcnow()
+        finding.validated_at = now_sgt()
         comment_text = f"Finding validated: {validation.validation_notes or 'Approved'}"
     else:
         # Reject validation, send back to in_progress
@@ -467,7 +468,7 @@ async def mark_false_positive(
     finding.false_positive = True
     finding.resolution_status = "closed"
     finding.validated_by = current_user["id"]
-    finding.validated_at = datetime.utcnow()
+    finding.validated_at = now_sgt()
     
     # Add comment
     comment = FindingComment(
