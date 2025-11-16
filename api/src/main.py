@@ -27,6 +27,10 @@ async def lifespan(app: FastAPI):
     Starts the background task worker on startup and stops it on shutdown.
     """
     # Startup
+    logger.info("Starting async database...")
+    from api.src.db.async_database import async_db
+    await async_db.connect()
+    
     logger.info("Starting background task worker...")
     worker = get_worker()
     
@@ -49,6 +53,9 @@ async def lifespan(app: FastAPI):
         await worker_task
     except asyncio.CancelledError:
         pass
+    
+    logger.info("Closing async database...")
+    await async_db.disconnect()
     
     logger.info("Application shutdown complete")
 

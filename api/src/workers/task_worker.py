@@ -102,40 +102,38 @@ class TaskWorker:
         logger.info("All tasks completed")
     
     async def _listen_for_notifications(self):
-        """Listen for PostgreSQL NOTIFY events for immediate task processing"""
-        import psycopg2
-        import select
-        from api.src.database import engine
+        """Listen for PostgreSQL NOTIFY events using asyncpg with auto-reconnect"""
+        from api.src.db.async_database import async_db
         
-        try:
-            # Get raw psycopg2 connection for LISTEN
-            raw_conn = engine.raw_connection()
-            raw_conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-            cursor = raw_conn.cursor()
-            cursor.execute("LISTEN new_task")
-            logger.info("Started listening for PostgreSQL NOTIFY on 'new_task' channel")
-            
-            while self.is_running:
-                # Check for notifications with timeout
-                if select.select([raw_conn], [], [], 1) == ([], [], []):
-                    continue
-                    
-                raw_conn.poll()
-                while raw_conn.notifies:
-                    notify = raw_conn.notifies.pop(0)
-                    task_id = notify.payload
-                    logger.info(f"Received NOTIFY for task {task_id}")
-                    await self.notification_queue.put(task_id)
-                    
-        except Exception as e:
-            logger.error(f"NOTIFY listener error: {e}", exc_info=True)
-        finally:
+        while self.is_running:
             try:
-                cursor.close()
-                raw_conn.close()
-            except:
-                pass
-            logger.info("NOTIFY listener stopped")
+                conn = await async_db.get_listen_connection()
+                
+                async def notification_handler(connection, pid, channel, payload):
+                    logger.info(f"Received NOTIFY on '{channel}': task {payload}")
+                    await self.notification_queue.put(payload)
+                
+                await conn.add_listener('new_task', notification_handler)
+                logger.info("Started listening for PostgreSQL NOTIFY on 'new_task' channel")
+                
+                # Keep connection alive with periodic health checks
+                while self.is_running:
+                    await asyncio.sleep(30)
+                    try:
+                        await conn.execute("SELECT 1")
+                        logger.debug("LISTEN connection healthy")
+                    except Exception as e:
+                        logger.warning(f"LISTEN connection check failed: {e}")
+                        break
+                        
+            except asyncio.CancelledError:
+                logger.info("NOTIFY listener cancelled")
+                break
+            except Exception as e:
+                logger.error(f"NOTIFY listener error: {e}. Reconnecting in 5s...", exc_info=True)
+                await asyncio.sleep(5)
+        
+        logger.info("NOTIFY listener stopped")
     
     async def _process_pending_tasks(self):
         """Poll database for pending tasks and start processing them"""
