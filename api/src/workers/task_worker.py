@@ -92,12 +92,19 @@ class TaskWorker:
             # Check if we can take on more tasks
             available_slots = self.max_concurrent_tasks - len(self.running_tasks)
             if available_slots <= 0:
+                logger.debug(f"Worker at capacity: {len(self.running_tasks)}/{self.max_concurrent_tasks} tasks running")
                 return
             
             # Get pending tasks
             pending_tasks = db.query(AgentTask).filter(
                 AgentTask.status == TaskStatus.PENDING.value
             ).order_by(AgentTask.created_at.asc()).limit(available_slots).all()
+            
+            # Log polling activity
+            if pending_tasks:
+                logger.info(f"Polling: Found {len(pending_tasks)} pending task(s), {len(self.running_tasks)} currently running")
+            else:
+                logger.debug(f"Polling: No pending tasks, {len(self.running_tasks)} currently running")
             
             # Start processing each pending task
             for task in pending_tasks:
