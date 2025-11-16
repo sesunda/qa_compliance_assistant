@@ -57,15 +57,15 @@ const AgentTasksPage: React.FC = () => {
   // Load tasks and stats
   const loadData = async () => {
     try {
-      const [tasksData, statsData] = await Promise.all([
-        agentTasksService.getAll({
-          status: filterStatus || undefined,
-          task_type: filterType || undefined,
-        }),
-        agentTasksService.getStats(),
-      ]);
-      setTasks(Array.isArray(tasksData.tasks) ? tasksData.tasks : []);
+      // Load stats first, then tasks (sequential to avoid race conditions on first load)
+      const statsData = await agentTasksService.getStats();
       setStats(statsData);
+      
+      const tasksData = await agentTasksService.getAll({
+        status: filterStatus || undefined,
+        task_type: filterType || undefined,
+      });
+      setTasks(Array.isArray(tasksData.tasks) ? tasksData.tasks : []);
       setError(null);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load tasks');
