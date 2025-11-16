@@ -24,7 +24,7 @@ class AgenticAssistant:
     
     def __init__(self):
         # Detect which provider to use
-        self.provider = os.getenv("LLM_PROVIDER", "github")  # groq, github, openai
+        self.provider = os.getenv("LLM_PROVIDER", "groq")  # groq, github, openai
         
         if self.provider == "github":
             # GitHub Models (free tier)
