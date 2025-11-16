@@ -24,7 +24,7 @@ class AgenticAssistant:
     
     def __init__(self):
         # Detect which provider to use
-        self.provider = os.getenv("LLM_PROVIDER", "groq")  # groq, github, openai
+        self.provider = os.getenv("LLM_PROVIDER", "github")  # groq, github, openai
         
         if self.provider == "github":
             # GitHub Models (free tier)
@@ -48,8 +48,8 @@ class AgenticAssistant:
             
         else:  # groq (default)
             self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-            # Use mixtral-8x7b-32768 for fast and reliable function calling
-            self.model = "mixtral-8x7b-32768"
+            # Use llama-3.3-70b-versatile - Production model with tool use support
+            self.model = "llama-3.3-70b-versatile"
             logger.info(f"Using Groq with {self.model}")
         
         # Define ALL tools (will be filtered by role at runtime)
