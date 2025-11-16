@@ -58,7 +58,7 @@ class AgenticAssistant:
                 "type": "function",
                 "function": {
                     "name": "upload_evidence",
-                    "description": "Upload compliance evidence document for a control. Use when user HAS attached a file and wants to submit audit reports, assessment documents, or evidence files. This tool handles the complete upload including file storage. Required: file_path from attached file.",
+                    "description": "Upload compliance evidence document for a control. ONLY call this tool when: (1) User HAS explicitly provided title, description, and evidence_type, (2) User HAS attached a file or provided file_path, (3) User HAS confirmed to proceed. DO NOT call with placeholder values like 'path_to_your_file' or default descriptions. If user just says 'upload evidence' without details, ASK for details instead of calling this tool.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -848,6 +848,22 @@ As an analyst, you can:
    You can:
    - Attach file directly in this chat (click 📎 attachment icon)
    - Upload via Evidence tab (I'll guide you to the right page)
+   
+   ⚠️ CRITICAL: DO NOT proceed to Step 4 or call upload_evidence tool until:
+   1. User has explicitly provided all required details (title, description, evidence_type)
+   2. User has confirmed file attachment or file path
+   3. User has given explicit confirmation to proceed (e.g., "yes", "proceed", "upload")
+   
+   ❌ NEVER call upload_evidence with placeholder values like:
+   - file_path: "path_to_your_file"
+   - title: "Evidence document"
+   - description from control definition
+   
+   If user just repeats "Upload evidence for Control 5" without providing details:
+   - ASK again for the missing information
+   - DO NOT create any tasks
+   - DO NOT call upload_evidence
+   - WAIT for user to provide actual file and details
    - Provide file path if already in system storage"
    
    **Step 4: Optional Metadata**
@@ -937,12 +953,13 @@ As an analyst, you can:
       The tool result MUST contain evidence_ids array: {"evidence_ids": [8], "status": "success", ...}
       If evidence_ids is missing or empty, respond: "❌ Evidence upload failed. The system did not return a valid evidence ID. Please try uploading again."
       
-      ABSOLUTE RULE: NEVER mention an evidence ID number in your response unless you extract it from tool_result["evidence_ids"][0]
+      ABSOLUTE RULE: NEVER mention an evidence ID number in your response unless you extract it from tool_result["evidence_ids"][0] or tool_result["CREATED_EVIDENCE_ID"]
       DO NOT say "Evidence #41" or "Evidence ID: 41" unless 41 is literally in the evidence_ids array you received.
+      ⚠️ CRITICAL: Check tool_result["CREATED_EVIDENCE_ID"] field - this is the EXACT evidence ID created, do NOT make up a different number!
       If unsure, say "Evidence record created" without mentioning a specific ID number.
       
       Return: "✅ Evidence uploaded successfully! 
-      - Evidence ID: {evidence_ids[0]} (from tool result - MUST be present)
+      - Evidence ID: #{CREATED_EVIDENCE_ID} (MUST be exact value from tool result - verify this number!)
       - Control: {control_name} ({control_id})
       - Title: {title}
       - File: {filename} ({file_size})
@@ -1391,6 +1408,34 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
         
         # Validation for upload_evidence, request_evidence_upload, fetch_evidence
         elif function_name in ["upload_evidence", "request_evidence_upload", "fetch_evidence"]:
+            # CRITICAL: Prevent placeholder/default values for upload_evidence
+            if function_name == "upload_evidence":
+                # Check for placeholder file paths
+                file_path = args.get("file_path", "")
+                if not file_path or file_path in ["path_to_your_file", "path/to/file", "", "file_path"]:
+                    return {
+                        "valid": False,
+                        "error": "Invalid or placeholder file_path provided",
+                        "suggestion": "User must attach a file first. Ask user to attach the evidence file before calling upload_evidence."
+                    }
+                
+                # Check for default/placeholder titles
+                title = args.get("title", "")
+                if title in ["Evidence document", "Document", "", "evidence", "file"]:
+                    return {
+                        "valid": False,
+                        "error": "Generic or placeholder title provided",
+                        "suggestion": "Ask user for a specific, descriptive title for the evidence (e.g., 'MFA Policy v2.1', 'Access Control Audit Report Q4')"
+                    }
+                
+                # Require explicit evidence_type
+                if not args.get("evidence_type"):
+                    return {
+                        "valid": False,
+                        "error": "Evidence type is required",
+                        "suggestion": "Ask user to specify evidence type: policy_document, audit_report, configuration_screenshot, log_file, certificate, procedure, or test_result"
+                    }
+            
             # Check control_id exists and belongs to user's agency
             if args.get("control_id"):
                 from api.src.models import Control
@@ -1780,6 +1825,14 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
             if isinstance(task.result, dict):
                 result.update(task.result)
                 logger.info(f"Task {task.id} merged result: {result}")
+                
+                # CRITICAL: For evidence uploads, explicitly log the evidence IDs to prevent LLM hallucination
+                if function_name in ("upload_evidence", "fetch_evidence") and "evidence_ids" in result:
+                    evidence_ids = result["evidence_ids"]
+                    logger.warning(f"⚠️ EVIDENCE UPLOAD RESULT - Task {task.id}: Created Evidence IDs: {evidence_ids} - LLM MUST use these exact IDs, NOT make up numbers!")
+                    # Add redundant field to make it crystal clear
+                    result["CREATED_EVIDENCE_ID"] = evidence_ids[0] if evidence_ids else None
+                    result["TOTAL_EVIDENCE_COUNT"] = len(evidence_ids)
             else:
                 logger.warning(f"Task {task.id} result is not a dict: {type(task.result)}")
         else:
@@ -1791,4 +1844,5 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
             result["message"] = f"Task {task.id} timed out - evidence may not be ready"
         
         return result
+
 
