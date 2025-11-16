@@ -42,7 +42,7 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
         )
     
     # Update last login
-    from datetime import datetime
+    from api.src.utils.datetime_utils import now_sgt
     user.last_login = now_sgt()
     db.commit()
     
