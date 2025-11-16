@@ -1,7 +1,7 @@
 """Authentication and authorization utilities"""
 
 from datetime import datetime, timedelta
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from api.src.utils.datetime_utils import now_sgt
 import hashlib
 from jose import JWTError, jwt
