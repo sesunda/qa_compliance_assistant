@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Bool
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from api.src.database import Base
+from api.src.utils.datetime_utils import now_sgt
 
 
 class UserRole(Base):
@@ -11,7 +12,7 @@ class UserRole(Base):
     name = Column(String(50), unique=True, nullable=False)  # admin, auditor, analyst, viewer
     description = Column(Text)
     permissions = Column(JSON)  # Store permissions as JSON
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_sgt)
     
     users = relationship("User", back_populates="role")
 
@@ -29,8 +30,8 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
     last_login = Column(DateTime)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_sgt)
+    updated_at = Column(DateTime, default=now_sgt, onupdate=now_sgt)
     
     agency = relationship("Agency", back_populates="users")
     role = relationship("UserRole", back_populates="users")
@@ -46,8 +47,8 @@ class Project(Base):
     project_type = Column(String(100), default="compliance_assessment")
     status = Column(String(50), default="active")
     start_date = Column(Date, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_sgt)
+    updated_at = Column(DateTime, default=now_sgt, onupdate=now_sgt)
     
     controls = relationship("Control", back_populates="project", cascade="all, delete-orphan")
     agency = relationship("Agency", back_populates="projects")
@@ -63,8 +64,8 @@ class Control(Base):
     description = Column(Text)
     control_type = Column(String(100))
     status = Column(String(50), default="pending")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_sgt)
+    updated_at = Column(DateTime, default=now_sgt, onupdate=now_sgt)
     
     # New workflow fields
     reviewed_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
@@ -114,8 +115,8 @@ class Evidence(Base):
     reviewed_at = Column(DateTime)
     review_comments = Column(Text)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_sgt)
+    updated_at = Column(DateTime, default=now_sgt, onupdate=now_sgt)
     
     control = relationship("Control", back_populates="evidence_items")
     uploader = relationship("User", foreign_keys=[uploaded_by])
@@ -131,7 +132,7 @@ class Report(Base):
     title = Column(String(255), nullable=False)
     content = Column(Text)
     report_type = Column(String(100))
-    generated_at = Column(DateTime, default=datetime.utcnow)
+    generated_at = Column(DateTime, default=now_sgt)
     file_path = Column(String(500))
 
 
@@ -144,7 +145,7 @@ class Agency(Base):
     description = Column(Text)
     contact_email = Column(String(255))
     active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_sgt)
     
     users = relationship("User", back_populates="agency")
     projects = relationship("Project", back_populates="agency")
@@ -162,7 +163,7 @@ class Assessment(Base):
     scope = Column(Text)
     metadata_json = Column('metadata', JSON)
     status = Column(String(50), default="open", index=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_sgt)
     
     # New workflow fields
     assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -194,7 +195,7 @@ class Finding(Base):
     cvss = Column(String(20))
     remediation = Column(Text)
     evidence = Column(JSON)  # list of evidence ids or metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_sgt)
     
     # New workflow fields
     resolution_status = Column(String(50), default="open", nullable=False, index=True)
@@ -268,8 +269,8 @@ class ControlCatalog(Base):
     approved_domain_id = Column(Integer, ForeignKey("im8_domain_areas.id"), nullable=True)
     approved_by = Column(String(255), nullable=True)
     approved_at = Column(DateTime)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_sgt)
+    updated_at = Column(DateTime, default=now_sgt, onupdate=now_sgt)
 
 
 class AgentTask(Base):
@@ -285,8 +286,8 @@ class AgentTask(Base):
     result = Column(JSON, nullable=True)
     error_message = Column(Text, nullable=True)
     progress = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_sgt)
+    updated_at = Column(DateTime, default=now_sgt, onupdate=now_sgt)
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
     
@@ -302,8 +303,8 @@ class ConversationSession(Base):
     title = Column(String(500), nullable=True)
     messages = Column(JSON, nullable=False, default=list)  # List of message dicts
     context = Column(JSON, nullable=True)  # Store extracted entities, control IDs, etc
-    created_at = Column(DateTime, default=datetime.utcnow)
-    last_activity = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=now_sgt)
+    last_activity = Column(DateTime, default=now_sgt, onupdate=now_sgt, index=True)
     active = Column(Boolean, default=True, index=True)
     
     user = relationship("User", foreign_keys=[user_id])
@@ -320,7 +321,7 @@ class AssessmentControl(Base):
     testing_status = Column(String(50), default="pending", nullable=False, index=True)
     # Values: pending, in_progress, completed, passed, failed
     testing_priority = Column(Integer, nullable=True)  # 1=highest priority
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=now_sgt, nullable=False)
     
     # Relationships
     assessment = relationship("Assessment", back_populates="controls")
@@ -336,7 +337,7 @@ class FindingComment(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     comment_text = Column(Text, nullable=False)
     comment_type = Column(String(50), nullable=True)  # update, resolution, validation, general
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=now_sgt, nullable=False)
     
     # Relationships
     finding = relationship("Finding", back_populates="comments")
