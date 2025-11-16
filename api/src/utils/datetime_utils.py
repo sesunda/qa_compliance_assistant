@@ -1,9 +1,10 @@
 """Datetime utilities for Singapore timezone (SGT)"""
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
+import pytz
 
-# Singapore timezone is UTC+8
-SGT = timezone(timedelta(hours=8))
+# Singapore timezone
+SGT = pytz.timezone('Asia/Singapore')
 
 
 def now_sgt() -> datetime:
@@ -15,7 +16,7 @@ def utc_to_sgt(dt: datetime) -> datetime:
     """Convert UTC datetime to Singapore timezone"""
     if dt.tzinfo is None:
         # Assume UTC if naive
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = pytz.utc.localize(dt)
     return dt.astimezone(SGT)
 
 
@@ -23,5 +24,5 @@ def sgt_to_utc(dt: datetime) -> datetime:
     """Convert Singapore timezone to UTC"""
     if dt.tzinfo is None:
         # Assume SGT if naive
-        dt = dt.replace(tzinfo=SGT)
-    return dt.astimezone(timezone.utc)
+        dt = SGT.localize(dt)
+    return dt.astimezone(pytz.utc)

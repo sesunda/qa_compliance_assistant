@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 from typing import Optional, Dict
-from api.src.utils.datetime_utils import now_sgt, SGT
+from api.src.utils.datetime_utils import now_sgt
 import hashlib
 from jose import JWTError, jwt
 from fastapi import HTTPException, status, Depends
