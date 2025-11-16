@@ -1804,6 +1804,15 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
         db.commit()
         db.refresh(task)
         
+        # Send notification to task worker for immediate processing
+        try:
+            from sqlalchemy import text
+            db.execute(text(f"NOTIFY new_task, '{task.id}'"))
+            db.commit()
+            logger.info(f"Sent NOTIFY for task {task.id}")
+        except Exception as e:
+            logger.warning(f"Failed to send NOTIFY for task {task.id}: {e}")
+        
         logger.info(f"Created task {task.id} for tool {function_name}")
         
         # Wait for task to complete (max 60 seconds for file operations)

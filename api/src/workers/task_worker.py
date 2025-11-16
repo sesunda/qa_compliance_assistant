@@ -6,6 +6,7 @@ without blocking API requests.
 """
 import asyncio
 import logging
+import time
 from datetime import datetime
 from api.src.utils.datetime_utils import now_sgt
 from typing import Dict, Any, Callable, Optional
@@ -39,6 +40,8 @@ class TaskWorker:
         self.task_handlers: Dict[str, Callable] = {}
         self.running_tasks: Dict[int, asyncio.Task] = {}
         self.is_running = False
+        self.listen_task = None
+        self.notification_queue = asyncio.Queue()
         
     def register_handler(self, task_type: str, handler: Callable):
         """
@@ -56,8 +59,21 @@ class TaskWorker:
         self.is_running = True
         logger.info("Task worker started")
         
+        # Start NOTIFY listener in background
+        self.listen_task = asyncio.create_task(self._listen_for_notifications())
+        
         try:
             while self.is_running:
+                # Check for notifications first (immediate processing)
+                try:
+                    while not self.notification_queue.empty():
+                        task_id = await asyncio.wait_for(self.notification_queue.get(), timeout=0.1)
+                        logger.info(f"Processing notified task {task_id}")
+                        await self._process_pending_tasks()
+                except asyncio.TimeoutError:
+                    pass
+                
+                # Then do regular polling (fallback)
                 await self._process_pending_tasks()
                 await asyncio.sleep(self.poll_interval)
         except Exception as e:
@@ -70,12 +86,56 @@ class TaskWorker:
         logger.info("Stopping task worker...")
         self.is_running = False
         
+        # Cancel listener task
+        if self.listen_task:
+            self.listen_task.cancel()
+            try:
+                await self.listen_task
+            except asyncio.CancelledError:
+                pass
+        
         # Wait for running tasks to complete
         if self.running_tasks:
             logger.info(f"Waiting for {len(self.running_tasks)} tasks to complete...")
             await asyncio.gather(*self.running_tasks.values(), return_exceptions=True)
         
         logger.info("All tasks completed")
+    
+    async def _listen_for_notifications(self):
+        """Listen for PostgreSQL NOTIFY events for immediate task processing"""
+        import psycopg2
+        import select
+        from api.src.database import engine
+        
+        try:
+            # Get raw psycopg2 connection for LISTEN
+            raw_conn = engine.raw_connection()
+            raw_conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+            cursor = raw_conn.cursor()
+            cursor.execute("LISTEN new_task")
+            logger.info("Started listening for PostgreSQL NOTIFY on 'new_task' channel")
+            
+            while self.is_running:
+                # Check for notifications with timeout
+                if select.select([raw_conn], [], [], 1) == ([], [], []):
+                    continue
+                    
+                raw_conn.poll()
+                while raw_conn.notifies:
+                    notify = raw_conn.notifies.pop(0)
+                    task_id = notify.payload
+                    logger.info(f"Received NOTIFY for task {task_id}")
+                    await self.notification_queue.put(task_id)
+                    
+        except Exception as e:
+            logger.error(f"NOTIFY listener error: {e}", exc_info=True)
+        finally:
+            try:
+                cursor.close()
+                raw_conn.close()
+            except:
+                pass
+            logger.info("NOTIFY listener stopped")
     
     async def _process_pending_tasks(self):
         """Poll database for pending tasks and start processing them"""
@@ -96,15 +156,20 @@ class TaskWorker:
                 return
             
             # Get pending tasks
+            query_start = time.time()
             pending_tasks = db.query(AgentTask).filter(
                 AgentTask.status == TaskStatus.PENDING.value
             ).order_by(AgentTask.created_at.asc()).limit(available_slots).all()
+            query_time = time.time() - query_start
             
-            # Log polling activity
+            # Log polling activity with query performance
             if pending_tasks:
-                logger.info(f"Polling: Found {len(pending_tasks)} pending task(s), {len(self.running_tasks)} currently running")
+                logger.info(f"Polling: Found {len(pending_tasks)} pending task(s), {len(self.running_tasks)} currently running (query: {query_time:.3f}s)")
+                for task in pending_tasks:
+                    age = (now_sgt() - task.created_at).total_seconds()
+                    logger.info(f"  - Task {task.id} created {age:.1f}s ago, status={task.status}")
             else:
-                logger.debug(f"Polling: No pending tasks, {len(self.running_tasks)} currently running")
+                logger.debug(f"Polling: No pending tasks, {len(self.running_tasks)} currently running (query: {query_time:.3f}s)")
             
             # Start processing each pending task
             for task in pending_tasks:
