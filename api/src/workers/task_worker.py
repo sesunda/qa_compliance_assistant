@@ -8,7 +8,7 @@ import asyncio
 import logging
 import time
 from datetime import datetime
-from api.src.utils.datetime_utils import now_sgt
+from api.src.utils.datetime_utils import now_sgt, SGT
 from typing import Dict, Any, Callable, Optional
 from sqlalchemy.orm import Session
 
@@ -164,7 +164,9 @@ class TaskWorker:
             if pending_tasks:
                 logger.info(f"Polling: Found {len(pending_tasks)} pending task(s), {len(self.running_tasks)} currently running (query: {query_time:.3f}s)")
                 for task in pending_tasks:
-                    age = (now_sgt() - task.created_at).total_seconds()
+                    # Add SGT timezone to naive datetime from database
+                    task_created = task.created_at.replace(tzinfo=SGT) if task.created_at.tzinfo is None else task.created_at
+                    age = (now_sgt() - task_created).total_seconds()
                     logger.info(f"  - Task {task.id} created {age:.1f}s ago, status={task.status}")
             else:
                 logger.debug(f"Polling: No pending tasks, {len(self.running_tasks)} currently running (query: {query_time:.3f}s)")
