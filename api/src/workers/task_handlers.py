@@ -1261,4 +1261,5 @@ TASK_HANDLERS = {
     "request_evidence_upload": handle_request_evidence_upload_task,
     "suggest_related_controls": handle_suggest_related_controls_task,
     "submit_evidence_for_review": handle_submit_evidence_for_review_task,
+    "submit_for_review": handle_submit_evidence_for_review_task,  # Alias for AI tool
 }
