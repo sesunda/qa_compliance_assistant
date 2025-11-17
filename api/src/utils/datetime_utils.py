@@ -7,8 +7,8 @@ SGT = timezone(timedelta(hours=8))
 
 
 def now_sgt() -> datetime:
-    """Get current datetime in Singapore timezone (UTC+8)"""
-    return datetime.now(SGT)
+    """Get current datetime in Singapore timezone (UTC+8) as naive datetime"""
+    return datetime.now(SGT).replace(tzinfo=None)
 
 
 def utc_to_sgt(dt: datetime) -> datetime:

@@ -509,6 +509,12 @@ ROLE CAPABILITIES:
 - AUDITOR: Create controls/projects, review evidence, generate reports  
 - VIEWER: Read-only access
 
+EVIDENCE BUSINESS RULES:
+- Evidence is PERMANENTLY BOUND to one Control (immutable binding)
+- Evidence CANNOT be reassigned to a different Control or Project
+- Analyst can submit MULTIPLE evidences per Control until audit closes
+- If user asks to "move" or "reassign" evidence: Explain it's not allowed, guide them to upload NEW evidence for the target Control instead
+
 CORE RULES:
 1. Ask ONE question at a time
 2. Only ask if information is missing AND cannot be obtained from context or tools
@@ -1049,11 +1055,19 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
         function_name: str,
         args: Dict[str, Any],
         db: Session,
-        current_user: Dict[str, Any]
+        current_user: Dict[str, Any],
+        file_path: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Validate tool parameters BEFORE task creation
         Prevents invalid tasks from being created
+        
+        Args:
+            function_name: Name of the tool/function being validated
+            args: Arguments provided by the LLM
+            db: Database session
+            current_user: Current user context
+            file_path: Path to uploaded file (if any) - passed from chat endpoint
         
         Returns:
             Dict with 'valid': bool, 'error': str, 'suggestion': str
@@ -1145,9 +1159,9 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
         elif function_name in ["upload_evidence", "request_evidence_upload", "fetch_evidence"]:
             # CRITICAL: Prevent placeholder/default values for upload_evidence
             if function_name == "upload_evidence":
-                # Check for placeholder file paths
-                file_path = args.get("file_path", "")
-                if not file_path or file_path in ["path_to_your_file", "path/to/file", "", "file_path"]:
+                # Check for placeholder file paths - use actual file_path parameter if provided
+                actual_file_path = file_path or args.get("file_path", "")
+                if not actual_file_path or actual_file_path in ["path_to_your_file", "path/to/file", "", "file_path"]:
                     return {
                         "valid": False,
                         "error": "Invalid or placeholder file_path provided",
@@ -1441,7 +1455,8 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                 }
         
         # VALIDATION: Check parameters before creating task
-        validation_result = self._validate_tool_parameters(function_name, function_args, db, current_user)
+        # Pass file_path to validation so it can properly validate upload_evidence
+        validation_result = self._validate_tool_parameters(function_name, function_args, db, current_user, file_path)
         if not validation_result["valid"]:
             logger.error(f"Tool validation failed for {function_name}: {validation_result['error']}")
             return {

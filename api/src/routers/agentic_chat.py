@@ -193,15 +193,31 @@ async def chat(
                 task_id = task_result.get("task_id")
         
         # Get smart suggestions if conversation ongoing
-        # For now, provide generic suggestions based on whether a task was created
+        # Provide role-aware suggestions based on user permissions
         suggested_responses = []
         if not task_created and not rich_ui:  # Don't show suggestions if rich UI is present
-            # No task created yet - offer helpful next steps
-            suggested_responses = [
-                "Show me recent projects",
-                "Create a new project first",
-                "Use project 1"
-            ]
+            # Role-based suggestions (RBAC-compliant)
+            user_role = current_user.get("role", "").lower()
+            
+            if user_role == "auditor":
+                # Auditor can create projects and controls
+                suggested_responses = [
+                    "Show me recent projects",
+                    "Create a new project",
+                    "Create IM8 controls"
+                ]
+            elif user_role == "analyst":
+                # Analyst can only upload evidence
+                suggested_responses = [
+                    "Show me recent projects",
+                    "View available controls",
+                    "Upload evidence for a control"
+                ]
+            else:
+                # Default for other roles (viewer, etc.)
+                suggested_responses = [
+                    "Show me recent projects"
+                ]
         
         # Extract sources from tool results (for RAG search_documents)
         sources = []
