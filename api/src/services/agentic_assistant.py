@@ -1065,9 +1065,29 @@ You cannot upload, approve, or reject IM8 documents (read-only access).
             # Get conversation history
             history = conversation_manager.get_conversation_history(session_id, limit=10)
             
-            # Build role-specific system prompt
+            # Get user's agency name
+            from api.src.models import Agency
+            agency_name = "Unknown Agency"
+            if current_user.get("agency_id"):
+                agency = db.query(Agency).filter(Agency.id == current_user["agency_id"]).first()
+                if agency:
+                    agency_name = agency.name
+            
+            # Build role-specific system prompt with user context
             user_role = current_user.get("role", "viewer")
             system_prompt = self._build_role_specific_prompt(user_role)
+            
+            # Add user context to system prompt
+            user_context = f"""
+
+CURRENT USER CONTEXT:
+- Username: {current_user.get('username', 'Unknown')}
+- Role: {user_role.upper()}
+- Agency: {agency_name} (ID: {current_user.get('agency_id', 'N/A')})
+
+You are currently assisting {current_user.get('username', 'the user')} from {agency_name}.
+"""
+            system_prompt += user_context
             
             # Get role-specific tools (RBAC enforcement)
             filtered_tools = self._get_tools_for_role(user_role)
