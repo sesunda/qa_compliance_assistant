@@ -753,7 +753,7 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                     elif function_name == "list_projects":
                         # List projects
                         tool_result = await self.handle_list_projects(
-                            user_id=current_user.id,
+                            user_id=current_user["id"],
                             limit=function_args.get("limit", 10),
                             status=function_args.get("status", "all"),
                             db=db
