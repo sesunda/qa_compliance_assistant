@@ -513,7 +513,7 @@ CORE RULES:
             'analyze_evidence',  # Auditors can query evidence analysis
             'suggest_related_controls'  # Auditors can use Graph RAG for relationships
         ]
-        COMMON_TOOLS = ['mcp_fetch_evidence', 'generate_report']
+        COMMON_TOOLS = ['mcp_fetch_evidence', 'generate_report', 'search_documents']
         
         user_role_lower = user_role.lower()
         
