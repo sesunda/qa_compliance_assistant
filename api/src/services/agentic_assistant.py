@@ -622,35 +622,6 @@ Answer questions about current compliance state using available data.
             
             # Get user's agency name
             from api.src.models import Agency
-    async def chat(
-        self,
-        message: str,
-        conversation_manager: ConversationManager,
-        session_id: str,
-        db: Session,
-        current_user: Dict[str, Any],
-        file_path: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """
-        Process user message with agentic reasoning and tool calling
-        
-        Args:
-            message: User's message
-            conversation_manager: Conversation manager instance
-            session_id: Current conversation session ID
-            db: Database session
-            current_user: Current user dict
-            file_path: Optional uploaded file path
-            
-        Returns:
-            Response dictionary with answer and tool execution results
-        """
-        try:
-            # Get conversation history
-            history = conversation_manager.get_conversation_history(session_id, limit=10)
-            
-            # Get user's agency name
-            from api.src.models import Agency
             agency_name = "Unknown Agency"
             if current_user.get("agency_id"):
                 agency = db.query(Agency).filter(Agency.id == current_user["agency_id"]).first()
