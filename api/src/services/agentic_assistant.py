@@ -22,6 +22,23 @@ logger = logging.getLogger(__name__)
 class AgenticAssistant:
     """Agentic conversational agent with tool calling (supports multiple providers)"""
     
+    # Tool complexity configuration for dynamic LLM parameters
+    TOOL_COMPLEXITY = {
+        "upload_evidence": {"temperature": 0.2, "max_tokens": 400},
+        "search_documents": {"temperature": 0.3, "max_tokens": 800},  # RAG needs more space
+        "analyze_evidence": {"temperature": 0.2, "max_tokens": 600},
+        "analyze_evidence_rag": {"temperature": 0.2, "max_tokens": 600},
+        "submit_for_review": {"temperature": 0.1, "max_tokens": 300},
+        "submit_evidence_for_review": {"temperature": 0.1, "max_tokens": 300},
+        "request_evidence_upload": {"temperature": 0.2, "max_tokens": 400},
+        "suggest_related_controls": {"temperature": 0.3, "max_tokens": 700},
+        "fetch_evidence": {"temperature": 0.2, "max_tokens": 500},
+        "mcp_fetch_evidence": {"temperature": 0.2, "max_tokens": 500},
+        "mcp_analyze_compliance": {"temperature": 0.3, "max_tokens": 700},
+        # Default for unknown tools
+        "default": {"temperature": 0.2, "max_tokens": 500}
+    }
+    
     def __init__(self):
         # Detect which provider to use (default to github for reliable tool calling)
         self.provider = os.getenv("LLM_PROVIDER", "github")  # github, groq, openai
@@ -668,13 +685,14 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
             })
             
             # Call Groq with tool calling (using filtered tools)
+            # Use tight constraints for initial tool decision
             logger.info(f"Calling Groq LLM for session {session_id} with {len(filtered_tools)} role-filtered tools")
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 tools=filtered_tools if filtered_tools else None,  # Pass None if no tools
                 tool_choice="auto" if filtered_tools else "none",
-                max_tokens=300,
+                max_tokens=150,  # Reduced: just enough to decide tool calls
                 temperature=0.2
             )
             
@@ -746,12 +764,17 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                         "content": json.dumps(tool_result["result"])
                     })
                 
-                # Get final response
+                # Get final response with dynamic parameters based on tool complexity
+                # Determine parameters based on first tool called
+                tool_name = tool_calls[0].function.name
+                params = self.TOOL_COMPLEXITY.get(tool_name, self.TOOL_COMPLEXITY["default"])
+                logger.info(f"Using dynamic params for {tool_name}: temp={params['temperature']}, max_tokens={params['max_tokens']}")
+                
                 final_response = self.client.chat.completions.create(
                     model=self.model,
                     messages=messages,
-                    max_tokens=300,
-                    temperature=0.2
+                    max_tokens=params["max_tokens"],
+                    temperature=params["temperature"]
                 )
                 
                 final_answer = final_response.choices[0].message.content
