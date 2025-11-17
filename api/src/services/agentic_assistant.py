@@ -35,6 +35,7 @@ class AgenticAssistant:
         "fetch_evidence": {"temperature": 0.2, "max_tokens": 500},
         "mcp_fetch_evidence": {"temperature": 0.2, "max_tokens": 500},
         "mcp_analyze_compliance": {"temperature": 0.3, "max_tokens": 700},
+        "list_projects": {"temperature": 0.2, "max_tokens": 500},
         # Default for unknown tools
         "default": {"temperature": 0.2, "max_tokens": 500}
     }
@@ -337,6 +338,30 @@ class AgenticAssistant:
             {
                 "type": "function",
                 "function": {
+                    "name": "list_projects",
+                    "description": "List all projects for the user's agency. Shows project ID, name, type, status, and control count. Use when user asks to see projects, recent projects, available projects, or 'show me projects'.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "limit": {
+                                "type": "integer",
+                                "description": "Number of recent projects to return (default: 10)",
+                                "default": 10
+                            },
+                            "status": {
+                                "type": "string",
+                                "enum": ["active", "completed", "archived", "all"],
+                                "description": "Filter by project status (default: all)",
+                                "default": "all"
+                            }
+                        },
+                        "required": []
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
                     "name": "create_controls",
                     "description": "Create IM8 compliance controls for a project. IMPORTANT: Before calling this tool, you MUST ask the user which project_id to use. Never assume or guess the project_id. Use when auditor wants to set up IM8 controls by selecting domains (1-10). Creates multiple controls based on selected domains.",
                     "parameters": {
@@ -513,7 +538,7 @@ CORE RULES:
             'analyze_evidence',  # Auditors can query evidence analysis
             'suggest_related_controls'  # Auditors can use Graph RAG for relationships
         ]
-        COMMON_TOOLS = ['mcp_fetch_evidence', 'generate_report', 'search_documents']
+        COMMON_TOOLS = ['mcp_fetch_evidence', 'generate_report', 'search_documents', 'list_projects']
         
         user_role_lower = user_role.lower()
         
@@ -547,6 +572,7 @@ CORE RULES:
             "auditor": """
 
 AUDITOR ACTIONS:
+- View available projects (list_projects tool)
 - Create IM8 controls for projects (your agency only)
 - Review evidence submissions
 - Generate compliance reports
@@ -558,6 +584,7 @@ When creating controls: Ask for project name, then execute create_controls tool.
             "analyst": """
 
 ANALYST ACTIONS:
+- View available projects (list_projects tool)
 - Upload evidence for controls (your agency only)
 - Analyze compliance status
 - Submit evidence for review
@@ -723,6 +750,14 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                             db=db,
                             current_user=current_user
                         )
+                    elif function_name == "list_projects":
+                        # List projects
+                        tool_result = await self.handle_list_projects(
+                            user_id=current_user.id,
+                            limit=function_args.get("limit", 10),
+                            status=function_args.get("status", "all"),
+                            db=db
+                        )
                     else:
                         # Existing tools via AI Task Orchestrator
                         tool_result = await self._execute_tool(
@@ -850,6 +885,99 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                 "success": False,
                 "error": str(e),
                 "tool_name": tool_name
+            }
+    
+    async def handle_list_projects(
+        self,
+        user_id: int,
+        limit: int = 10,
+        status: str = "all",
+        db: Session = None
+    ) -> Dict[str, Any]:
+        """
+        List projects for the user's agency
+        
+        Args:
+            user_id: Current user ID
+            limit: Number of projects to return
+            status: Filter by status (active, completed, archived, all)
+            db: Database session
+            
+        Returns:
+            List of projects with details
+        """
+        try:
+            from sqlalchemy import text
+            
+            logger.info(f"Listing projects for user {user_id}, status={status}, limit={limit}")
+            
+            # Get user's agency_id
+            user_query = text("SELECT agency_id FROM users WHERE id = :user_id")
+            user_result = db.execute(user_query, {"user_id": user_id})
+            user_row = user_result.fetchone()
+            
+            if not user_row:
+                return {
+                    "success": False,
+                    "error": "User not found"
+                }
+            
+            agency_id = user_row[0]
+            
+            # Build query
+            query = """
+                SELECT 
+                    p.id,
+                    p.name,
+                    p.description,
+                    p.project_type,
+                    p.status,
+                    p.created_at,
+                    COUNT(DISTINCT c.id) as control_count
+                FROM projects p
+                LEFT JOIN controls c ON c.project_id = p.id
+                WHERE p.agency_id = :agency_id
+            """
+            
+            params = {"agency_id": agency_id, "limit": limit}
+            
+            # Add status filter
+            if status != "all":
+                query += " AND p.status = :status"
+                params["status"] = status
+            
+            query += """
+                GROUP BY p.id, p.name, p.description, p.project_type, p.status, p.created_at
+                ORDER BY p.created_at DESC
+                LIMIT :limit
+            """
+            
+            result = db.execute(text(query), params)
+            
+            # Format results
+            projects = []
+            for row in result:
+                projects.append({
+                    "id": row[0],
+                    "name": row[1],
+                    "description": row[2],
+                    "project_type": row[3],
+                    "status": row[4],
+                    "created_at": row[5].isoformat() if row[5] else None,
+                    "control_count": row[6]
+                })
+            
+            return {
+                "success": True,
+                "projects": projects,
+                "count": len(projects)
+            }
+            
+        except Exception as e:
+            logger.error(f"List projects failed: {e}", exc_info=True)
+            return {
+                "success": False,
+                "error": str(e)
             }
     
     async def handle_search_documents(
