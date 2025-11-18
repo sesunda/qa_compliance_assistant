@@ -4,10 +4,10 @@ FROM acrqcadev2f37g0.azurecr.io/ca-api-qca-dev:base
 WORKDIR /app
 
 # Copy application code (changes frequently - fast layer)
-COPY . /app/api/
+COPY api/ /app/api/
 
 # Copy startup script
-COPY startup.sh /app/startup.sh
+COPY api/startup.sh /app/startup.sh
 RUN chmod +x /app/startup.sh
 
 # Set PYTHONPATH
