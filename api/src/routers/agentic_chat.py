@@ -18,6 +18,7 @@ from api.src.models import AgentTask, User
 from api.src.services.llm_service import get_llm_service
 from api.src.services.conversation_manager import ConversationManager
 from api.src.services.agentic_assistant import AgenticAssistant
+from api.src.services.evidence_storage import evidence_storage_service
 
 logger = logging.getLogger(__name__)
 
@@ -137,24 +138,30 @@ async def chat(
                 title=message[:50] + "..." if len(message) > 50 else message
             )
         
-        # Handle file upload
+        # Handle file upload using evidence_storage_service
         file_path = None
         if file:
-            # Create storage directory
-            storage_dir = "/app/storage/uploads"
-            os.makedirs(storage_dir, exist_ok=True)
-            
-            # Generate safe filename
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            safe_filename = f"{timestamp}_{file.filename}"
-            file_path = os.path.join(storage_dir, safe_filename)
-            
-            # Save file
-            content = await file.read()
-            with open(file_path, 'wb') as f:
-                f.write(content)
-            
-            logger.info(f"Saved uploaded file: {file_path}")
+            try:
+                # Use evidence_storage_service which handles both local and Azure backends
+                # Use agency_id=0 and control_id=0 for temporary uploads (will be updated when evidence is created)
+                agency_id = current_user.get("agency_id", 0)
+                result = await evidence_storage_service.save_file(
+                    upload_file=file,
+                    agency_id=agency_id,
+                    control_id=0  # Temporary, will be updated when evidence is created
+                )
+                
+                # Use the absolute_path (blob URL for Azure, local path for local)
+                file_path = result["absolute_path"]
+                
+                logger.info(f"Saved uploaded file via {result['storage_backend']} backend: {file_path}")
+                logger.info(f"File size: {result['file_size']} bytes, Checksum: {result['checksum']}")
+            except Exception as e:
+                logger.error(f"Failed to save uploaded file: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Failed to save uploaded file: {str(e)}"
+                )
         
         # Add user message to conversation
         conv_manager.add_message(

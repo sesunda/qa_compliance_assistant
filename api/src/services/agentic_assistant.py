@@ -241,13 +241,13 @@ class AgenticAssistant:
                 "type": "function",
                 "function": {
                     "name": "analyze_evidence",
-                    "description": "Analyze uploaded evidence against control requirements using RAG. Validates if evidence satisfies control acceptance criteria and suggests improvements. Use after evidence is uploaded to provide intelligent feedback.",
+                    "description": "Analyze uploaded evidence against control requirements using RAG. Validates if evidence satisfies control acceptance criteria and suggests improvements. ONLY use when you have a valid numeric evidence_id from a previous upload or query.",
                     "parameters": {
                         "type": "object",
                         "properties": {
                             "evidence_id": {
                                 "type": "integer",
-                                "description": "Evidence ID to analyze (required)"
+                                "description": "Evidence ID to analyze - must be a valid numeric ID from uploaded evidence"
                             },
                             "control_id": {
                                 "type": "integer",
@@ -302,6 +302,45 @@ class AgenticAssistant:
                             }
                         },
                         "required": ["evidence_id"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_evidence_by_control",
+                    "description": "Retrieve all evidence documents for a specific control. Returns evidence ID, title, file name, type, upload date, and status. Use when user asks: 'show evidence for control X', 'what evidence do we have for control Y', 'list all evidence for control Z'.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "control_id": {
+                                "type": "integer",
+                                "description": "The control ID to retrieve evidence for"
+                            }
+                        },
+                        "required": ["control_id"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_recent_evidence",
+                    "description": "Retrieve recently uploaded evidence documents. Returns evidence ID, title, control ID, file name, upload date. Use when user asks: 'show my recent uploads', 'what did I just upload', 'list recent evidence'.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "limit": {
+                                "type": "integer",
+                                "description": "Number of recent evidence items to return (default: 10)",
+                                "default": 10
+                            },
+                            "user_id": {
+                                "type": "integer",
+                                "description": "Filter by user ID (optional - defaults to current user)"
+                            }
+                        },
+                        "required": []
                     }
                 }
             },
@@ -542,7 +581,9 @@ CORE RULES:
         ]
         EVIDENCE_QUERY_TOOLS = [
             'analyze_evidence',  # Auditors can query evidence analysis
-            'suggest_related_controls'  # Auditors can use Graph RAG for relationships
+            'suggest_related_controls',  # Auditors can use Graph RAG for relationships
+            'get_evidence_by_control',  # Query evidence for specific control
+            'get_recent_evidence'  # View recently uploaded evidence
         ]
         COMMON_TOOLS = ['mcp_fetch_evidence', 'generate_report', 'search_documents', 'list_projects']
         
@@ -1260,7 +1301,9 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
             "submit_evidence_for_review": ["evidence_id"],
             "request_evidence_upload": ["control_id"],
             "create_project": ["agency_id"],
-            "create_controls": ["project_id"]
+            "create_controls": ["project_id"],
+            "analyze_evidence": ["evidence_id", "control_id"],
+            "suggest_related_controls": ["evidence_id", "control_id"]
         }
         
         coerced = args.copy()
@@ -1465,11 +1508,206 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                 "suggestion": validation_result.get("suggestion", "Please check your inputs and try again.")
             }
         
+        # FAST PATH: Execute upload_evidence synchronously (no async task)
+        if function_name == "upload_evidence":
+            logger.info(f"Executing upload_evidence synchronously (fast path)")
+            
+            # Coerce argument types
+            function_args = self._coerce_argument_types(function_name, function_args)
+            
+            # Build payload
+            payload = function_args.copy()
+            
+            # Add file_path - override LLM's suggestion with actual file
+            if file_path:
+                payload["file_path"] = file_path
+                logger.info(f"Using actual file path for upload: {file_path}")
+            
+            # Add current user ID and agency_id
+            payload["current_user_id"] = current_user.get("id")
+            payload["agency_id"] = current_user.get("agency_id")
+            
+            # Execute immediately
+            from api.src import models
+            
+            try:
+                # Extract parameters
+                control_id = payload.get("control_id")
+                title = payload.get("title", "Evidence document")
+                description = payload.get("description")
+                evidence_type = payload.get("evidence_type", "policy_document")
+                current_user_id = payload.get("current_user_id")
+                agency_id = payload.get("agency_id")
+                
+                if not file_path or not control_id or not current_user_id:
+                    return {
+                        "error": "Missing required parameters",
+                        "status": "validation_failed"
+                    }
+                
+                # Get control to verify it exists
+                control = db.query(models.Control).filter(models.Control.id == control_id).first()
+                if not control:
+                    return {
+                        "error": f"Control {control_id} not found",
+                        "status": "validation_failed"
+                    }
+                
+                # Check if evidence already exists for this file
+                existing = db.query(models.Evidence).filter(
+                    models.Evidence.file_path == file_path
+                ).first()
+                
+                if existing:
+                    logger.info(f"Evidence already exists with ID {existing.id}")
+                    return {
+                        "status": "success",
+                        "message": f"Evidence '{existing.title}' already uploaded. Evidence ID: {existing.id}",
+                        "evidence_ids": [existing.id],
+                        "CREATED_EVIDENCE_ID": existing.id,
+                        "TOTAL_EVIDENCE_COUNT": 1
+                    }
+                
+                # Create new evidence record
+                evidence = models.Evidence(
+                    control_id=control.id,
+                    agency_id=agency_id or control.agency_id,
+                    title=title,
+                    description=description,
+                    evidence_type=evidence_type,
+                    file_path=file_path,
+                    uploaded_by=current_user_id,
+                    verification_status="pending"
+                )
+                
+                db.add(evidence)
+                db.commit()
+                db.refresh(evidence)
+                
+                logger.info(f"✅ Synchronous upload completed: Evidence {evidence.id} created for control {control_id}")
+                
+                return {
+                    "status": "success",
+                    "message": f"Evidence '{evidence.title}' uploaded successfully. Evidence ID: {evidence.id}",
+                    "evidence_ids": [evidence.id],
+                    "CREATED_EVIDENCE_ID": evidence.id,
+                    "TOTAL_EVIDENCE_COUNT": 1
+                }
+                
+            except Exception as e:
+                logger.error(f"Synchronous upload failed: {e}", exc_info=True)
+                return {
+                    "error": str(e),
+                    "status": "error",
+                    "message": f"Upload failed: {str(e)}"
+                }
+        
+        # FAST PATH: Execute evidence query tools synchronously
+        if function_name == "get_evidence_by_control":
+            logger.info(f"Executing get_evidence_by_control synchronously (fast path)")
+            
+            from api.src import models
+            
+            try:
+                control_id = function_args.get("control_id")
+                
+                if not control_id:
+                    return {"error": "Missing required parameter: control_id", "status": "validation_failed"}
+                
+                # Query all evidence for the control
+                evidence_list = db.query(models.Evidence).filter(
+                    models.Evidence.control_id == control_id
+                ).order_by(models.Evidence.uploaded_at.desc()).all()
+                
+                if not evidence_list:
+                    return {
+                        "status": "success",
+                        "message": f"No evidence found for Control {control_id}",
+                        "evidence_count": 0,
+                        "evidence": []
+                    }
+                
+                # Format evidence data
+                evidence_data = []
+                for ev in evidence_list:
+                    evidence_data.append({
+                        "id": ev.id,
+                        "title": ev.title,
+                        "file_name": ev.file_path.split("/")[-1] if ev.file_path else None,
+                        "evidence_type": ev.evidence_type,
+                        "uploaded_at": ev.uploaded_at.isoformat() if ev.uploaded_at else None,
+                        "verification_status": ev.verification_status,
+                        "description": ev.description
+                    })
+                
+                logger.info(f"✅ Found {len(evidence_data)} evidence items for control {control_id}")
+                
+                return {
+                    "status": "success",
+                    "message": f"Found {len(evidence_data)} evidence item(s) for Control {control_id}",
+                    "evidence_count": len(evidence_data),
+                    "evidence": evidence_data
+                }
+                
+            except Exception as e:
+                logger.error(f"get_evidence_by_control failed: {e}", exc_info=True)
+                return {"error": str(e), "status": "error"}
+        
+        if function_name == "get_recent_evidence":
+            logger.info(f"Executing get_recent_evidence synchronously (fast path)")
+            
+            from api.src import models
+            
+            try:
+                limit = function_args.get("limit", 10)
+                user_id = function_args.get("user_id") or current_user.get("id")
+                
+                # Query recent evidence for the user
+                query = db.query(models.Evidence).filter(
+                    models.Evidence.uploaded_by == user_id
+                ).order_by(models.Evidence.uploaded_at.desc()).limit(limit)
+                
+                evidence_list = query.all()
+                
+                if not evidence_list:
+                    return {
+                        "status": "success",
+                        "message": "No recent evidence found",
+                        "evidence_count": 0,
+                        "evidence": []
+                    }
+                
+                # Format evidence data
+                evidence_data = []
+                for ev in evidence_list:
+                    evidence_data.append({
+                        "id": ev.id,
+                        "title": ev.title,
+                        "control_id": ev.control_id,
+                        "file_name": ev.file_path.split("/")[-1] if ev.file_path else None,
+                        "evidence_type": ev.evidence_type,
+                        "uploaded_at": ev.uploaded_at.isoformat() if ev.uploaded_at else None,
+                        "verification_status": ev.verification_status
+                    })
+                
+                logger.info(f"✅ Found {len(evidence_data)} recent evidence items")
+                
+                return {
+                    "status": "success",
+                    "message": f"Found {len(evidence_data)} recent evidence item(s)",
+                    "evidence_count": len(evidence_data),
+                    "evidence": evidence_data
+                }
+                
+            except Exception as e:
+                logger.error(f"get_recent_evidence failed: {e}", exc_info=True)
+                return {"error": str(e), "status": "error"}
+        
+        # SLOW PATH: All other tools use async worker
         # Map tool to task type
         task_type_map = {
             "create_project": "create_project",
             "create_controls": "create_controls",
-            "upload_evidence": "upload_evidence",  # Direct upload handler (no MCP)
             "fetch_evidence": "fetch_evidence",  # MCP-based fetch
             "analyze_compliance": "analyze_compliance",
             "generate_report": "generate_report",
@@ -1500,10 +1738,10 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
             logger.info(f"Converted domains {domains} to domain_areas {payload['domain_areas']}, count={payload['count']}")
         
         # Add file_path for upload operations - override LLM's suggestion with actual file
-        if function_name == "upload_evidence" or function_name == "fetch_evidence":
+        if function_name == "fetch_evidence":
             if file_path:
                 payload["file_path"] = file_path
-                logger.info(f"Using actual file path for upload: {file_path}")
+                logger.info(f"Using actual file path for fetch: {file_path}")
             elif "file_path" in payload and not payload["file_path"].startswith("/app/storage"):
                 # LLM provided relative path, make it absolute
                 logger.warning(f"LLM provided relative path: {payload['file_path']}, need actual file")
@@ -1556,52 +1794,15 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
         
         logger.info(f"Created task {task.id} for tool {function_name}")
         
-        # Wait for task to complete (max 60 seconds for file operations)
-        max_wait = 60
-        start_time = time.time()
-        while (time.time() - start_time) < max_wait:
-            db.refresh(task)
-            if task.status in ['completed', 'failed', 'error']:
-                break
-            time.sleep(0.5)  # Poll every 500ms
+        # Return task ID immediately for SSE streaming (no waiting)
+        # The client will receive real-time updates via SSE when task completes
+        logger.info(f"Task {task.id} created, returning immediately for SSE streaming")
         
-        # Final refresh to ensure we have latest result
-        db.refresh(task)
-        
-        # Log task completion status
-        logger.info(f"Task {task.id} final status: {task.status}, result: {task.result}")
-        
-        # Return task result with actual data
-        result = {
+        return {
             "task_id": task.id,
             "task_type": task_type,
-            "status": task.status,
-            "message": f"Task {task.id} {task.status}"
+            "status": "pending",
+            "message": f"Task {task.id} created and processing in background. Results will be streamed via SSE."
         }
-        
-        # CRITICAL: Include actual result data from task (includes evidence_ids for uploads)
-        if task.result:
-            if isinstance(task.result, dict):
-                result.update(task.result)
-                logger.info(f"Task {task.id} merged result: {result}")
-                
-                # CRITICAL: For evidence uploads, explicitly log the evidence IDs to prevent LLM hallucination
-                if function_name in ("upload_evidence", "fetch_evidence") and "evidence_ids" in result:
-                    evidence_ids = result["evidence_ids"]
-                    logger.warning(f"⚠️ EVIDENCE UPLOAD RESULT - Task {task.id}: Created Evidence IDs: {evidence_ids} - LLM MUST use these exact IDs, NOT make up numbers!")
-                    # Add redundant field to make it crystal clear
-                    result["CREATED_EVIDENCE_ID"] = evidence_ids[0] if evidence_ids else None
-                    result["TOTAL_EVIDENCE_COUNT"] = len(evidence_ids)
-            else:
-                logger.warning(f"Task {task.id} result is not a dict: {type(task.result)}")
-        else:
-            logger.warning(f"Task {task.id} has no result data (status={task.status})")
-        
-        # If still pending and this is upload_evidence, warn about timeout
-        if task.status == 'pending' and function_name == 'upload_evidence':
-            logger.error(f"Task {task.id} upload_evidence still pending after {max_wait}s - evidence_ids not available")
-            result["message"] = f"Task {task.id} timed out - evidence may not be ready"
-        
-        return result
 
 

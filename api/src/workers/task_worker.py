@@ -116,16 +116,12 @@ class TaskWorker:
                 await conn.add_listener('new_task', notification_handler)
                 logger.info("Started listening for PostgreSQL NOTIFY on 'new_task' channel")
                 
-                # Keep connection alive with periodic health checks
+                # Keep connection alive with minimal sleep to allow immediate event processing
+                # Changed from sleep(30) to sleep(0.1) to eliminate 60s NOTIFY delay
                 while self.is_running:
-                    await asyncio.sleep(30)
-                    try:
-                        await conn.execute("SELECT 1")
-                        logger.debug("LISTEN connection healthy")
-                    except Exception as e:
-                        logger.warning(f"LISTEN connection check failed: {e}")
-                        break
-                        
+                    await asyncio.sleep(0.1)  # Minimal sleep - allows instant notification processing
+                    # Note: asyncpg handles connection health automatically
+                    # Removed explicit health checks that were blocking notifications
             except asyncio.CancelledError:
                 logger.info("NOTIFY listener cancelled")
                 break
@@ -164,9 +160,10 @@ class TaskWorker:
             if pending_tasks:
                 logger.info(f"Polling: Found {len(pending_tasks)} pending task(s), {len(self.running_tasks)} currently running (query: {query_time:.3f}s)")
                 for task in pending_tasks:
-                    # Add SGT timezone to naive datetime from database
-                    task_created = task.created_at.replace(tzinfo=SGT) if task.created_at.tzinfo is None else task.created_at
-                    age = (now_sgt() - task_created).total_seconds()
+                    # Both datetimes must be naive for subtraction
+                    task_created = task.created_at.replace(tzinfo=None) if task.created_at.tzinfo else task.created_at
+                    current_time = now_sgt()  # This returns naive datetime
+                    age = (current_time - task_created).total_seconds()
                     logger.info(f"  - Task {task.id} created {age:.1f}s ago, status={task.status}")
             else:
                 logger.debug(f"Polling: No pending tasks, {len(self.running_tasks)} currently running (query: {query_time:.3f}s)")
@@ -240,6 +237,9 @@ class TaskWorker:
             task.completed_at = now_sgt()
             task.updated_at = now_sgt()
             db.commit()
+            
+            # Broadcast task completion to SSE clients
+            await self._broadcast_task_completion(task)
         
         except asyncio.CancelledError:
             # Task was cancelled
@@ -262,9 +262,38 @@ class TaskWorker:
                 task.completed_at = now_sgt()
                 task.updated_at = now_sgt()
                 db.commit()
+                
+                # Broadcast task failure to SSE clients
+                await self._broadcast_task_completion(task)
         
         finally:
             db.close()
+    
+    async def _broadcast_task_completion(self, task: AgentTask):
+        """
+        Broadcast task completion/failure to SSE clients.
+        
+        Args:
+            task: Completed or failed AgentTask instance
+        """
+        try:
+            from api.src.routers.task_stream import broadcast_task_update
+            
+            task_update = {
+                "task_id": task.id,
+                "task_type": task.task_type,
+                "status": task.status,
+                "result": task.result,
+                "error_message": task.error_message,
+                "progress": task.progress,
+                "created_by": task.created_by
+            }
+            
+            await broadcast_task_update(task_update)
+            logger.info(f"Broadcasted task {task.id} completion to SSE clients")
+            
+        except Exception as e:
+            logger.error(f"Failed to broadcast task {task.id} to SSE: {e}")
     
     async def update_task_progress(self, task_id: int, progress: int, message: Optional[str] = None):
         """

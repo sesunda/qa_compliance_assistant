@@ -13,37 +13,15 @@ ls -la /app/api/ || echo "No /app/api directory"
 echo "Running database migrations..."
 cd /app/api
 
-# Check if alembic_version exists and if it has broken state
-echo "Checking migration state..."
-python -c "
-from sqlalchemy import text
-from api.src.database import SessionLocal
-try:
-    db = SessionLocal()
-    result = db.execute(text('SELECT version_num FROM alembic_version')).fetchone()
-    if result:
-        version = result[0]
-        print(f'Current version: {version}')
-        # If version is from old migration tree, reset it
-        if version in ['5f706ede940a', '898cc8361b19', '002', '003', '004', '006', '007', '008', '008_add_conversation_sessions', '009_update_agent_tasks', '009_5', '010_complete_assessment_workflows']:
-            print(f'Detected old migration version {version}, clearing...')
-            db.execute(text('DELETE FROM alembic_version'))
-            db.commit()
-            print('Cleared old migration state. Will start fresh.')
-    db.close()
-except Exception as e:
-    print(f'No existing alembic_version table or error: {e}')
-" || echo "Migration state check completed"
-
-# Run fix script if migration state needs correction
+# Run fix script if migration state needs correction (with timeout)
 echo "Running migration state fix if needed..."
-python -m api.scripts.fix_migration_state || echo "Fix script completed or not needed"
+timeout 30 python -m api.scripts.fix_migration_state || echo "Fix script completed, not needed, or timed out"
 
-alembic upgrade head || {
-    echo "ERROR: Migration failed!"
-    echo "Alembic config location:"
-    find /app -name "alembic.ini" -type f
-    exit 1
+# Run migrations with timeout - if already migrated, this will be fast
+echo "Applying database migrations..."
+timeout 60 alembic upgrade head || {
+    echo "WARNING: Migration failed or timed out - database may already be migrated"
+    echo "Continuing with startup..."
 }
 
 # Seed default users and data

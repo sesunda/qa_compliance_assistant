@@ -1,0 +1,7 @@
+
+Test File for NOTIFY Performance Testing
+Generated: 2025-11-18T11:33:59.269420
+Purpose: Measure NOTIFY/LISTEN delay
+
+This file is used to test the event-driven worker fix.
+Expected improvement: 65s -> <1s upload time.

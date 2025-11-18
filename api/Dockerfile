@@ -9,16 +9,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && pip install --no-cache-dir --upgrade pip
 
 # Copy ONLY requirements first (better caching - only rebuilds if requirements change)
-COPY requirements.txt /app/requirements.txt
+COPY api/requirements.txt /app/requirements.txt
 
 # Install dependencies (this layer will be cached if requirements.txt doesn't change)
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code LAST (changes most frequently)
-COPY . /app/api/
+COPY api/ /app/api/
 
 # Copy startup script and ensure it's executable
-COPY startup.sh /app/startup.sh
+COPY api/startup.sh /app/startup.sh
 RUN chmod +x /app/startup.sh
 
 # Set PYTHONPATH

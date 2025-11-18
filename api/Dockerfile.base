@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && pip install --no-cache-dir --upgrade pip
 
 # Copy and install Python dependencies (3.5GB+)
-COPY requirements.txt /app/requirements.txt
+COPY api/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # This image can be reused - only rebuild when requirements.txt changes

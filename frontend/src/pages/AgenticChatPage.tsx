@@ -24,6 +24,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatSingaporeDateTime } from '../utils/datetime';
 import EvidenceUploadWidget from '../components/EvidenceUploadWidget';
 import EvidenceCard from '../components/EvidenceCard';
+import { useTaskStream } from '../hooks/useTaskStream';
 
 interface ChatMessage {
   id: string;
@@ -80,6 +81,12 @@ interface ChatResponse {
 
 const AgenticChatPage: React.FC = () => {
   const { user } = useAuth();
+  const { lastUpdate, isConnected } = useTaskStream();
+  
+  // Log SSE connection status for debugging
+  useEffect(() => {
+    console.log('SSE connection status:', isConnected ? 'Connected' : 'Disconnected');
+  }, [isConnected]);
   
   // Role-based welcome message (memoized to prevent unnecessary recalculations)
   const welcomeMessage = React.useMemo(() => {
@@ -228,6 +235,61 @@ const AgenticChatPage: React.FC = () => {
       localStorage.setItem('agentic_session_id', conversationId);
     }
   }, [conversationId]);
+  
+  // Handle SSE task updates
+  useEffect(() => {
+    if (lastUpdate && lastUpdate.status === 'completed') {
+      console.log('Received SSE task update:', lastUpdate);
+      
+      // Handle different task types
+      if (lastUpdate.task_type === 'request_evidence_upload' && lastUpdate.result?.status === 'success') {
+        setPendingUpload({
+          evidenceId: lastUpdate.result.evidence_id,
+          uploadId: lastUpdate.result.upload_id,
+          controlId: lastUpdate.result.control_id,
+          controlTitle: lastUpdate.result.control_title || `Control ${lastUpdate.result.control_id}`,
+          title: lastUpdate.result.instructions || 'Upload evidence',
+          acceptedTypes: lastUpdate.result.accepted_types || ['document', 'screenshot']
+        });
+      } else if (lastUpdate.task_type === 'analyze_evidence_rag' && lastUpdate.result?.status === 'success') {
+        setEvidenceResults(prev => ({
+          ...prev,
+          evidence: prev?.evidence,
+          analysis: lastUpdate.result.analysis
+        }));
+        
+        // Add analysis result to chat
+        const analysisMessage: ChatMessage = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: `✅ Analysis complete: ${lastUpdate.result.analysis || 'Analysis completed successfully'}`,
+          timestamp: new Date(),
+          task_id: lastUpdate.task_id
+        };
+        setMessages(prev => [...prev, analysisMessage]);
+      } else if (lastUpdate.task_type === 'suggest_related_controls' && lastUpdate.result?.status === 'success') {
+        setEvidenceResults(prev => ({
+          ...prev,
+          evidence: prev?.evidence,
+          analysis: prev?.analysis,
+          suggestions: lastUpdate.result.suggestions
+        }));
+        
+        // Add suggestions to chat
+        const suggestionsText = lastUpdate.result.suggestions?.length 
+          ? `Found ${lastUpdate.result.suggestions.length} related control(s):\n${lastUpdate.result.suggestions.map((s: any) => `- ${s.title}`).join('\n')}`
+          : 'No related controls found';
+        const suggestionsMessage: ChatMessage = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: `🔗 ${suggestionsText}`,
+          timestamp: new Date(),
+          task_id: lastUpdate.task_id
+        };
+        setMessages(prev => [...prev, suggestionsMessage]);
+      }
+    }
+  }, [lastUpdate]);
 
   const fetchCapabilities = async () => {
     try {
@@ -457,17 +519,8 @@ const AgenticChatPage: React.FC = () => {
 
       setMessages(prev => [...prev, assistantMessage]);
       
-      // Evidence workflow detection
-      if (response.data.task_type === 'request_evidence_upload' && response.data.task_id) {
-        // Poll for task completion to get upload details
-        pollEvidenceUploadTask(response.data.task_id);
-      } else if (response.data.task_type === 'analyze_evidence' && response.data.task_id) {
-        // Poll for analysis results
-        pollAnalysisTask(response.data.task_id);
-      } else if (response.data.task_type === 'suggest_related_controls' && response.data.task_id) {
-        // Poll for suggestions
-        pollSuggestionsTask(response.data.task_id);
-      }
+      // SSE will handle task updates automatically - no polling needed
+      // Tasks will be processed in background and results streamed via SSE
       
       // Update conversation state
       if (response.data.is_clarifying) {
@@ -559,69 +612,7 @@ const AgenticChatPage: React.FC = () => {
     }
   };
 
-  const pollEvidenceUploadTask = async (taskId: number) => {
-    try {
-      // Poll task status
-      const response = await api.get(`/agent-tasks/${taskId}`);
-      const task = response.data;
-      
-      if (task.status === 'completed' && task.result?.status === 'success') {
-        // Show upload widget
-        setPendingUpload({
-          evidenceId: task.result.evidence_id,
-          uploadId: task.result.upload_id,
-          controlId: task.result.control_id,
-          controlTitle: task.result.control_title || `Control ${task.result.control_id}`,
-          title: task.result.instructions || 'Upload evidence',
-          acceptedTypes: task.result.accepted_types || ['document', 'screenshot']
-        });
-      } else if (task.status === 'pending' || task.status === 'running') {
-        // Keep polling
-        setTimeout(() => pollEvidenceUploadTask(taskId), 2000);
-      }
-    } catch (error) {
-      console.error('Error polling evidence upload task:', error);
-    }
-  };
-
-  const pollAnalysisTask = async (taskId: number) => {
-    try {
-      const response = await api.get(`/agent-tasks/${taskId}`);
-      const task = response.data;
-      
-      if (task.status === 'completed' && task.result?.status === 'success') {
-        setEvidenceResults(prev => ({
-          ...prev,
-          evidence: prev?.evidence,
-          analysis: task.result.analysis
-        }));
-      } else if (task.status === 'pending' || task.status === 'running') {
-        setTimeout(() => pollAnalysisTask(taskId), 2000);
-      }
-    } catch (error) {
-      console.error('Error polling analysis task:', error);
-    }
-  };
-
-  const pollSuggestionsTask = async (taskId: number) => {
-    try {
-      const response = await api.get(`/agent-tasks/${taskId}`);
-      const task = response.data;
-      
-      if (task.status === 'completed' && task.result?.status === 'success') {
-        setEvidenceResults(prev => ({
-          ...prev,
-          evidence: prev?.evidence,
-          analysis: prev?.analysis,
-          suggestions: task.result.suggestions
-        }));
-      } else if (task.status === 'pending' || task.status === 'running') {
-        setTimeout(() => pollSuggestionsTask(taskId), 2000);
-      }
-    } catch (error) {
-      console.error('Error polling suggestions task:', error);
-    }
-  };
+  // Polling functions removed - SSE handles real-time updates automatically
 
   const handleEvidenceUploadComplete = (evidence: any) => {
     setPendingUpload(null);
