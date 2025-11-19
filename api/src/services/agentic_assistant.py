@@ -812,6 +812,7 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                             function_args=function_args,
                             db=db,
                             current_user=current_user,
+                            session_id=session_id,
                             file_path=file_path
                         )
                     
@@ -1461,6 +1462,7 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
         function_args: Dict[str, Any],
         db: Session,
         current_user: Dict[str, Any],
+        session_id: Optional[str] = None,
         file_path: Optional[str] = None
     ) -> Dict[str, Any]:
         """Execute a tool via AI Task Orchestrator"""
@@ -1746,9 +1748,11 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                 # LLM provided relative path, make it absolute
                 logger.warning(f"LLM provided relative path: {payload['file_path']}, need actual file")
         
-        # Add current user ID and agency_id
+        # Add current user ID, agency_id, and session_id
         payload["current_user_id"] = current_user.get("id")
         payload["agency_id"] = current_user.get("agency_id")
+        if session_id:
+            payload["session_id"] = session_id
         
         # Generate title and description for the task
         title_map = {

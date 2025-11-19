@@ -271,7 +271,7 @@ class TaskWorker:
     
     async def _broadcast_task_completion(self, task: AgentTask):
         """
-        Broadcast task completion/failure to SSE clients.
+        Broadcast task completion/failure to SSE clients and add result to conversation.
         
         Args:
             task: Completed or failed AgentTask instance
@@ -292,8 +292,94 @@ class TaskWorker:
             await broadcast_task_update(task_update)
             logger.info(f"Broadcasted task {task.id} completion to SSE clients")
             
+            # Add task result to conversation if session_id is available
+            if task.payload and isinstance(task.payload, dict) and "session_id" in task.payload:
+                await self._add_result_to_conversation(task)
+            
         except Exception as e:
             logger.error(f"Failed to broadcast task {task.id} to SSE: {e}")
+    
+    async def _add_result_to_conversation(self, task: AgentTask):
+        """
+        Add task result to the conversation history.
+        
+        Args:
+            task: Completed AgentTask instance with session_id in payload
+        """
+        try:
+            from api.src.services.conversation_manager import ConversationManager
+            import json
+            
+            session_id = task.payload.get("session_id")
+            if not session_id:
+                logger.warning(f"Task {task.id} has no session_id in payload, skipping conversation update")
+                return
+            
+            # Format result message based on task status
+            if task.status == "completed":
+                # Format successful result
+                result_message = self._format_task_result(task)
+            else:
+                # Format error message
+                result_message = f"Task failed: {task.error_message or 'Unknown error'}"
+            
+            # Add assistant message to conversation
+            conv_manager = ConversationManager()
+            conv_manager.add_message(
+                session_id=session_id,
+                role="assistant",
+                content=result_message
+            )
+            
+            logger.info(f"Added task {task.id} result to conversation {session_id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to add task {task.id} result to conversation: {e}", exc_info=True)
+    
+    def _format_task_result(self, task: AgentTask) -> str:
+        """Format task result as human-readable message."""
+        import json
+        
+        result = task.result
+        if not result:
+            return f"Task completed with no result."
+        
+        # Extract message if available
+        if isinstance(result, dict):
+            if "message" in result:
+                return result["message"]
+            
+            # Format analysis results
+            if "analysis" in result:
+                analysis = result["analysis"]
+                if isinstance(analysis, dict):
+                    score = analysis.get("overall_score", 0)
+                    passed = analysis.get("passed", False)
+                    status_emoji = "✅" if passed else "❌"
+                    
+                    msg = f"{status_emoji} Evidence Analysis Complete\\n\\n"
+                    msg += f"**Overall Score:** {score}%\\n"
+                    msg += f"**Status:** {'Passed' if passed else 'Failed'}\\n\\n"
+                    
+                    if "validation_results" in analysis:
+                        msg += "**Validation Results:**\\n"
+                        for val in analysis["validation_results"]:
+                            criterion = val.get("criterion", "Unknown")
+                            passed_check = val.get("passed", False)
+                            check_emoji = "✅" if passed_check else "❌"
+                            msg += f"{check_emoji} {criterion}\\n"
+                    
+                    if "recommendations" in analysis and analysis["recommendations"]:
+                        msg += "\\n**Recommendations:**\\n"
+                        for rec in analysis["recommendations"]:
+                            msg += f"• {rec}\\n"
+                    
+                    return msg
+            
+            # Fallback to JSON string
+            return json.dumps(result, indent=2)
+        
+        return str(result)
     
     async def update_task_progress(self, task_id: int, progress: int, message: Optional[str] = None):
         """
