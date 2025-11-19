@@ -1,0 +1,13 @@
+# Base image with all frontend dependencies installed
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY frontend/package*.json ./
+
+# Install ALL dependencies (including devDependencies for build)
+RUN npm ci
+
+# This base image will be reused by Dockerfile.fast
+# No need to copy source or build here - that happens in Dockerfile.fast
