@@ -1,101 +1,71 @@
 #!/usr/bin/env python3
 """
-Fix migration state and add missing columns
-Run this script inside the Azure Container App
+Fix migration state for migrations 003/004 (Assessments and Findings upgrade).
+Drops old indexes and resets alembic version if needed.
 """
 
 from sqlalchemy import create_engine, text
 import os
-import sys
 
 def main():
-    # Get database URL from environment
+    """Fix database state to allow migrations 003/004 to run cleanly."""
+    
+    # Get database URL
     database_url = os.getenv('DATABASE_URL')
     if not database_url:
-        print("ERROR: DATABASE_URL environment variable not set")
-        sys.exit(1)
+        print("DATABASE_URL not set, skipping fix")
+        return
     
-    print(f"Connecting to database...")
-    engine = create_engine(database_url)
-    
-    with engine.connect() as conn:
-        # Step 1: Check if trigger already exists, if so set version to 0000053
-        print("\n=== Step 1: Checking migration state ===")
+    try:
+        engine = create_engine(database_url)
         
-        # Check if notify trigger exists
-        trigger_check = conn.execute(text("""
-            SELECT EXISTS (
-                SELECT 1 FROM pg_trigger 
-                WHERE tgname = 'agent_task_insert_trigger'
-            )
-        """))
-        trigger_exists = trigger_check.fetchone()[0]
-        
-        if trigger_exists:
-            print("✓ Trigger 'agent_task_insert_trigger' already exists")
-            # Set migration to 0000053 to skip trigger creation
-            conn.execute(text("DELETE FROM alembic_version"))
-            conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('0000053')"))
-            conn.commit()
-            print("✓ Set migration version to 0000053 (trigger migration)")
-        else:
-            print("⚠ Trigger does not exist, setting to 001 for clean migration")
-            conn.execute(text("DELETE FROM alembic_version"))
-            conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('001')"))
-            conn.commit()
-            print("✓ Set migration version to 001")
-        
-        # Step 2: Add project_type column
-        print("\n=== Step 2: Adding project_type column ===")
-        try:
-            conn.execute(text("""
-                ALTER TABLE projects 
-                ADD COLUMN IF NOT EXISTS project_type VARCHAR(100) DEFAULT 'compliance_assessment'
-            """))
-            conn.commit()
-            print("✓ Added project_type column")
-        except Exception as e:
-            if "already exists" in str(e):
-                print("⚠ project_type column already exists")
-            else:
-                raise
-        
-        # Step 3: Add start_date column
-        print("\n=== Step 3: Adding start_date column ===")
-        try:
-            conn.execute(text("""
-                ALTER TABLE projects 
-                ADD COLUMN IF NOT EXISTS start_date DATE
-            """))
-            conn.commit()
-            print("✓ Added start_date column")
-        except Exception as e:
-            if "already exists" in str(e):
-                print("⚠ start_date column already exists")
-            else:
-                raise
-        
-        # Step 4: Verify
-        print("\n=== Step 4: Verification ===")
-        result = conn.execute(text("""
-            SELECT column_name, data_type, column_default 
-            FROM information_schema.columns 
-            WHERE table_name = 'projects' 
-            AND column_name IN ('project_type', 'start_date')
-            ORDER BY column_name
-        """))
-        
-        print("\nProjects table columns:")
-        for row in result:
-            print(f"  - {row[0]}: {row[1]} (default: {row[2]})")
-        
-        # Check migration version
-        result = conn.execute(text("SELECT version_num FROM alembic_version"))
-        version = result.fetchone()[0]
-        print(f"\nCurrent migration version: {version}")
-        
-    print("\n✅ Migration state fixed successfully!")
-    print("You can now restart the container for clean startup.")
+        with engine.connect() as conn:
+            # Check current version
+            result = conn.execute(text("SELECT version_num FROM alembic_version"))
+            current_version = result.fetchone()[0]
+            
+            print(f"Current migration version: {current_version}")
+            
+            # Only fix if we're at version 002 or 003 (failed migration)
+            if current_version not in ['002', '003']:
+                print(f"No fix needed for version {current_version}")
+                return
+            
+            print("Applying migration state fixes...")
+            
+            # Drop old indexes that might conflict with migrations 003/004
+            old_indexes = [
+                'ix_assessments_project_id',
+                'ix_assessments_agency_id',
+                'ix_assessments_status',
+                'ix_assessments_assessment_type',
+                'ix_assessments_planned_end_date',
+                'ix_findings_assessment_id',
+                'ix_findings_severity',
+                'ix_findings_status',
+                'ix_findings_assigned_to',
+                'ix_findings_target_remediation_date'
+            ]
+            
+            for idx in old_indexes:
+                try:
+                    conn.execute(text(f"DROP INDEX IF EXISTS {idx}"))
+                    conn.commit()
+                    print(f"  ✓ Dropped index {idx}")
+                except Exception as e:
+                    print(f"  ⚠ {idx}: {str(e)[:60]}")
+            
+            # Reset to version 002 if we're at 003 (failed)
+            if current_version == '003':
+                conn.execute(text("UPDATE alembic_version SET version_num = '002'"))
+                conn.commit()
+                print("  ✓ Reset alembic version to 002 for clean migration")
+            
+            print("✅ Database state fixed - ready for migration")
+            
+    except Exception as e:
+        print(f"⚠ Fix script error (non-fatal): {str(e)[:100]}")
+        # Don't fail startup if fix fails
 
 if __name__ == "__main__":
     main()
