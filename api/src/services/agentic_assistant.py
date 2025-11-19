@@ -513,6 +513,23 @@ class AgenticAssistant:
             {
                 "type": "function",
                 "function": {
+                    "name": "resolve_control_to_evidence",
+                    "description": "Resolve Control ID to available evidence that can be submitted. Use when user mentions 'submit Control [X]' or 'Control [X] for review' to find which evidence records are available. Returns list of pending/rejected evidence for that control. ALWAYS call this tool first before responding to 'submit Control X' requests.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "control_id": {
+                                "type": "integer",
+                                "description": "Control ID to find evidence for"
+                            }
+                        },
+                        "required": ["control_id"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
                     "name": "search_documents",
                     "description": "Search uploaded compliance documents using semantic vector search. Returns relevant document excerpts with similarity scores and source citations. Use when user asks questions about uploaded documents, policies, audit reports, or evidence content.",
                     "parameters": {
@@ -583,7 +600,8 @@ CORE RULES:
             'analyze_evidence',  # Auditors can query evidence analysis
             'suggest_related_controls',  # Auditors can use Graph RAG for relationships
             'get_evidence_by_control',  # Query evidence for specific control
-            'get_recent_evidence'  # View recently uploaded evidence
+            'get_recent_evidence',  # View recently uploaded evidence
+            'resolve_control_to_evidence'  # Resolve control ID to available evidence
         ]
         COMMON_TOOLS = ['mcp_fetch_evidence', 'generate_report', 'search_documents', 'list_projects']
         
@@ -635,6 +653,35 @@ ANALYST ACTIONS:
 - Upload evidence for controls (your agency only)
 - Analyze compliance status
 - Submit evidence for review
+
+NATURAL LANGUAGE HANDLING FOR EVIDENCE SUBMISSION:
+When user says "submit Control [X]" or "submit Control [X] for review" or "Control [X] for review":
+1. Interpret this as: "submit evidence for Control [X]"
+2. ALWAYS call resolve_control_to_evidence tool first with control_id=[X]
+3. Based on tool result:
+   - If ONE evidence found → Submit it immediately using submit_for_review tool
+   - If MULTIPLE evidence found → List all with format "Evidence [ID]: [Title]" and ask "Which one?"
+   - If NONE found → Say "No pending evidence for Control [X]. Would you like to upload evidence first?"
+
+USER INTENT PATTERNS (recognize these as evidence submission requests):
+- "submit Control [X]" → means "submit evidence for Control [X]"
+- "submit Control [X] for review" → means "submit evidence for Control [X] for review"
+- "Control [X] for review" → means "evidence for Control [X] for review"
+- "please submit Control [X]" → means "submit evidence for Control [X]"
+
+EXAMPLES:
+✅ User: "Please submit Control 3 for review"
+   AI: [calls resolve_control_to_evidence with control_id=3]
+   AI: "Found Evidence 11 and Evidence 15 for Control 3. Which one would you like to submit?"
+
+✅ User: "Submit Control 5"
+   AI: [calls resolve_control_to_evidence with control_id=5]
+   AI: [if only one found, calls submit_for_review immediately]
+   AI: "Submitted Evidence 20 for Control 5 for review."
+
+✅ User: "Control 4 for review"
+   AI: [calls resolve_control_to_evidence with control_id=4]
+   AI: "No pending evidence for Control 4. Would you like to upload evidence first?"
 
 EVIDENCE UPLOAD - STRICT SEQUENCE:
 Ask for these fields IN ORDER, ONE at a time:
@@ -804,6 +851,13 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                             limit=function_args.get("limit", 10),
                             status=function_args.get("status", "all"),
                             db=db
+                        )
+                    elif function_name == "resolve_control_to_evidence":
+                        # Resolve control ID to available evidence
+                        tool_result = await self.handle_resolve_control_to_evidence(
+                            control_id=function_args.get("control_id"),
+                            db=db,
+                            current_user=current_user
                         )
                     else:
                         # Existing tools via AI Task Orchestrator
@@ -1090,6 +1144,75 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                 "error": str(e),
                 "context": "",
                 "sources": []
+            }
+    
+    async def handle_resolve_control_to_evidence(
+        self,
+        control_id: int,
+        db: Session,
+        current_user: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Resolve Control ID to available evidence that can be submitted for review.
+        Returns list of pending/rejected evidence for that control.
+        
+        Args:
+            control_id: Control ID to find evidence for
+            db: Database session
+            current_user: Current user context
+            
+        Returns:
+            Dict with success, evidence list, and count
+        """
+        try:
+            from api.src.models import Evidence, Control
+            
+            logger.info(f"Resolving Control {control_id} to available evidence for user {current_user.get('id')}")
+            
+            # Query evidence for this control that can be submitted
+            # Only pending or rejected status can be submitted
+            evidence_list = db.query(Evidence, Control).join(
+                Control, Evidence.control_id == Control.id
+            ).filter(
+                Evidence.control_id == control_id,
+                Evidence.agency_id == current_user.get("agency_id"),
+                Evidence.verification_status.in_(['pending', 'rejected'])
+            ).order_by(Evidence.created_at.desc()).all()
+            
+            if not evidence_list:
+                return {
+                    "success": True,
+                    "count": 0,
+                    "evidence": [],
+                    "message": f"No pending or rejected evidence found for Control {control_id}. Would you like to upload evidence first?"
+                }
+            
+            # Format evidence list
+            formatted_evidence = []
+            for evidence, control in evidence_list:
+                formatted_evidence.append({
+                    "evidence_id": evidence.id,
+                    "title": evidence.title,
+                    "control_id": control.id,
+                    "control_name": control.name,
+                    "verification_status": evidence.verification_status,
+                    "created_at": evidence.created_at.isoformat() if evidence.created_at else None
+                })
+            
+            return {
+                "success": True,
+                "count": len(formatted_evidence),
+                "evidence": formatted_evidence,
+                "message": f"Found {len(formatted_evidence)} evidence for Control {control_id}"
+            }
+            
+        except Exception as e:
+            logger.error(f"Resolve control to evidence failed: {e}", exc_info=True)
+            return {
+                "success": False,
+                "count": 0,
+                "evidence": [],
+                "error": str(e)
             }
     
     def _validate_tool_parameters(
