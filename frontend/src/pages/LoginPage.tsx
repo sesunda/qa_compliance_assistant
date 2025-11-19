@@ -102,8 +102,7 @@ const LoginPage: React.FC = () => {
                 height: 'auto',
                 mb: 2,
                 display: 'block',
-                filter: 'brightness(0) invert(1)',
-                opacity: 0.95,
+                opacity: 1,
               }}
             />
             <Typography 
