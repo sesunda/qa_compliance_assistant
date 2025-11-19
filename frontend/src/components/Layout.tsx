@@ -92,11 +92,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const drawer = (
     <div>
-      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Box sx={{ 
+        p: 3, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        backgroundColor: '#003B3F'
+      }}>
         <QuantiqueAnalyticaLogo size="xlarge" />
       </Box>
-      <Divider />
-      <List>
+      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.12)' }} />
+      <List sx={{ px: 1 }}>
                   {filteredMenuItems.map((item) => {
             const IconComponent = item.icon;
             return (

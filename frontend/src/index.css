@@ -1,0 +1,374 @@
+/**
+ * Global CSS Variables and Styles
+ * Compliance Assistant Design System
+ */
+
+:root {
+  /* ==================== COLOR PALETTE ==================== */
+  
+  /* Primary Colors - Deep Teal */
+  --color-primary-main: #006D77;
+  --color-primary-light: #83C5BE;
+  --color-primary-dark: #004B50;
+  --color-primary-50: #E8F5F6;
+  --color-primary-100: #B8D8D3;
+  --color-primary-200: #9AC9C1;
+  --color-primary-300: #83C5BE;
+  --color-primary-400: #5FA8A0;
+  --color-primary-500: #006D77;
+  --color-primary-600: #005864;
+  --color-primary-700: #004B50;
+  --color-primary-800: #003B3F;
+  --color-primary-900: #002A2D;
+
+  /* Secondary Colors - Soft Teal */
+  --color-secondary-main: #83C5BE;
+  --color-secondary-light: #B8D8D3;
+  --color-secondary-dark: #5FA8A0;
+
+  /* Accent Colors - Warm Red */
+  --color-accent-main: #FF6B6B;
+  --color-accent-light: #FF9999;
+  --color-accent-dark: #E65555;
+
+  /* Background Colors */
+  --color-background-default: #EDF6F9;
+  --color-background-paper: #FFFFFF;
+  --color-background-elevated: #FAFBFC;
+
+  /* Surface Colors */
+  --color-surface-default: #FFFFFF;
+  --color-surface-hover: #F8FAFB;
+  --color-surface-active: #EDF6F9;
+
+  /* Sidebar Colors */
+  --color-sidebar-bg: #004B50;
+  --color-sidebar-text: rgba(255, 255, 255, 0.85);
+  --color-sidebar-text-secondary: rgba(255, 255, 255, 0.6);
+  --color-sidebar-hover: rgba(255, 255, 255, 0.08);
+  --color-sidebar-active: rgba(131, 197, 190, 0.2);
+  --color-sidebar-icon: rgba(255, 255, 255, 0.7);
+  --color-sidebar-icon-active: #83C5BE;
+
+  /* Text Colors */
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #4F4F4F;
+  --color-text-tertiary: #6B7280;
+  --color-text-disabled: #9CA3AF;
+  --color-text-on-primary: #FFFFFF;
+
+  /* Semantic Colors */
+  --color-success-main: #10B981;
+  --color-success-light: #6EE7B7;
+  --color-success-dark: #047857;
+  
+  --color-warning-main: #F59E0B;
+  --color-warning-light: #FCD34D;
+  --color-warning-dark: #D97706;
+  
+  --color-error-main: #FF6B6B;
+  --color-error-light: #FF9999;
+  --color-error-dark: #E65555;
+  
+  --color-info-main: #3B82F6;
+  --color-info-light: #93C5FD;
+  --color-info-dark: #1D4ED8;
+
+  /* Border Colors */
+  --color-border-default: rgba(0, 0, 0, 0.12);
+  --color-border-light: rgba(0, 0, 0, 0.08);
+  --color-border-medium: rgba(0, 0, 0, 0.16);
+  --color-border-strong: rgba(0, 0, 0, 0.24);
+  --color-border-primary: #006D77;
+
+  /* ==================== SPACING SCALE ==================== */
+  --spacing-0: 0;
+  --spacing-1: 0.25rem;    /* 4px */
+  --spacing-2: 0.5rem;     /* 8px */
+  --spacing-3: 0.75rem;    /* 12px */
+  --spacing-4: 1rem;       /* 16px */
+  --spacing-5: 1.25rem;    /* 20px */
+  --spacing-6: 1.5rem;     /* 24px */
+  --spacing-8: 2rem;       /* 32px */
+  --spacing-10: 2.5rem;    /* 40px */
+  --spacing-12: 3rem;      /* 48px */
+  --spacing-16: 4rem;      /* 64px */
+  --spacing-20: 5rem;      /* 80px */
+  --spacing-24: 6rem;      /* 96px */
+  --spacing-32: 8rem;      /* 128px */
+
+  /* ==================== TYPOGRAPHY ==================== */
+  --font-family-base: "Inter", "Segoe UI", "Roboto", "Helvetica Neue", sans-serif;
+  --font-family-mono: "Fira Code", "Consolas", "Monaco", monospace;
+
+  /* Font Sizes */
+  --font-size-xs: 0.75rem;     /* 12px */
+  --font-size-sm: 0.875rem;    /* 14px */
+  --font-size-base: 1rem;      /* 16px */
+  --font-size-lg: 1.125rem;    /* 18px */
+  --font-size-xl: 1.25rem;     /* 20px */
+  --font-size-2xl: 1.5rem;     /* 24px */
+  --font-size-3xl: 1.875rem;   /* 30px */
+  --font-size-4xl: 2.25rem;    /* 36px */
+  --font-size-5xl: 3rem;       /* 48px */
+
+  /* Font Weights */
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Line Heights */
+  --line-height-tight: 1.25;
+  --line-height-snug: 1.375;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+  --line-height-loose: 2;
+
+  /* ==================== SHADOWS ==================== */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+  
+  /* Colored Shadows */
+  --shadow-primary: 0 4px 14px 0 rgba(0, 109, 119, 0.15);
+  --shadow-primary-lg: 0 10px 30px 0 rgba(0, 109, 119, 0.2);
+  --shadow-accent: 0 4px 14px 0 rgba(255, 107, 107, 0.15);
+
+  /* ==================== BORDER RADIUS ==================== */
+  --radius-none: 0;
+  --radius-sm: 0.25rem;   /* 4px */
+  --radius-md: 0.375rem;  /* 6px */
+  --radius-lg: 0.5rem;    /* 8px */
+  --radius-xl: 0.75rem;   /* 12px */
+  --radius-2xl: 1rem;     /* 16px */
+  --radius-3xl: 1.5rem;   /* 24px */
+  --radius-full: 9999px;
+
+  /* ==================== Z-INDEX ==================== */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+
+  /* ==================== TRANSITIONS ==================== */
+  --transition-fast: 150ms ease-in-out;
+  --transition-base: 200ms ease-in-out;
+  --transition-slow: 300ms ease-in-out;
+  --transition-slower: 500ms ease-in-out;
+
+  /* ==================== BREAKPOINTS ==================== */
+  --breakpoint-xs: 0;
+  --breakpoint-sm: 600px;
+  --breakpoint-md: 960px;
+  --breakpoint-lg: 1280px;
+  --breakpoint-xl: 1920px;
+}
+
+/* ==================== GLOBAL RESETS ==================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+  background-color: var(--color-background-default);
+}
+
+/* ==================== UTILITY CLASSES ==================== */
+
+/* Text Colors */
+.text-primary { color: var(--color-text-primary); }
+.text-secondary { color: var(--color-text-secondary); }
+.text-tertiary { color: var(--color-text-tertiary); }
+.text-on-primary { color: var(--color-text-on-primary); }
+
+/* Background Colors */
+.bg-primary { background-color: var(--color-primary-main); }
+.bg-secondary { background-color: var(--color-secondary-main); }
+.bg-accent { background-color: var(--color-accent-main); }
+.bg-surface { background-color: var(--color-surface-default); }
+
+/* Shadows */
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+.shadow-primary { box-shadow: var(--shadow-primary); }
+
+/* Border Radius */
+.rounded-md { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-xl { border-radius: var(--radius-xl); }
+.rounded-full { border-radius: var(--radius-full); }
+
+/* ==================== COMPONENT STYLES ==================== */
+
+/* Chat Bubbles */
+.chat-bubble-user {
+  background-color: var(--color-primary-main);
+  color: var(--color-text-on-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-3) var(--spacing-4);
+  box-shadow: var(--shadow-sm);
+  max-width: 80%;
+  margin-left: auto;
+}
+
+.chat-bubble-assistant {
+  background-color: var(--color-surface-default);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-3) var(--spacing-4);
+  box-shadow: var(--shadow-sm);
+  max-width: 80%;
+}
+
+.chat-bubble-assistant:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-border-medium);
+}
+
+/* Cards */
+.card-elevated {
+  background-color: var(--color-surface-default);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-border-light);
+  transition: all var(--transition-base);
+}
+
+.card-elevated:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--color-primary-main);
+  color: var(--color-text-on-primary);
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-2) var(--spacing-4);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-600);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-xs);
+}
+
+.btn-secondary {
+  background-color: var(--color-secondary-main);
+  color: var(--color-text-primary);
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-2) var(--spacing-4);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-secondary-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-accent {
+  background-color: var(--color-accent-main);
+  color: var(--color-text-on-primary);
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-2) var(--spacing-4);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-accent:hover {
+  background-color: var(--color-accent-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--color-primary-main);
+  border: 2px solid var(--color-primary-main);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-2) var(--spacing-4);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.btn-outline:hover {
+  background-color: var(--color-primary-main);
+  color: var(--color-text-on-primary);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background-default);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-secondary-main);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-main);
+}
+
+/* Focus Styles */
+*:focus-visible {
+  outline: 2px solid var(--color-primary-main);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background-color: var(--color-primary-200);
+  color: var(--color-text-primary);
+}
