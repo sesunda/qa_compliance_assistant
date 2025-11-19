@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, JSON, Date
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, JSON, Date, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from api.src.database import Base
@@ -152,73 +152,129 @@ class Agency(Base):
 
 
 class Assessment(Base):
+    """Comprehensive Assessment model for formal compliance evaluations"""
     __tablename__ = "assessments"
 
     id = Column(Integer, primary_key=True, index=True)
-    agency_id = Column(Integer, ForeignKey("agencies.id"), nullable=False)
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
-    title = Column(String(255), nullable=False)
-    assessment_type = Column(String(50))  # vapt, infra_pt, compliance_audit
-    performed_by = Column(String(255))
-    scope = Column(Text)
-    metadata_json = Column('metadata', JSON)
-    status = Column(String(50), default="open", index=True)
-    created_at = Column(DateTime, default=now_sgt)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    agency_id = Column(Integer, ForeignKey("agencies.id", ondelete="CASCADE"), nullable=False, index=True)
     
-    # New workflow fields
-    assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
-    completed_at = Column(DateTime, nullable=True)
-    progress_percentage = Column(Integer, default=0, nullable=False)
-    target_completion_date = Column(DateTime, nullable=True)
-    framework = Column(String(100), nullable=True, index=True)  # NIST, ISO27001, SOC2, FISMA
-    assessment_period_start = Column(Date, nullable=True)
-    assessment_period_end = Column(Date, nullable=True)
-    findings_count = Column(Integer, default=0, nullable=False)
-    controls_tested_count = Column(Integer, default=0, nullable=False)
+    # Core Info
+    name = Column(String(255), nullable=False)
+    assessment_type = Column(String(100), nullable=False, index=True)
+    # Values: compliance, risk, security_audit, penetration_test, gap_analysis
+    framework = Column(String(100), nullable=False)
+    # Values: IM8, ISO27001, NIST, SOC2, FISMA
+    
+    # Scope
+    scope_description = Column(Text, nullable=True)
+    included_controls = Column(JSON, nullable=True)  # Array of control IDs
+    excluded_areas = Column(Text, nullable=True)
+    
+    # Schedule
+    planned_start_date = Column(Date, nullable=True)
+    planned_end_date = Column(Date, nullable=True, index=True)
+    actual_start_date = Column(Date, nullable=True)
+    actual_end_date = Column(Date, nullable=True)
+    
+    # Team
+    lead_assessor_user_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    team_members = Column(JSON, nullable=True)  # Array of user IDs
+    
+    # Status
+    status = Column(String(50), nullable=False, default='not_started', index=True)
+    # Values: not_started, planning, fieldwork, review, final, archived
+    completion_percentage = Column(Float, nullable=True, default=0)
+    
+    # Results
+    overall_compliance_score = Column(Float, nullable=True)
+    findings_count_critical = Column(Integer, nullable=True, default=0)
+    findings_count_high = Column(Integer, nullable=True, default=0)
+    findings_count_medium = Column(Integer, nullable=True, default=0)
+    findings_count_low = Column(Integer, nullable=True, default=0)
+    
+    # Deliverables
+    final_report_file_path = Column(String(500), nullable=True)
+    executive_summary = Column(Text, nullable=True)
+    
+    # Approval
+    approved_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    
+    # Audit fields
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    created_at = Column(DateTime, default=now_sgt, nullable=False)
+    updated_at = Column(DateTime, default=now_sgt, onupdate=now_sgt, nullable=False)
     
     # Relationships
+    project = relationship("Project", foreign_keys=[project_id])
     agency = relationship("Agency", foreign_keys=[agency_id])
-    analyst = relationship("User", foreign_keys=[assigned_to])
+    lead_assessor = relationship("User", foreign_keys=[lead_assessor_user_id])
+    approved_by = relationship("User", foreign_keys=[approved_by_user_id])
+    created_by = relationship("User", foreign_keys=[created_by_user_id])
     controls = relationship("AssessmentControl", back_populates="assessment", cascade="all, delete-orphan")
+    findings = relationship("Finding", back_populates="assessment", cascade="all, delete-orphan")
 
 
 class Finding(Base):
+    """Comprehensive Finding model for vulnerabilities and compliance gaps"""
     __tablename__ = "findings"
 
     id = Column(Integer, primary_key=True, index=True)
-    assessment_id = Column(Integer, ForeignKey("assessments.id"), nullable=False)
-    control_id = Column(Integer, ForeignKey("controls.id"), nullable=True)
-    title = Column(String(255), nullable=False)
-    description = Column(Text)
-    severity = Column(String(50))  # critical/high/medium/low/info
-    cve = Column(String(100))
-    cvss = Column(String(20))
-    remediation = Column(Text)
-    evidence = Column(JSON)  # list of evidence ids or metadata
-    created_at = Column(DateTime, default=now_sgt)
+    assessment_id = Column(Integer, ForeignKey("assessments.id", ondelete="CASCADE"), nullable=False, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    agency_id = Column(Integer, ForeignKey("agencies.id", ondelete="CASCADE"), nullable=False, index=True)
+    control_id = Column(Integer, ForeignKey("controls.id", ondelete="SET NULL"), nullable=True, index=True)
     
-    # New workflow fields
-    resolution_status = Column(String(50), default="open", nullable=False, index=True)
+    # Core Info
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    severity = Column(String(50), nullable=False, index=True)
+    # Values: critical, high, medium, low, info
+    cvss_score = Column(Float, nullable=True)  # 0.0-10.0
+    category = Column(String(100), nullable=True)
+    # Values: injection, broken_auth, sensitive_data, xxe, access_control, security_misconfiguration, xss, insecure_deserialization, logging, ssrf
+    
+    # Asset Info
+    affected_asset = Column(String(255), nullable=True)
+    affected_url = Column(String(500), nullable=True)
+    affected_component = Column(String(255), nullable=True)
+    
+    # Status Tracking
+    status = Column(String(50), nullable=False, default='open', index=True)
     # Values: open, in_progress, resolved, accepted_risk, false_positive
-    resolved_at = Column(DateTime, nullable=True)
-    resolved_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    resolution_evidence_id = Column(Integer, ForeignKey("evidence.id", ondelete="SET NULL"), nullable=True)
-    false_positive = Column(Boolean, default=False, nullable=False)
-    validated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    validated_at = Column(DateTime, nullable=True)
-    assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
-    due_date = Column(DateTime, nullable=True, index=True)
-    priority = Column(String(20), nullable=True, index=True)  # critical, high, medium, low
-    remediation_notes = Column(Text, nullable=True)
-    updated_at = Column(DateTime, nullable=True)
+    discovery_date = Column(Date, nullable=False)
+    
+    # Remediation
+    remediation_recommendation = Column(Text, nullable=True)
+    remediation_priority = Column(String(50), nullable=True)
+    # Values: immediate, urgent, planned
+    target_remediation_date = Column(Date, nullable=True, index=True)
+    assigned_to_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    actual_remediation_date = Column(Date, nullable=True)
+    
+    # Evidence/Proof
+    evidence_file_paths = Column(JSON, nullable=True)  # Array of file paths for POC/screenshots
+    reproduction_steps = Column(Text, nullable=True)
+    
+    # Verification
+    verified_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    verified_at = Column(DateTime, nullable=True)
+    verification_notes = Column(Text, nullable=True)
+    
+    # Audit fields
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    created_at = Column(DateTime, default=now_sgt, nullable=False)
+    updated_at = Column(DateTime, default=now_sgt, onupdate=now_sgt, nullable=False)
     
     # Relationships
-    assessment = relationship("Assessment", foreign_keys=[assessment_id])
+    assessment = relationship("Assessment", back_populates="findings")
+    project = relationship("Project", foreign_keys=[project_id])
+    agency = relationship("Agency", foreign_keys=[agency_id])
     control = relationship("Control", foreign_keys=[control_id])
-    resolver = relationship("User", foreign_keys=[resolved_by])
-    validator = relationship("User", foreign_keys=[validated_by])
-    assignee = relationship("User", foreign_keys=[assigned_to])
-    resolution_evidence = relationship("Evidence", foreign_keys=[resolution_evidence_id])
+    assigned_to = relationship("User", foreign_keys=[assigned_to_user_id])
+    verified_by = relationship("User", foreign_keys=[verified_by_user_id])
+    created_by = relationship("User", foreign_keys=[created_by_user_id])
     comments = relationship("FindingComment", back_populates="finding", cascade="all, delete-orphan")
 
 
