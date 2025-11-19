@@ -722,14 +722,187 @@ const AgenticChatPage: React.FC = () => {
       </Card>
 
       {/* Chat Messages */}
-      <Paper sx={{ height: '60vh', overflow: 'auto', p: 2, mb: 2 }}>
-        {messages.map((message) => (
+      <Paper 
+        sx={{ 
+          height: '60vh', 
+          overflow: 'auto', 
+          p: 2, 
+          mb: 2,
+          background: 'linear-gradient(180deg, #FAFBFC 0%, #FFFFFF 100%)',
+        }}
+      >
+        {messages.length === 0 ? (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              textAlign: 'center',
+              p: 4,
+            }}
+          >
+            <Box
+              sx={{
+                width: 120,
+                height: 120,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #006D77 0%, #83C5BE 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mb: 3,
+                animation: 'pulse 2s ease-in-out infinite',
+                boxShadow: '0 8px 24px rgba(0, 109, 119, 0.3)',
+                '@keyframes pulse': {
+                  '0%, 100%': {
+                    transform: 'scale(1)',
+                    boxShadow: '0 8px 24px rgba(0, 109, 119, 0.3)',
+                  },
+                  '50%': {
+                    transform: 'scale(1.05)',
+                    boxShadow: '0 12px 32px rgba(0, 109, 119, 0.4)',
+                  },
+                },
+              }}
+            >
+              <SmartToyIcon sx={{ fontSize: 64, color: '#FFFFFF' }} />
+            </Box>
+            <Typography variant="h5" sx={{ fontWeight: 600, color: '#006D77', mb: 1 }}>
+              Ready to Assist You
+            </Typography>
+            <Typography variant="body1" sx={{ color: '#6B7280', mb: 4, maxWidth: 400 }}>
+              Ask me anything about compliance, evidence management, or controls
+            </Typography>
+            <Grid container spacing={2} sx={{ maxWidth: 600, mt: 2 }}>
+              <Grid item xs={6} sm={4}>
+                <Paper
+                  onClick={() => setInput('Upload evidence for Control 5')}
+                  sx={{
+                    p: 2,
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    transition: 'all 0.3s ease',
+                    border: '2px solid transparent',
+                    '&:hover': {
+                      borderColor: '#006D77',
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 8px 16px rgba(0, 109, 119, 0.2)',
+                    },
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #006D77 0%, #83C5BE 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 8px',
+                    }}
+                  >
+                    <AttachFileIcon sx={{ color: '#FFFFFF' }} />
+                  </Box>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    Upload Evidence
+                  </Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={6} sm={4}>
+                <Paper
+                  onClick={() => setInput('Analyze evidence for Control 3')}
+                  sx={{
+                    p: 2,
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    transition: 'all 0.3s ease',
+                    border: '2px solid transparent',
+                    '&:hover': {
+                      borderColor: '#006D77',
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 8px 16px rgba(0, 109, 119, 0.2)',
+                    },
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #10B981 0%, #22C55E 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 8px',
+                    }}
+                  >
+                    <TaskIcon sx={{ color: '#FFFFFF' }} />
+                  </Box>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    Analyze Evidence
+                  </Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={6} sm={4}>
+                <Paper
+                  onClick={() => setInput('Generate compliance report')}
+                  sx={{
+                    p: 2,
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    transition: 'all 0.3s ease',
+                    border: '2px solid transparent',
+                    '&:hover': {
+                      borderColor: '#006D77',
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 8px 16px rgba(0, 109, 119, 0.2)',
+                    },
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 8px',
+                    }}
+                  >
+                    <AddIcon sx={{ color: '#FFFFFF' }} />
+                  </Box>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    Generate Report
+                  </Typography>
+                </Paper>
+              </Grid>
+            </Grid>
+          </Box>
+        ) : (
+          messages.map((message, index) => (
           <Box
             key={message.id}
             sx={{
               display: 'flex',
               justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
-              mb: 2
+              mb: 2,
+              animation: 'slideIn 0.3s ease-out',
+              animationDelay: `${index * 0.05}s`,
+              '@keyframes slideIn': {
+                from: {
+                  opacity: 0,
+                  transform: message.role === 'user' ? 'translateX(20px)' : 'translateX(-20px)',
+                },
+                to: {
+                  opacity: 1,
+                  transform: 'translateX(0)',
+                },
+              },
             }}
           >
             <Box
@@ -738,20 +911,25 @@ const AgenticChatPage: React.FC = () => {
                 display: 'flex',
                 flexDirection: message.role === 'user' ? 'row-reverse' : 'row',
                 alignItems: 'flex-start',
-                gap: 1
+                gap: 1.5
               }}
             >
               <Box
                 sx={{
-                  width: 40,
-                  height: 40,
+                  width: 42,
+                  height: 42,
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  bgcolor: message.role === 'user' ? 'primary.main' : 'secondary.main',
+                  background: message.role === 'user' 
+                    ? 'linear-gradient(135deg, #006D77 0%, #83C5BE 100%)'
+                    : 'linear-gradient(135deg, #10B981 0%, #22C55E 100%)',
                   color: 'white',
-                  flexShrink: 0
+                  flexShrink: 0,
+                  boxShadow: message.role === 'user'
+                    ? '0 4px 12px rgba(0, 109, 119, 0.3)'
+                    : '0 4px 12px rgba(16, 185, 129, 0.3)',
                 }}
               >
                 {message.role === 'user' ? <PersonIcon /> : <SmartToyIcon />}
@@ -759,15 +937,27 @@ const AgenticChatPage: React.FC = () => {
 
               <Box>
                 <Paper
+                  elevation={message.role === 'user' ? 0 : 1}
                   sx={{
                     p: 2,
-                    bgcolor: message.role === 'user' ? 'primary.light' : 'grey.100',
-                    color: message.role === 'user' ? 'primary.contrastText' : 'text.primary'
+                    background: message.role === 'user' 
+                      ? 'linear-gradient(135deg, #006D77 0%, #005864 100%)'
+                      : '#FFFFFF',
+                    color: message.role === 'user' ? '#FFFFFF' : '#1A1A1A',
+                    borderRadius: 2,
+                    border: message.role === 'assistant' ? '1px solid #E5E7EB' : 'none',
+                    boxShadow: message.role === 'user' 
+                      ? '0 2px 8px rgba(0, 109, 119, 0.2)'
+                      : '0 1px 3px rgba(0, 0, 0, 0.1)',
                   }}
                 >
                   <Typography 
                     variant="body1" 
-                    sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                    sx={{ 
+                      whiteSpace: 'pre-wrap', 
+                      wordBreak: 'break-word',
+                      lineHeight: 1.6,
+                    }}
                   >
                     {message.content}
                   </Typography>
@@ -901,7 +1091,8 @@ const AgenticChatPage: React.FC = () => {
               </Box>
             </Box>
           </Box>
-        ))}
+        ))
+        )}
 
         {/* Evidence Upload Widget */}
         {pendingUpload && (

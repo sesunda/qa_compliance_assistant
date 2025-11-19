@@ -50,46 +50,99 @@ const LoginPage: React.FC = () => {
   }
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #006D77 0%, #83C5BE 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: '-50%',
+          right: '-50%',
+          width: '100%',
+          height: '100%',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
+          animation: 'float 20s ease-in-out infinite',
+        },
+        '@keyframes float': {
+          '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
+          '33%': { transform: 'translate(30px, -30px) rotate(120deg)' },
+          '66%': { transform: 'translate(-20px, 20px) rotate(240deg)' },
+        },
+      }}
+    >
+      <Container component="main" maxWidth="xs" sx={{ position: 'relative', zIndex: 1 }}>
         <Box
           sx={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            mb: 2,
           }}
         >
-          {/* Company Logo */}
-          <Box 
-            component="img" 
-            src="/assets/logo.png" 
-            alt="Quantique Analytica"
-            sx={{ 
-              width: '280px', 
-              height: 'auto',
-              mb: 1,
-              display: 'block',
-              margin: '0 auto'
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              mb: 3,
             }}
-          />
-          <Typography component="h1" variant="h5" sx={{ fontWeight: 600, color: '#000', mt: 1 }}>
-            AI Compliance Assistant
-          </Typography>
-          <Typography variant="body1" color="textSecondary" sx={{ mt: 0.5 }}>
-            Smarter Compliance through Context-Aware AI
-          </Typography>
-        </Box>
-        
-        <Card sx={{ width: '100%' }}>
-          <CardContent sx={{ p: 4 }}>
+          >
+            {/* Company Logo */}
+            <Box 
+              component="img" 
+              src="/assets/logo.png" 
+              alt="Quantique Analytica"
+              sx={{ 
+                width: '280px', 
+                height: 'auto',
+                mb: 2,
+                display: 'block',
+                filter: 'brightness(0) invert(1)',
+                opacity: 0.95,
+              }}
+            />
+            <Typography 
+              component="h1" 
+              variant="h4" 
+              sx={{ 
+                fontWeight: 700, 
+                color: '#FFFFFF', 
+                mt: 1,
+                textAlign: 'center',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              AI Compliance Assistant
+            </Typography>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                mt: 1, 
+                color: 'rgba(255, 255, 255, 0.9)',
+                textAlign: 'center',
+                fontWeight: 400,
+              }}
+            >
+              Smarter Compliance through Context-Aware AI
+            </Typography>
+          </Box>
+          
+          <Card 
+            sx={{ 
+              width: '100%',
+              backdropFilter: 'blur(20px)',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.18)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: 3,
+            }}
+          >
+            <CardContent sx={{ p: 4 }}>
             <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
               {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
@@ -151,8 +204,9 @@ const LoginPage: React.FC = () => {
             </Box>
           </CardContent>
         </Card>
-      </Box>
-    </Container>
+        </Box>
+      </Container>
+    </Box>
   )
 }
 

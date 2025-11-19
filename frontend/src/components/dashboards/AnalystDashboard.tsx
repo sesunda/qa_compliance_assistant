@@ -28,6 +28,7 @@ import {
   TrendingUp,
   Policy,
   Error as ErrorIcon,
+  Security,
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import analyticsService, { DashboardMetrics, WorkloadData } from '../../services/analytics'
@@ -278,45 +279,184 @@ const AnalystDashboard: React.FC = () => {
 
         {/* Agency-Wide Statistics */}
         <Grid item xs={12}>
-          <Paper sx={{ p: 2, bgcolor: 'primary.dark' }}>
-            <Typography variant="h6" gutterBottom sx={{ color: 'white' }}>
+          <Paper 
+            sx={{ 
+              p: 3, 
+              background: 'linear-gradient(135deg, #FFFFFF 0%, #F0F9FF 100%)',
+              borderLeft: '4px solid #006D77',
+              boxShadow: '0 2px 8px rgba(0, 109, 119, 0.1)',
+              '&:hover': {
+                boxShadow: '0 4px 16px rgba(0, 109, 119, 0.15)',
+                transform: 'translateY(-2px)',
+                transition: 'all 0.3s ease',
+              },
+            }}
+          >
+            <Typography 
+              variant="h6" 
+              gutterBottom 
+              sx={{ 
+                color: '#006D77', 
+                fontWeight: 600,
+                mb: 3,
+              }}
+            >
               Agency-Wide Compliance Overview
             </Typography>
             <Grid container spacing={3}>
               <Grid item xs={6} sm={3}>
-                <Box textAlign="center">
-                  <Typography variant="h3" sx={{ color: 'white' }}>{metrics.assessments.total}</Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>Total Assessments</Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                <Box 
+                  textAlign="center"
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    background: 'linear-gradient(135deg, rgba(0, 109, 119, 0.05) 0%, rgba(131, 197, 190, 0.05) 100%)',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #006D77 0%, #83C5BE 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 12px',
+                      boxShadow: '0 4px 12px rgba(0, 109, 119, 0.2)',
+                    }}
+                  >
+                    <Assessment sx={{ fontSize: 28, color: '#FFFFFF' }} />
+                  </Box>
+                  <Typography variant="h3" sx={{ color: '#006D77', fontWeight: 700, mb: 0.5 }}>
+                    {metrics.assessments.total}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#1A1A1A', fontWeight: 500 }}>
+                    Total Assessments
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#6B7280' }}>
                     {metrics.assessments.active} active
                   </Typography>
                 </Box>
               </Grid>
               <Grid item xs={6} sm={3}>
-                <Box textAlign="center">
-                  <Typography variant="h3" sx={{ color: 'white' }}>{metrics.findings.total}</Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>Total Findings</Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                <Box 
+                  textAlign="center"
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.05) 0%, rgba(251, 191, 36, 0.05) 100%)',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #FB923C 0%, #FBBF24 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 12px',
+                      boxShadow: '0 4px 12px rgba(251, 146, 60, 0.2)',
+                    }}
+                  >
+                    <BugReport sx={{ fontSize: 28, color: '#FFFFFF' }} />
+                  </Box>
+                  <Typography variant="h3" sx={{ color: '#F59E0B', fontWeight: 700, mb: 0.5 }}>
+                    {metrics.findings.total}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#1A1A1A', fontWeight: 500 }}>
+                    Total Findings
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#6B7280' }}>
                     {metrics.findings.open} open
                   </Typography>
                 </Box>
               </Grid>
               <Grid item xs={6} sm={3}>
-                <Box textAlign="center">
-                  <Typography variant="h3" color={openCriticalHigh > 0 ? 'error.light' : 'success.light'}>
+                <Box 
+                  textAlign="center"
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    background: openCriticalHigh > 0 
+                      ? 'linear-gradient(135deg, rgba(255, 107, 107, 0.05) 0%, rgba(239, 68, 68, 0.05) 100%)'
+                      : 'linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(34, 197, 94, 0.05) 100%)',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: '50%',
+                      background: openCriticalHigh > 0 
+                        ? 'linear-gradient(135deg, #FF6B6B 0%, #EF4444 100%)'
+                        : 'linear-gradient(135deg, #10B981 0%, #22C55E 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 12px',
+                      boxShadow: openCriticalHigh > 0 
+                        ? '0 4px 12px rgba(255, 107, 107, 0.2)'
+                        : '0 4px 12px rgba(16, 185, 129, 0.2)',
+                    }}
+                  >
+                    {openCriticalHigh > 0 ? (
+                      <Warning sx={{ fontSize: 28, color: '#FFFFFF' }} />
+                    ) : (
+                      <CheckCircle sx={{ fontSize: 28, color: '#FFFFFF' }} />
+                    )}
+                  </Box>
+                  <Typography 
+                    variant="h3" 
+                    sx={{ 
+                      color: openCriticalHigh > 0 ? '#FF6B6B' : '#10B981', 
+                      fontWeight: 700, 
+                      mb: 0.5 
+                    }}
+                  >
                     {openCriticalHigh}
                   </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>Critical/High Findings</Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Open severity</Typography>
+                  <Typography variant="body2" sx={{ color: '#1A1A1A', fontWeight: 500 }}>
+                    Critical/High Findings
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                    Open severity
+                  </Typography>
                 </Box>
               </Grid>
               <Grid item xs={6} sm={3}>
-                <Box textAlign="center">
-                  <Typography variant="h3" color="success.light">
+                <Box 
+                  textAlign="center"
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(34, 197, 94, 0.05) 100%)',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #10B981 0%, #22C55E 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 12px',
+                      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
+                    }}
+                  >
+                    <Security sx={{ fontSize: 28, color: '#FFFFFF' }} />
+                  </Box>
+                  <Typography variant="h3" sx={{ color: '#10B981', fontWeight: 700, mb: 0.5 }}>
                     {metrics.controls.compliance_score}%
                   </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>Compliance Score</Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                  <Typography variant="body2" sx={{ color: '#1A1A1A', fontWeight: 500 }}>
+                    Compliance Score
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#6B7280' }}>
                     {metrics.controls.passed}/{metrics.controls.total} controls
                   </Typography>
                 </Box>
