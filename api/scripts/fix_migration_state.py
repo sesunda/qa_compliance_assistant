@@ -19,12 +19,31 @@ def main():
     engine = create_engine(database_url)
     
     with engine.connect() as conn:
-        # Step 1: Fix migration version
-        print("\n=== Step 1: Fixing migration state ===")
-        conn.execute(text("DELETE FROM alembic_version"))
-        conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('001')"))
-        conn.commit()
-        print("✓ Set migration version to 001")
+        # Step 1: Check if trigger already exists, if so set version to 0000053
+        print("\n=== Step 1: Checking migration state ===")
+        
+        # Check if notify trigger exists
+        trigger_check = conn.execute(text("""
+            SELECT EXISTS (
+                SELECT 1 FROM pg_trigger 
+                WHERE tgname = 'agent_task_insert_trigger'
+            )
+        """))
+        trigger_exists = trigger_check.fetchone()[0]
+        
+        if trigger_exists:
+            print("✓ Trigger 'agent_task_insert_trigger' already exists")
+            # Set migration to 0000053 to skip trigger creation
+            conn.execute(text("DELETE FROM alembic_version"))
+            conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('0000053')"))
+            conn.commit()
+            print("✓ Set migration version to 0000053 (trigger migration)")
+        else:
+            print("⚠ Trigger does not exist, setting to 001 for clean migration")
+            conn.execute(text("DELETE FROM alembic_version"))
+            conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('001')"))
+            conn.commit()
+            print("✓ Set migration version to 001")
         
         # Step 2: Add project_type column
         print("\n=== Step 2: Adding project_type column ===")
