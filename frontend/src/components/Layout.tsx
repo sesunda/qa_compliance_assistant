@@ -179,15 +179,40 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               }}
               open={Boolean(anchorEl)}
               onClose={handleClose}
+              sx={{
+                '& .MuiPaper-root': {
+                  minWidth: '180px',
+                  mt: 1,
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                },
+              }}
             >
-              <MenuItem onClick={handleClose}>
-                <ListItemIcon>
+              <MenuItem 
+                onClick={handleClose}
+                sx={{
+                  py: 1.5,
+                  px: 2,
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 109, 119, 0.08)',
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}>
                   <AccountCircle fontSize="small" />
                 </ListItemIcon>
                 <ListItemText>Profile</ListItemText>
               </MenuItem>
-              <MenuItem onClick={handleLogout}>
-                <ListItemIcon>
+              <MenuItem 
+                onClick={handleLogout}
+                sx={{
+                  py: 1.5,
+                  px: 2,
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 109, 119, 0.08)',
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}>
                   <Logout fontSize="small" />
                 </ListItemIcon>
                 <ListItemText>Logout</ListItemText>
