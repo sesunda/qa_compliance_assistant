@@ -205,7 +205,7 @@ async def chat(
         if not task_created and not rich_ui:  # Don't show suggestions if rich UI is present
             # Role-based suggestions (RBAC-compliant)
             user_role = current_user.get("role", "").lower()
-            message_lower = request.message.lower()
+            message_lower = message.lower()
             
             # Detect if analyst is asking to submit evidence for review
             if user_role == "analyst" and any(keyword in message_lower for keyword in ["submit", "review", "submit for review", "submit evidence"]):
