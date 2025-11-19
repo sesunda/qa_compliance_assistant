@@ -197,10 +197,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   },
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 36 }}>
+                <ListItemIcon sx={{ minWidth: 36, color: '#006D77' }}>
                   <AccountCircle fontSize="small" />
                 </ListItemIcon>
-                <ListItemText>Profile</ListItemText>
+                <ListItemText sx={{ '& .MuiTypography-root': { color: '#1A1A1A', fontWeight: 500 } }}>Profile</ListItemText>
               </MenuItem>
               <MenuItem 
                 onClick={handleLogout}
@@ -212,10 +212,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   },
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 36 }}>
+                <ListItemIcon sx={{ minWidth: 36, color: '#FF6B6B' }}>
                   <Logout fontSize="small" />
                 </ListItemIcon>
-                <ListItemText>Logout</ListItemText>
+                <ListItemText sx={{ '& .MuiTypography-root': { color: '#1A1A1A', fontWeight: 500 } }}>Logout</ListItemText>
               </MenuItem>
             </Menu>
           </div>

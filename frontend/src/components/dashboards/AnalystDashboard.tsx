@@ -278,25 +278,25 @@ const AnalystDashboard: React.FC = () => {
 
         {/* Agency-Wide Statistics */}
         <Grid item xs={12}>
-          <Paper sx={{ p: 2, bgcolor: 'primary.dark', color: 'white' }}>
-            <Typography variant="h6" gutterBottom>
+          <Paper sx={{ p: 2, bgcolor: 'primary.dark' }}>
+            <Typography variant="h6" gutterBottom sx={{ color: 'white' }}>
               Agency-Wide Compliance Overview
             </Typography>
             <Grid container spacing={3}>
               <Grid item xs={6} sm={3}>
                 <Box textAlign="center">
-                  <Typography variant="h3">{metrics.assessments.total}</Typography>
-                  <Typography variant="body2">Total Assessments</Typography>
-                  <Typography variant="caption">
+                  <Typography variant="h3" sx={{ color: 'white' }}>{metrics.assessments.total}</Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>Total Assessments</Typography>
+                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                     {metrics.assessments.active} active
                   </Typography>
                 </Box>
               </Grid>
               <Grid item xs={6} sm={3}>
                 <Box textAlign="center">
-                  <Typography variant="h3">{metrics.findings.total}</Typography>
-                  <Typography variant="body2">Total Findings</Typography>
-                  <Typography variant="caption">
+                  <Typography variant="h3" sx={{ color: 'white' }}>{metrics.findings.total}</Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>Total Findings</Typography>
+                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                     {metrics.findings.open} open
                   </Typography>
                 </Box>
@@ -306,8 +306,8 @@ const AnalystDashboard: React.FC = () => {
                   <Typography variant="h3" color={openCriticalHigh > 0 ? 'error.light' : 'success.light'}>
                     {openCriticalHigh}
                   </Typography>
-                  <Typography variant="body2">Critical/High Findings</Typography>
-                  <Typography variant="caption">Open severity</Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>Critical/High Findings</Typography>
+                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>Open severity</Typography>
                 </Box>
               </Grid>
               <Grid item xs={6} sm={3}>
@@ -315,8 +315,8 @@ const AnalystDashboard: React.FC = () => {
                   <Typography variant="h3" color="success.light">
                     {metrics.controls.compliance_score}%
                   </Typography>
-                  <Typography variant="body2">Compliance Score</Typography>
-                  <Typography variant="caption">
+                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>Compliance Score</Typography>
+                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                     {metrics.controls.passed}/{metrics.controls.total} controls
                   </Typography>
                 </Box>
