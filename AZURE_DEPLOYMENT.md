@@ -290,7 +290,48 @@ az containerapp exec \
   --command "python -m api.scripts.seed_controls"
 ```
 
-### 4. Test API Endpoints
+### 4. Configure Storage Authentication
+
+For evidence file uploads, the API needs to authenticate with Azure Blob Storage. Two options:
+
+**Option A: Connection String (Quick Setup - Currently Used)**
+```bash
+# Get storage connection string
+STORAGE_CONN=$(az storage account show-connection-string \
+  --name stqcadev2f37g0 \
+  --resource-group rg-qca-dev \
+  --query connectionString -o tsv)
+
+# Set in container app
+az containerapp update \
+  --name ca-api-qca-dev \
+  --resource-group rg-qca-dev \
+  --set-env-vars "AZURE_STORAGE_CONNECTION_STRING=$STORAGE_CONN"
+```
+
+**Option B: Managed Identity (Recommended for Production)**
+```bash
+# Enable system-assigned identity
+az containerapp identity assign \
+  --name ca-api-qca-dev \
+  --resource-group rg-qca-dev
+
+# Get the identity's principal ID
+IDENTITY_ID=$(az containerapp identity show \
+  --name ca-api-qca-dev \
+  --resource-group rg-qca-dev \
+  --query principalId -o tsv)
+
+# Grant Storage Blob Data Contributor role
+az role assignment create \
+  --assignee $IDENTITY_ID \
+  --role "Storage Blob Data Contributor" \
+  --scope "/subscriptions/YOUR_SUBSCRIPTION_ID/resourceGroups/rg-qca-dev/providers/Microsoft.Storage/storageAccounts/stqcadev2f37g0"
+```
+
+> **Note**: When using managed identity, remove the `AZURE_STORAGE_CONNECTION_STRING` environment variable.
+
+### 5. Test API Endpoints
 
 ```bash
 # Get API URL
