@@ -306,7 +306,7 @@ class TaskWorker:
         Args:
             task: Completed AgentTask instance with session_id in payload
         """
-        from api.src.db.database import SessionLocal
+        from api.src.database import SessionLocal
         db = None
         try:
             from api.src.services.conversation_manager import ConversationManager
