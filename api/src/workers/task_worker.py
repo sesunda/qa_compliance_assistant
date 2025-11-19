@@ -306,6 +306,8 @@ class TaskWorker:
         Args:
             task: Completed AgentTask instance with session_id in payload
         """
+        from api.src.db.database import SessionLocal
+        db = None
         try:
             from api.src.services.conversation_manager import ConversationManager
             import json
@@ -313,6 +315,11 @@ class TaskWorker:
             session_id = task.payload.get("session_id")
             if not session_id:
                 logger.warning(f"Task {task.id} has no session_id in payload, skipping conversation update")
+                return
+            
+            user_id = task.payload.get("current_user_id")
+            if not user_id:
+                logger.warning(f"Task {task.id} has no current_user_id in payload, skipping conversation update")
                 return
             
             # Format result message based on task status
@@ -323,8 +330,11 @@ class TaskWorker:
                 # Format error message
                 result_message = f"Task failed: {task.error_message or 'Unknown error'}"
             
+            # Create new DB session for conversation update
+            db = SessionLocal()
+            
             # Add assistant message to conversation
-            conv_manager = ConversationManager()
+            conv_manager = ConversationManager(db=db, user_id=user_id)
             conv_manager.add_message(
                 session_id=session_id,
                 role="assistant",
@@ -335,6 +345,9 @@ class TaskWorker:
             
         except Exception as e:
             logger.error(f"Failed to add task {task.id} result to conversation: {e}", exc_info=True)
+        finally:
+            if db:
+                db.close()
     
     def _format_task_result(self, task: AgentTask) -> str:
         """Format task result as human-readable message."""
