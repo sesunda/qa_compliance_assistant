@@ -26,7 +26,14 @@ def main():
             
             print(f"Current migration version: {current_version}")
             
-            # Only fix if we're at version 002 or 003 (failed migration)
+            # If at old version 0000053, jump to 002 (skip timezone migration that was already done)
+            if current_version == '0000053':
+                conn.execute(text("UPDATE alembic_version SET version_num = '002'"))
+                conn.commit()
+                print("Jumped from 0000053 to 002 (timezone already migrated)")
+                current_version = '002'
+            
+            # Only fix if we're at version 002 or 003 (need assessments/findings upgrade)
             if current_version not in ['002', '003']:
                 print(f"No fix needed for version {current_version}")
                 return
