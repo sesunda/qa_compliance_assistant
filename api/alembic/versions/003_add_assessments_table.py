@@ -21,7 +21,25 @@ depends_on = None
 
 
 def upgrade():
-    # Step 1: Rename old table to backup
+    # Step 1: Drop old indexes if they exist
+    connection = op.get_bind()
+    
+    # Check and drop old indexes
+    old_indexes = [
+        'ix_assessments_project_id',
+        'ix_assessments_agency_id', 
+        'ix_assessments_status',
+        'ix_assessments_assessment_type',
+        'ix_assessments_planned_end_date'
+    ]
+    
+    for index_name in old_indexes:
+        try:
+            op.drop_index(index_name, table_name='assessments', if_exists=True)
+        except Exception:
+            pass  # Index doesn't exist, continue
+    
+    # Step 2: Rename old table to backup
     op.rename_table('assessments', 'assessments_old')
     
     # Step 2: Create new comprehensive assessments table
