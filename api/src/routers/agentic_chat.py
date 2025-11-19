@@ -205,8 +205,33 @@ async def chat(
         if not task_created and not rich_ui:  # Don't show suggestions if rich UI is present
             # Role-based suggestions (RBAC-compliant)
             user_role = current_user.get("role", "").lower()
+            message_lower = req.message.lower()
             
-            if user_role == "auditor":
+            # Detect if analyst is asking to submit evidence for review
+            if user_role == "analyst" and any(keyword in message_lower for keyword in ["submit", "review", "submit for review", "submit evidence"]):
+                # Query available evidence that can be submitted (pending or rejected status)
+                from api.src.models import Evidence, Control
+                available_evidence = db.query(Evidence, Control).join(Control, Evidence.control_id == Control.id).filter(
+                    Evidence.agency_id == current_user.get("agency_id"),
+                    Evidence.verification_status.in_(['pending', 'rejected'])
+                ).order_by(Evidence.created_at.desc()).limit(10).all()
+                
+                if available_evidence:
+                    # Build suggestions with evidence IDs and titles
+                    suggested_responses = []
+                    for evidence, control in available_evidence:
+                        status_label = "📝" if evidence.verification_status == "pending" else "🔄"
+                        suggested_responses.append(
+                            f"Evidence {evidence.id}: {evidence.title[:50]} (Control {control.id}) {status_label}"
+                        )
+                    # Add "Show all" option
+                    suggested_responses.append("Show me all my evidence")
+                else:
+                    suggested_responses = [
+                        "Upload evidence for a control",
+                        "View available controls"
+                    ]
+            elif user_role == "auditor":
                 # Auditor can create projects and controls
                 suggested_responses = [
                     "Show me recent projects",
