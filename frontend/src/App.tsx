@@ -38,7 +38,7 @@ const App: React.FC = () => {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<Navigate to="/agentic-chat" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/assessments" element={<AssessmentsPage />} />
         <Route path="/assessments/:id" element={<AssessmentDetailPage />} />
