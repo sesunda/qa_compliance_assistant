@@ -63,38 +63,38 @@ async def get_dashboard_metrics(
     total_findings = findings_query.count()
     
     open_findings = findings_query.filter(
-        Finding.resolution_status == "open"
+        Finding.status == "open"
     ).count()
     
     resolved_findings = findings_query.filter(
-        Finding.resolution_status.in_(["resolved", "validated", "closed"])
+        Finding.status.in_(["resolved", "validated", "closed"])
     ).count()
     
     # Findings by Severity
     critical_findings = findings_query.filter(
         Finding.severity == "critical",
-        Finding.resolution_status.notin_(["resolved", "validated", "closed"])
+        Finding.status.notin_(["resolved", "validated", "closed"])
     ).count()
     
     high_findings = findings_query.filter(
         Finding.severity == "high",
-        Finding.resolution_status.notin_(["resolved", "validated", "closed"])
+        Finding.status.notin_(["resolved", "validated", "closed"])
     ).count()
     
     medium_findings = findings_query.filter(
         Finding.severity == "medium",
-        Finding.resolution_status.notin_(["resolved", "validated", "closed"])
+        Finding.status.notin_(["resolved", "validated", "closed"])
     ).count()
     
     low_findings = findings_query.filter(
         Finding.severity == "low",
-        Finding.resolution_status.notin_(["resolved", "validated", "closed"])
+        Finding.status.notin_(["resolved", "validated", "closed"])
     ).count()
     
     # Overdue Findings
     overdue_findings = findings_query.filter(
         Finding.due_date < now_sgt(),
-        Finding.resolution_status.notin_(["resolved", "validated", "closed"])
+        Finding.status.notin_(["resolved", "validated", "closed"])
     ).count()
     
     # Control Metrics
@@ -283,7 +283,7 @@ async def get_findings_severity_breakdown(
     # Group by severity and resolution status
     results = db.query(
         Finding.severity,
-        Finding.resolution_status,
+        Finding.status,
         func.count(Finding.id).label("count")
     ).join(Assessment).filter(
         Assessment.agency_id == agency_id
@@ -292,7 +292,7 @@ async def get_findings_severity_breakdown(
     if assessment_id:
         results = results.filter(Finding.assessment_id == assessment_id)
     
-    results = results.group_by(Finding.severity, Finding.resolution_status).all()
+    results = results.group_by(Finding.severity, Finding.status).all()
     
     breakdown = {}
     for severity in ["critical", "high", "medium", "low", "info"]:
@@ -305,8 +305,8 @@ async def get_findings_severity_breakdown(
         }
     
     for result in results:
-        if result.severity in breakdown and result.resolution_status in breakdown[result.severity]:
-            breakdown[result.severity][result.resolution_status] = result.count
+        if result.severity in breakdown and result.status in breakdown[result.severity]:
+            breakdown[result.severity][result.status] = result.count
     
     return breakdown
 
@@ -390,14 +390,14 @@ async def get_my_workload(
     # Assigned findings
     my_findings = db.query(Finding).join(Assessment).filter(
         Finding.assigned_to == current_user["id"],
-        Finding.resolution_status.in_(["open", "in_progress"])
+        Finding.status.in_(["open", "in_progress"])
     ).count()
     
     # Overdue findings
     my_overdue = db.query(Finding).join(Assessment).filter(
         Finding.assigned_to == current_user["id"],
         Finding.due_date < now_sgt(),
-        Finding.resolution_status.in_(["open", "in_progress"])
+        Finding.status.in_(["open", "in_progress"])
     ).count()
     
     # Findings due soon (next 7 days)
@@ -406,7 +406,7 @@ async def get_my_workload(
         Finding.assigned_to == current_user["id"],
         Finding.due_date <= seven_days,
         Finding.due_date >= now_sgt(),
-        Finding.resolution_status.in_(["open", "in_progress"])
+        Finding.status.in_(["open", "in_progress"])
     ).count()
     
     return {
@@ -440,7 +440,7 @@ async def get_agency_comparison(
         
         open_findings = db.query(Finding).join(Assessment).filter(
             Assessment.agency_id == agency.id,
-            Finding.resolution_status == "open"
+            Finding.status == "open"
         ).count()
         
         total_controls = db.query(Control).filter(

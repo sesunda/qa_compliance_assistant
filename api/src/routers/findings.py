@@ -81,7 +81,7 @@ async def create_finding(
         description=finding_data.description,
         severity=finding_data.severity,
         priority=finding_data.priority or "medium",
-        resolution_status="open",
+        status="open",
         false_positive=False,
         risk_rating=finding_data.risk_rating,
         affected_systems=finding_data.affected_systems,
@@ -118,7 +118,7 @@ async def create_finding(
 async def list_findings(
     assessment_id: Optional[int] = Query(None, description="Filter by assessment"),
     severity: Optional[str] = Query(None, description="Filter by severity"),
-    resolution_status: Optional[str] = Query(None, description="Filter by status"),
+    status: Optional[str] = Query(None, description="Filter by status"),
     assigned_to_me: bool = Query(False, description="Show only my assignments"),
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -129,7 +129,7 @@ async def list_findings(
     Filters:
     - assessment_id: Filter by assessment
     - severity: critical, high, medium, low, info
-    - resolution_status: open, in_progress, resolved, validated, closed
+    - status: open, in_progress, resolved, validated, closed
     - assigned_to_me: show only findings assigned to current user
     """
     user = db.query(User).filter(User.id == current_user["id"]).first()
@@ -146,8 +146,8 @@ async def list_findings(
     if severity:
         query = query.filter(Finding.severity == severity)
     
-    if resolution_status:
-        query = query.filter(Finding.resolution_status == resolution_status)
+    if status:
+        query = query.filter(Finding.status == status)
     
     if assigned_to_me:
         query = query.filter(Finding.assigned_to == current_user["id"])
@@ -170,7 +170,7 @@ async def list_findings(
             "title": finding.title,
             "severity": finding.severity,
             "priority": finding.priority,
-            "resolution_status": finding.resolution_status,
+            "status": finding.status,
             "assigned_to": finding.assignee.username if finding.assignee else None,
             "due_date": finding.due_date,
             "assessment_title": finding.assessment.title,
@@ -306,7 +306,7 @@ async def assign_finding(
         )
     
     finding.assigned_to = assignment.assigned_to
-    finding.resolution_status = "in_progress"
+    finding.status = "in_progress"
     
     db.commit()
     
@@ -347,7 +347,7 @@ async def resolve_finding(
             detail="Only assigned analyst can resolve this finding"
         )
     
-    finding.resolution_status = "resolved"
+    finding.status = "resolved"
     finding.resolved_by = current_user["id"]
     finding.resolved_at = now_sgt()
     finding.remediation_notes = resolution.remediation_notes
@@ -400,20 +400,20 @@ async def validate_finding(
             detail="Finding not found"
         )
     
-    if finding.resolution_status != "resolved":
+    if finding.status != "resolved":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Finding must be in 'resolved' status to validate"
         )
     
     if validation.approved:
-        finding.resolution_status = "validated"
+        finding.status = "validated"
         finding.validated_by = current_user["id"]
         finding.validated_at = now_sgt()
         comment_text = f"Finding validated: {validation.validation_notes or 'Approved'}"
     else:
         # Reject validation, send back to in_progress
-        finding.resolution_status = "in_progress"
+        finding.status = "in_progress"
         comment_text = f"Validation rejected: {validation.validation_notes}"
     
     # Add validation comment
@@ -433,7 +433,7 @@ async def validate_finding(
         "message": "Validation complete",
         "finding_id": finding_id,
         "approved": validation.approved,
-        "resolution_status": finding.resolution_status
+        "status": finding.status
     }
 
 
@@ -466,7 +466,7 @@ async def mark_false_positive(
         )
     
     finding.false_positive = True
-    finding.resolution_status = "closed"
+    finding.status = "closed"
     finding.validated_by = current_user["id"]
     finding.validated_at = now_sgt()
     

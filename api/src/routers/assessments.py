@@ -184,7 +184,7 @@ async def get_assessment(
     }
     
     # Calculate resolution status
-    resolved_findings = len([f for f in findings if f.resolution_status == "resolved"])
+    resolved_findings = len([f for f in findings if f.status == "resolved"])
     
     return {
         **assessment.__dict__,
@@ -473,7 +473,7 @@ async def get_assessment_findings(
             "id": finding.id,
             "title": finding.title,
             "severity": finding.severity,
-            "resolution_status": finding.resolution_status,
+            "status": finding.status,
             "assigned_to": finding.assigned_to,
             "due_date": finding.due_date,
             "created_at": finding.created_at
