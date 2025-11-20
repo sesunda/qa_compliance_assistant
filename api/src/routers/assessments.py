@@ -166,7 +166,7 @@ async def get_assessment(
     user = db.query(User).filter(User.id == current_user["id"]).first()
     
     assessment = db.query(Assessment).options(
-        joinedload(Assessment.analyst),
+        joinedload(Assessment.lead_assessor),
         joinedload(Assessment.agency)
     ).filter(
         Assessment.id == assessment_id,

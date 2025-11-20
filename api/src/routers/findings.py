@@ -232,9 +232,8 @@ async def get_finding(
     return {
         **finding.__dict__,
         "assigned_to_username": finding.assigned_to.username if finding.assigned_to else None,
-        "resolved_by_username": finding.resolver.username if finding.resolver else None,
-        "validated_by_username": finding.validator.username if finding.validator else None,
-        "assessment_title": finding.assessment.title,
+        "verified_by_username": finding.verified_by.username if finding.verified_by else None,
+        "assessment_title": finding.assessment.name,
         "control_name": finding.control.name if finding.control else None,
         "comments_count": comments_count
     }
