@@ -360,7 +360,9 @@ const AgenticChatPage: React.FC = () => {
       const { session_id, messages: historyMessages } = response.data;
       
       // If no recent session exists, let welcome message show
-      if (!session_id) {
+      if (!session_id || !historyMessages || historyMessages.length === 0) {
+        // Important: Reset the flag so welcome message can show
+        isRestoringSession.current = false;
         return;
       }
       
@@ -369,22 +371,22 @@ const AgenticChatPage: React.FC = () => {
       localStorage.setItem('agentic_session_id', session_id);
       
       // Convert backend message format to frontend ChatMessage format
-      if (historyMessages && historyMessages.length > 0) {
-        const convertedMessages: ChatMessage[] = historyMessages.map((msg: any) => ({
-          id: msg.id || Date.now().toString(),
-          role: msg.role,
-          content: msg.content,
-          timestamp: new Date(msg.timestamp),
-          metadata: msg.metadata,
-          sources: msg.sources,
-          suggested_responses: msg.suggested_responses,
-          reasoning: msg.reasoning
-        }));
-        
-        setMessages(convertedMessages);
-      }
+      const convertedMessages: ChatMessage[] = historyMessages.map((msg: any) => ({
+        id: msg.id || Date.now().toString(),
+        role: msg.role,
+        content: msg.content,
+        timestamp: new Date(msg.timestamp),
+        metadata: msg.metadata,
+        sources: msg.sources,
+        suggested_responses: msg.suggested_responses,
+        reasoning: msg.reasoning
+      }));
+      
+      setMessages(convertedMessages);
     } catch (error) {
       console.error('Error loading recent session:', error);
+      // Reset flag so welcome message can show
+      isRestoringSession.current = false;
       // Silently fail - user will start with fresh conversation
     }
   };
