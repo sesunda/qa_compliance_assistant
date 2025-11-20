@@ -257,6 +257,9 @@ class Finding(Base):
     evidence_file_paths = Column(JSON, nullable=True)  # Array of file paths for POC/screenshots
     reproduction_steps = Column(Text, nullable=True)
     
+    # Business Impact
+    business_impact = Column(Text, nullable=True)  # Business impact analysis
+    
     # Verification
     verified_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     verified_at = Column(DateTime, nullable=True)
