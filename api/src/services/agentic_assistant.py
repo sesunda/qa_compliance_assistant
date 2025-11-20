@@ -2070,6 +2070,7 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                     remediation_recommendation=function_args.get("remediation_recommendation"),
                     business_impact=function_args.get("business_impact"),
                     status="open",
+                    discovery_date=datetime.now().date(),
                     target_remediation_date=datetime.now().date() + timedelta(days=30),
                     created_by_user_id=current_user.get("id")
                 )
