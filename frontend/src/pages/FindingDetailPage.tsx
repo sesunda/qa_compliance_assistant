@@ -23,6 +23,10 @@ import {
   ListItemAvatar,
   Avatar,
   IconButton,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material'
 import {
   ArrowBack,
@@ -39,12 +43,14 @@ import {
   Error as ErrorIcon,
 } from '@mui/icons-material'
 import findingsService, { Finding, FindingComment } from '../services/findings'
+import { fetchUsers, UserSummary } from '../services/users'
 
 const FindingDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [finding, setFinding] = useState<Finding | null>(null)
   const [comments, setComments] = useState<FindingComment[]>([])
+  const [users, setUsers] = useState<UserSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -62,8 +68,18 @@ const FindingDetailPage: React.FC = () => {
   useEffect(() => {
     if (id) {
       loadFindingData()
+      loadUsers()
     }
   }, [id])
+
+  const loadUsers = async () => {
+    try {
+      const usersData = await fetchUsers()
+      setUsers(usersData)
+    } catch (err: any) {
+      console.error('Failed to load users:', err)
+    }
+  }
 
   const loadFindingData = async () => {
     try {
@@ -476,19 +492,27 @@ const FindingDetailPage: React.FC = () => {
       <Dialog open={assignDialogOpen} onClose={() => setAssignDialogOpen(false)}>
         <DialogTitle>Assign Finding</DialogTitle>
         <DialogContent>
-          <TextField
-            label="Assignee User ID"
-            type="number"
-            fullWidth
-            value={assigneeId}
-            onChange={(e) => setAssigneeId(e.target.value)}
-            sx={{ mt: 2 }}
-            helperText="Enter the user ID to assign this finding to"
-          />
+          <FormControl fullWidth sx={{ mt: 2 }}>
+            <InputLabel>Assignee</InputLabel>
+            <Select
+              value={assigneeId}
+              label="Assignee"
+              onChange={(e) => setAssigneeId(e.target.value)}
+            >
+              <MenuItem value="">
+                <em>Select a user</em>
+              </MenuItem>
+              {users.map((user) => (
+                <MenuItem key={user.id} value={user.id.toString()}>
+                  {user.full_name || user.username} ({user.email})
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAssignDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleAssign} variant="contained" disabled={actionLoading}>
+          <Button onClick={handleAssign} variant="contained" disabled={actionLoading || !assigneeId}>
             {actionLoading ? <CircularProgress size={20} /> : 'Assign'}
           </Button>
         </DialogActions>
