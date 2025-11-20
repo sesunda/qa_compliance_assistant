@@ -210,8 +210,7 @@ async def get_finding(
     
     finding = db.query(Finding).join(Assessment).options(
         joinedload(Finding.assigned_to),
-        joinedload(Finding.resolver),
-        joinedload(Finding.validator),
+        joinedload(Finding.verified_by),
         joinedload(Finding.assessment),
         joinedload(Finding.control)
     ).filter(
