@@ -230,12 +230,33 @@ async def get_finding(
     ).count()
     
     return {
-        **finding.__dict__,
+        "id": finding.id,
+        "assessment_id": finding.assessment_id,
+        "control_id": finding.control_id,
+        "title": finding.title,
+        "description": finding.description,
+        "severity": finding.severity,
+        "priority": finding.remediation_priority or "medium",
+        "resolution_status": finding.status,
+        "assigned_to": finding.assigned_to_user_id,
         "assigned_to_username": finding.assigned_to.username if finding.assigned_to else None,
-        "verified_by_username": finding.verified_by.username if finding.verified_by else None,
+        "resolved_by": finding.verified_by_user_id,
+        "resolved_by_username": finding.verified_by.username if finding.verified_by else None,
+        "validated_by": finding.verified_by_user_id,
+        "validated_by_username": finding.verified_by.username if finding.verified_by else None,
+        "risk_rating": finding.risk_level,
+        "affected_systems": finding.affected_asset,
+        "remediation_recommendation": finding.remediation_plan,
+        "remediation_notes": finding.remediation_notes,
+        "false_positive": finding.is_false_positive or False,
+        "due_date": finding.target_remediation_date,
+        "resolved_at": finding.actual_remediation_date,
+        "validated_at": finding.verification_date,
         "assessment_title": finding.assessment.name,
         "control_name": finding.control.name if finding.control else None,
-        "comments_count": comments_count
+        "comments_count": comments_count,
+        "created_at": finding.created_at,
+        "metadata_json": None
     }
 
 

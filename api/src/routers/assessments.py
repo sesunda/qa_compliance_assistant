@@ -198,12 +198,26 @@ async def get_assessment(
     resolved_findings = len([f for f in findings if f.status == "resolved"])
     
     return {
-        **assessment.__dict__,
+        "id": assessment.id,
+        "agency_id": assessment.agency_id,
+        "project_id": assessment.project_id,
+        "title": assessment.name,
+        "assessment_type": assessment.assessment_type,
+        "framework": assessment.framework,
+        "scope": assessment.scope_description,
+        "status": assessment.status,
+        "progress_percentage": int(assessment.completion_percentage) if assessment.completion_percentage else 0,
+        "assigned_to": assessment.lead_assessor_user_id,
+        "assigned_to_username": assessment.lead_assessor.username if assessment.lead_assessor else None,
+        "target_completion_date": assessment.planned_end_date,
+        "assessment_period_start": assessment.actual_start_date,
+        "assessment_period_end": assessment.actual_end_date,
+        "created_at": assessment.created_at,
+        "updated_at": assessment.updated_at,
         "findings_count": len(findings),
         "findings_resolved": resolved_findings,
         "findings_by_severity": findings_by_severity,
-        "controls_tested_count": len(controls),
-        "assigned_to_username": assessment.lead_assessor.username if assessment.lead_assessor else None
+        "controls_tested_count": len(controls)
     }
 
 
