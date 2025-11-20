@@ -38,9 +38,11 @@ import {
 } from '@mui/icons-material';
 import { fetchEvidence, EvidenceItem } from '../../services/evidence';
 import { formatSingaporeDateTime } from '../../utils/datetime';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AgencyUserDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   // Fetch real evidence data
   const { data: evidenceData, isLoading: isLoadingEvidence } = useQuery<EvidenceItem[]>(
@@ -220,14 +222,17 @@ const AgencyUserDashboard: React.FC = () => {
                 >
                   View My Evidence
                 </Button>
-                <Button 
-                  variant="outlined" 
-                  fullWidth 
-                  startIcon={<Assessment />}
-                  onClick={() => navigate('/evidence')}
-                >
-                  Submit Evidence
-                </Button>
+                {/* Hide Submit Evidence button for auditors - they can only review, not upload */}
+                {user?.role?.name?.toLowerCase() !== 'auditor' && (
+                  <Button 
+                    variant="outlined" 
+                    fullWidth 
+                    startIcon={<Assessment />}
+                    onClick={() => navigate('/evidence')}
+                  >
+                    Submit Evidence
+                  </Button>
+                )}
                 <Button 
                   variant="outlined" 
                   fullWidth 
