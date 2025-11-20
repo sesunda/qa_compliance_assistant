@@ -187,13 +187,12 @@ async def list_findings(
             "id": finding.id,
             "title": finding.title,
             "severity": finding.severity,
-            "priority": finding.priority,
+            "priority": finding.remediation_priority,
             "status": finding.status,
             "assigned_to": finding.assigned_to.username if finding.assigned_to else None,
             "due_date": finding.target_remediation_date,
-            "assessment_title": finding.assessment.title,
-            "created_at": finding.created_at,
-            "false_positive": finding.false_positive
+            "assessment_title": finding.assessment.name,
+            "created_at": finding.created_at
         })
     
     return result
