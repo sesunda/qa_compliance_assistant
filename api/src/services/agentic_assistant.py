@@ -513,6 +513,125 @@ class AgenticAssistant:
             {
                 "type": "function",
                 "function": {
+                    "name": "create_assessment",
+                    "description": "Create a comprehensive security or compliance assessment. Use when user wants to initiate a formal assessment (e.g., 'Create an IM8 assessment for HSA', 'Start a penetration test assessment'). Captures full assessment scope, schedule, team, and deliverables.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "project_id": {
+                                "type": "integer",
+                                "description": "Project ID this assessment belongs to"
+                            },
+                            "name": {
+                                "type": "string",
+                                "description": "Assessment name (e.g., 'Q4 2025 IM8 Compliance Assessment')"
+                            },
+                            "assessment_type": {
+                                "type": "string",
+                                "enum": ["compliance", "risk", "security_audit", "penetration_test", "gap_analysis"],
+                                "description": "Type of assessment"
+                            },
+                            "framework": {
+                                "type": "string",
+                                "enum": ["IM8", "ISO27001", "NIST", "SOC2", "FISMA"],
+                                "description": "Compliance framework"
+                            },
+                            "scope_description": {
+                                "type": "string",
+                                "description": "Detailed scope and boundaries of assessment"
+                            },
+                            "lead_assessor_user_id": {
+                                "type": "integer",
+                                "description": "User ID of the lead assessor"
+                            },
+                            "team_members": {
+                                "type": "array",
+                                "items": {"type": "integer"},
+                                "description": "Array of team member user IDs"
+                            },
+                            "planned_start_date": {
+                                "type": "string",
+                                "format": "date",
+                                "description": "Planned start date (YYYY-MM-DD)"
+                            },
+                            "planned_end_date": {
+                                "type": "string",
+                                "format": "date",
+                                "description": "Planned end date (YYYY-MM-DD)"
+                            }
+                        },
+                        "required": ["project_id", "name", "assessment_type", "framework", "lead_assessor_user_id"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "create_finding",
+                    "description": "Create a comprehensive security finding or compliance gap. Use when user reports vulnerabilities, non-compliance issues, or security concerns (e.g., 'Create a finding for weak password policy', 'Log this SQL injection vulnerability'). Captures technical details, impact, and remediation guidance.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "assessment_id": {
+                                "type": "integer",
+                                "description": "Assessment ID this finding belongs to"
+                            },
+                            "project_id": {
+                                "type": "integer",
+                                "description": "Project ID this finding belongs to"
+                            },
+                            "title": {
+                                "type": "string",
+                                "description": "Clear, concise finding title (e.g., 'Weak Password Policy - No Complexity Requirements')"
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Detailed description of the finding, including what was observed"
+                            },
+                            "severity": {
+                                "type": "string",
+                                "enum": ["critical", "high", "medium", "low", "info"],
+                                "description": "Severity level"
+                            },
+                            "cvss_score": {
+                                "type": "number",
+                                "minimum": 0.0,
+                                "maximum": 10.0,
+                                "description": "CVSS score (0.0-10.0)"
+                            },
+                            "category": {
+                                "type": "string",
+                                "enum": ["injection", "broken_auth", "sensitive_data", "xxe", "access_control", "security_misconfiguration", "xss", "insecure_deserialization", "logging", "ssrf"],
+                                "description": "OWASP category"
+                            },
+                            "affected_asset": {
+                                "type": "string",
+                                "description": "Affected system/asset name"
+                            },
+                            "reproduction_steps": {
+                                "type": "string",
+                                "description": "Step-by-step reproduction instructions"
+                            },
+                            "remediation_recommendation": {
+                                "type": "string",
+                                "description": "Recommended remediation actions"
+                            },
+                            "business_impact": {
+                                "type": "string",
+                                "description": "Business impact analysis"
+                            },
+                            "control_id": {
+                                "type": "integer",
+                                "description": "Related control ID (optional)"
+                            }
+                        },
+                        "required": ["assessment_id", "project_id", "title", "description", "severity"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
                     "name": "resolve_control_to_evidence",
                     "description": "Resolve Control ID to available evidence that can be submitted. Use when user mentions 'submit Control [X]' or 'Control [X] for review' to find which evidence records are available. Returns list of pending/rejected evidence for that control. ALWAYS call this tool first before responding to 'submit Control X' requests.",
                     "parameters": {
@@ -603,6 +722,10 @@ CORE RULES:
             'get_recent_evidence',  # View recently uploaded evidence
             'resolve_control_to_evidence'  # Resolve control ID to available evidence
         ]
+        ASSESSMENT_FINDING_TOOLS = [
+            'create_assessment',  # Create comprehensive security/compliance assessments
+            'create_finding'  # Create security findings and compliance gaps
+        ]
         COMMON_TOOLS = ['mcp_fetch_evidence', 'generate_report', 'search_documents', 'list_projects']
         
         user_role_lower = user_role.lower()
@@ -613,15 +736,15 @@ CORE RULES:
             return self.all_tools
         
         elif user_role_lower == 'auditor':
-            # Auditor: project/control creation + evidence queries + common tools (NO evidence upload)
-            allowed_tools = AUDITOR_ONLY_TOOLS + EVIDENCE_QUERY_TOOLS + COMMON_TOOLS
+            # Auditor: project/control creation + assessment/finding creation + evidence queries + common tools (NO evidence upload)
+            allowed_tools = AUDITOR_ONLY_TOOLS + ASSESSMENT_FINDING_TOOLS + EVIDENCE_QUERY_TOOLS + COMMON_TOOLS
             filtered_tools = [t for t in self.all_tools if t['function']['name'] in allowed_tools]
             logger.info(f"Role '{user_role}': Granting access to {len(filtered_tools)} tools: {allowed_tools}")
             return filtered_tools
         
         elif user_role_lower == 'analyst':
-            # Analyst: evidence upload/submit + evidence queries + common tools (NO project/control creation)
-            allowed_tools = ANALYST_ONLY_TOOLS + EVIDENCE_QUERY_TOOLS + COMMON_TOOLS
+            # Analyst: evidence upload/submit + assessment/finding creation + evidence queries + common tools (NO project/control creation)
+            allowed_tools = ANALYST_ONLY_TOOLS + ASSESSMENT_FINDING_TOOLS + EVIDENCE_QUERY_TOOLS + COMMON_TOOLS
             filtered_tools = [t for t in self.all_tools if t['function']['name'] in allowed_tools]
             logger.info(f"Role '{user_role}': Granting access to {len(filtered_tools)} tools: {allowed_tools}")
             return filtered_tools
@@ -639,9 +762,14 @@ CORE RULES:
 AUDITOR ACTIONS:
 - View available projects (list_projects tool)
 - Create IM8 controls for projects (your agency only)
+- Create assessments and findings for security/compliance tracking
 - Review evidence submissions
 - Generate compliance reports
 - Query evidence relationships
+
+ASSESSMENT & FINDING MANAGEMENT:
+- create_assessment: Initiate formal assessments (IM8, ISO27001, NIST, penetration tests)
+- create_finding: Document security vulnerabilities and compliance gaps with full CVSS scoring
 
 When creating controls: Ask for project name, then execute create_controls tool.
 """,
@@ -650,9 +778,32 @@ When creating controls: Ask for project name, then execute create_controls tool.
 
 ANALYST ACTIONS:
 - View available projects (list_projects tool)
+- Create assessments and findings for security/compliance tracking
 - Upload evidence for controls (your agency only)
 - Analyze compliance status
 - Submit evidence for review
+
+ASSESSMENT & FINDING CREATION:
+When user wants to create assessments or findings, use these tools:
+- create_assessment: For formal compliance assessments (IM8, ISO27001, NIST, penetration tests)
+- create_finding: For security vulnerabilities and compliance gaps
+
+FINDING CREATION - CONVERSATIONAL FLOW:
+When user provides a finding description (e.g., "Create a critical finding for weak password policy"):
+1. Extract what you can from the message (title, severity, description)
+2. Infer reasonable defaults:
+   - Use assessment_id=1 and project_id=1 (current project)
+   - Set cvss_score based on severity (critical=9.0, high=7.5, medium=5.0, low=3.0)
+   - Set remediation_recommendation based on context (e.g., "Implement strong password policy per IM8")
+   - Set business_impact based on severity (e.g., critical="High risk of unauthorized access")
+3. Call create_finding tool immediately with all inferred values
+4. Only ask for clarification if critical info is missing (title, description, severity)
+
+Examples:
+✅ "Create an IM8 assessment for HSA" → Use create_assessment tool
+✅ "Log a finding for weak password policy" → Infer: title="Weak Password Policy", severity="medium", call tool
+✅ "Create a critical SQL injection finding" → Infer: severity="critical", cvss=9.0, call tool immediately
+✅ "Finding: no MFA on admin accounts" → Infer: title="Missing MFA on Admin Accounts", severity="high", call tool
 
 NATURAL LANGUAGE HANDLING FOR EVIDENCE SUBMISSION:
 When user says "submit Control [X]" or "submit Control [X] for review" or "Control [X] for review":
@@ -1826,6 +1977,140 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                 
             except Exception as e:
                 logger.error(f"get_recent_evidence failed: {e}", exc_info=True)
+                return {"error": str(e), "status": "error"}
+        
+        # FAST PATH: Create assessment synchronously
+        if function_name == "create_assessment":
+            logger.info(f"Executing create_assessment synchronously (fast path)")
+            
+            from api.src import models
+            from datetime import datetime
+            
+            try:
+                # Get current user
+                user = db.query(models.User).filter(models.User.id == current_user.get("id")).first()
+                if not user:
+                    return {"error": "User not found", "status": "error"}
+                
+                # Parse dates if provided
+                planned_start_date = None
+                planned_end_date = None
+                if function_args.get("planned_start_date"):
+                    planned_start_date = datetime.strptime(function_args["planned_start_date"], "%Y-%m-%d").date()
+                if function_args.get("planned_end_date"):
+                    planned_end_date = datetime.strptime(function_args["planned_end_date"], "%Y-%m-%d").date()
+                
+                # Create assessment
+                assessment = models.Assessment(
+                    project_id=function_args["project_id"],
+                    agency_id=user.agency_id,
+                    name=function_args["name"],
+                    assessment_type=function_args["assessment_type"],
+                    framework=function_args["framework"],
+                    scope_description=function_args.get("scope_description"),
+                    included_controls=function_args.get("included_controls", []),
+                    planned_start_date=planned_start_date,
+                    planned_end_date=planned_end_date,
+                    lead_assessor_user_id=function_args["lead_assessor_user_id"],
+                    team_members=function_args.get("team_members", []),
+                    status="not_started",
+                    completion_percentage=0.0,
+                    created_by_user_id=current_user.get("id")
+                )
+                
+                db.add(assessment)
+                db.commit()
+                db.refresh(assessment)
+                
+                logger.info(f"✅ Assessment created: ID {assessment.id}")
+                
+                return {
+                    "status": "success",
+                    "message": f"Assessment '{assessment.name}' created successfully",
+                    "assessment_id": assessment.id,
+                    "assessment": {
+                        "id": assessment.id,
+                        "name": assessment.name,
+                        "type": assessment.assessment_type,
+                        "framework": assessment.framework,
+                        "status": assessment.status
+                    }
+                }
+                
+            except Exception as e:
+                logger.error(f"create_assessment failed: {e}", exc_info=True)
+                return {"error": str(e), "status": "error"}
+        
+        # FAST PATH: Create finding synchronously
+        if function_name == "create_finding":
+            logger.info(f"Executing create_finding synchronously (fast path)")
+            
+            from api.src import models
+            from datetime import datetime, timedelta
+            
+            try:
+                # Get current user
+                user = db.query(models.User).filter(models.User.id == current_user.get("id")).first()
+                if not user:
+                    return {"error": "User not found", "status": "error"}
+                
+                # Create finding
+                finding = models.Finding(
+                    assessment_id=function_args["assessment_id"],
+                    project_id=function_args["project_id"],
+                    agency_id=user.agency_id,
+                    control_id=function_args.get("control_id"),
+                    title=function_args["title"],
+                    description=function_args["description"],
+                    severity=function_args["severity"],
+                    cvss_score=function_args.get("cvss_score"),
+                    category=function_args.get("category"),
+                    affected_asset=function_args.get("affected_asset"),
+                    reproduction_steps=function_args.get("reproduction_steps"),
+                    remediation_recommendation=function_args.get("remediation_recommendation"),
+                    business_impact=function_args.get("business_impact"),
+                    status="open",
+                    target_remediation_date=datetime.now().date() + timedelta(days=30),
+                    created_by_user_id=current_user.get("id")
+                )
+                
+                db.add(finding)
+                db.commit()
+                db.refresh(finding)
+                
+                # Update assessment severity counts
+                assessment = db.query(models.Assessment).filter(
+                    models.Assessment.id == function_args["assessment_id"]
+                ).first()
+                
+                if assessment:
+                    if finding.severity == "critical":
+                        assessment.findings_count_critical = (assessment.findings_count_critical or 0) + 1
+                    elif finding.severity == "high":
+                        assessment.findings_count_high = (assessment.findings_count_high or 0) + 1
+                    elif finding.severity == "medium":
+                        assessment.findings_count_medium = (assessment.findings_count_medium or 0) + 1
+                    elif finding.severity == "low":
+                        assessment.findings_count_low = (assessment.findings_count_low or 0) + 1
+                    db.commit()
+                
+                logger.info(f"✅ Finding created: ID {finding.id}")
+                
+                return {
+                    "status": "success",
+                    "message": f"Finding '{finding.title}' created successfully",
+                    "finding_id": finding.id,
+                    "finding": {
+                        "id": finding.id,
+                        "title": finding.title,
+                        "severity": finding.severity,
+                        "cvss_score": finding.cvss_score,
+                        "status": finding.status
+                    }
+                }
+                
+            except Exception as e:
+                logger.error(f"create_finding failed: {e}", exc_info=True)
                 return {"error": str(e), "status": "error"}
         
         # SLOW PATH: All other tools use async worker

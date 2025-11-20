@@ -37,13 +37,13 @@ async def create_finding(
     db: Session = Depends(get_db)
 ):
     """
-    Create a new security finding
+    Create a new comprehensive security finding
     
     Permissions: Analysts, Auditors, Admins
     """
     user = db.query(User).filter(User.id == current_user["id"]).first()
     
-    if user.role.name not in ["analyst", "auditor", "admin", "super_admin"]:
+    if user.role_id not in [7, 8, 1]:  # analyst=7, auditor=8, super_admin=1
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions to create findings"
@@ -73,39 +73,57 @@ async def create_finding(
                 detail="Control not found"
             )
     
-    # Create finding
+    # Create comprehensive finding
     finding = Finding(
         assessment_id=finding_data.assessment_id,
+        project_id=finding_data.project_id,
+        agency_id=user.agency_id,
         control_id=finding_data.control_id,
         title=finding_data.title,
         description=finding_data.description,
         severity=finding_data.severity,
-        priority=finding_data.priority or "medium",
-        status="open",
-        false_positive=False,
-        risk_rating=finding_data.risk_rating,
-        affected_systems=finding_data.affected_systems,
+        cvss_score=finding_data.cvss_score,
+        category=finding_data.category,
+        affected_asset=finding_data.affected_asset,
+        affected_url=finding_data.affected_url,
+        affected_component=finding_data.affected_component,
+        reproduction_steps=finding_data.reproduction_steps,
+        proof_of_concept=finding_data.proof_of_concept,
+        evidence_file_paths=finding_data.evidence_file_paths or [],
+        business_impact=finding_data.business_impact,
+        likelihood=finding_data.likelihood,
         remediation_recommendation=finding_data.remediation_recommendation,
-        due_date=finding_data.due_date or (now_sgt() + timedelta(days=30)),
-        metadata_json=finding_data.metadata or {}
+        remediation_complexity=finding_data.remediation_complexity,
+        remediation_priority=finding_data.remediation_priority,
+        estimated_effort_hours=finding_data.estimated_effort_hours,
+        status=finding_data.status,
+        assigned_to_user_id=finding_data.assigned_to_user_id,
+        due_date=finding_data.due_date or (now_sgt() + timedelta(days=30)).date(),
+        resolution_description=finding_data.resolution_description,
+        resolution_verification_evidence=finding_data.resolution_verification_evidence,
+        created_by_user_id=current_user["id"]
     )
-    
-    # Assign if specified
-    if finding_data.assigned_to:
-        assigned_user = db.query(User).filter(
-            User.id == finding_data.assigned_to,
-            User.agency_id == user.agency_id
-        ).first()
-        if assigned_user:
-            finding.assigned_to = finding_data.assigned_to
     
     db.add(finding)
     db.commit()
     db.refresh(finding)
     
-    # Update assessment findings count
-    assessment.findings_count = db.query(Finding).filter(
-        Finding.assessment_id == assessment.id
+    # Update assessment findings count by severity
+    assessment.findings_count_critical = db.query(Finding).filter(
+        Finding.assessment_id == assessment.id,
+        Finding.severity == "critical"
+    ).count()
+    assessment.findings_count_high = db.query(Finding).filter(
+        Finding.assessment_id == assessment.id,
+        Finding.severity == "high"
+    ).count()
+    assessment.findings_count_medium = db.query(Finding).filter(
+        Finding.assessment_id == assessment.id,
+        Finding.severity == "medium"
+    ).count()
+    assessment.findings_count_low = db.query(Finding).filter(
+        Finding.assessment_id == assessment.id,
+        Finding.severity == "low"
     ).count()
     db.commit()
     
@@ -150,11 +168,11 @@ async def list_findings(
         query = query.filter(Finding.status == status)
     
     if assigned_to_me:
-        query = query.filter(Finding.assigned_to == current_user["id"])
+        query = query.filter(Finding.assigned_to_user_id == current_user["id"])
     
     # Load relationships
     query = query.options(
-        joinedload(Finding.assignee),
+        joinedload(Finding.assigned_to),
         joinedload(Finding.assessment)
     )
     
@@ -171,8 +189,8 @@ async def list_findings(
             "severity": finding.severity,
             "priority": finding.priority,
             "status": finding.status,
-            "assigned_to": finding.assignee.username if finding.assignee else None,
-            "due_date": finding.due_date,
+            "assigned_to": finding.assigned_to.username if finding.assigned_to else None,
+            "due_date": finding.target_remediation_date,
             "assessment_title": finding.assessment.title,
             "created_at": finding.created_at,
             "false_positive": finding.false_positive
@@ -191,7 +209,7 @@ async def get_finding(
     user = db.query(User).filter(User.id == current_user["id"]).first()
     
     finding = db.query(Finding).join(Assessment).options(
-        joinedload(Finding.assignee),
+        joinedload(Finding.assigned_to),
         joinedload(Finding.resolver),
         joinedload(Finding.validator),
         joinedload(Finding.assessment),
@@ -214,7 +232,7 @@ async def get_finding(
     
     return {
         **finding.__dict__,
-        "assigned_to_username": finding.assignee.username if finding.assignee else None,
+        "assigned_to_username": finding.assigned_to.username if finding.assigned_to else None,
         "resolved_by_username": finding.resolver.username if finding.resolver else None,
         "validated_by_username": finding.validator.username if finding.validator else None,
         "assessment_title": finding.assessment.title,
@@ -246,7 +264,7 @@ async def update_finding(
     
     # Check permissions (only assigned analyst, auditors, or admins can update)
     if user.role.name not in ["admin", "super_admin", "auditor"]:
-        if finding.assigned_to != current_user["id"]:
+        if finding.assigned_to_user_id != current_user["id"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You can only update findings assigned to you"
@@ -305,7 +323,7 @@ async def assign_finding(
             detail="Assigned user not found or not in same agency"
         )
     
-    finding.assigned_to = assignment.assigned_to
+    finding.assigned_to_user_id = assignment.assigned_to
     finding.status = "in_progress"
     
     db.commit()
@@ -341,7 +359,7 @@ async def resolve_finding(
         )
     
     # Only assigned analyst can resolve
-    if finding.assigned_to != current_user["id"] and user.role.name not in ["admin", "super_admin"]:
+    if finding.assigned_to_user_id != current_user["id"] and user.role.name not in ["admin", "super_admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only assigned analyst can resolve this finding"

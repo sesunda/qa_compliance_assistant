@@ -93,7 +93,7 @@ async def get_dashboard_metrics(
     
     # Overdue Findings
     overdue_findings = findings_query.filter(
-        Finding.due_date < now_sgt(),
+        Finding.target_remediation_date < now_sgt().date(),
         Finding.status.notin_(["resolved", "validated", "closed"])
     ).count()
     
@@ -135,7 +135,7 @@ async def get_dashboard_metrics(
     ).count()
     
     recent_resolved = findings_query.filter(
-        Finding.resolved_at >= thirty_days_ago
+        Finding.actual_remediation_date >= thirty_days_ago
     ).count()
     
     # Compliance Score (percentage of controls passing)
@@ -212,13 +212,13 @@ async def get_assessment_trends(
     
     # Assessments completed per day
     completed_trends = db.query(
-        func.date(Assessment.completed_at).label("date"),
+        func.date(Assessment.actual_end_date).label("date"),
         func.count(Assessment.id).label("count")
     ).filter(
         Assessment.agency_id == agency_id,
-        Assessment.completed_at >= start_date,
-        Assessment.completed_at.isnot(None)
-    ).group_by(func.date(Assessment.completed_at)).all()
+        Assessment.actual_end_date >= start_date,
+        Assessment.actual_end_date.isnot(None)
+    ).group_by(func.date(Assessment.actual_end_date)).all()
     
     return {
         "created": [{"date": str(t.date), "count": t.count} for t in created_trends],
@@ -249,13 +249,13 @@ async def get_finding_trends(
     
     # Findings resolved per day
     resolved_trends = db.query(
-        func.date(Finding.resolved_at).label("date"),
+        func.date(Finding.actual_remediation_date).label("date"),
         func.count(Finding.id).label("count")
     ).join(Assessment).filter(
         Assessment.agency_id == agency_id,
-        Finding.resolved_at >= start_date,
-        Finding.resolved_at.isnot(None)
-    ).group_by(func.date(Finding.resolved_at)).all()
+        Finding.actual_remediation_date >= start_date,
+        Finding.actual_remediation_date.isnot(None)
+    ).group_by(func.date(Finding.actual_remediation_date)).all()
     
     return {
         "created": [{"date": str(t.date), "count": t.count} for t in created_trends],
@@ -383,29 +383,29 @@ async def get_my_workload(
     
     # Assigned assessments
     my_assessments = db.query(Assessment).filter(
-        Assessment.assigned_to == current_user["id"],
+        Assessment.lead_assessor_user_id == current_user["id"],
         Assessment.status.in_(["planning", "in_progress"])
     ).count()
     
     # Assigned findings
     my_findings = db.query(Finding).join(Assessment).filter(
-        Finding.assigned_to == current_user["id"],
+        Finding.assigned_to_user_id == current_user["id"],
         Finding.status.in_(["open", "in_progress"])
     ).count()
     
     # Overdue findings
     my_overdue = db.query(Finding).join(Assessment).filter(
-        Finding.assigned_to == current_user["id"],
-        Finding.due_date < now_sgt(),
+        Finding.assigned_to_user_id == current_user["id"],
+        Finding.target_remediation_date < now_sgt().date(),
         Finding.status.in_(["open", "in_progress"])
     ).count()
     
     # Findings due soon (next 7 days)
     seven_days = now_sgt() + timedelta(days=7)
     due_soon = db.query(Finding).join(Assessment).filter(
-        Finding.assigned_to == current_user["id"],
-        Finding.due_date <= seven_days,
-        Finding.due_date >= now_sgt(),
+        Finding.assigned_to_user_id == current_user["id"],
+        Finding.target_remediation_date <= seven_days.date(),
+        Finding.target_remediation_date >= now_sgt().date(),
         Finding.status.in_(["open", "in_progress"])
     ).count()
     

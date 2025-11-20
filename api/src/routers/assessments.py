@@ -35,41 +35,52 @@ async def create_assessment(
     db: Session = Depends(get_db)
 ):
     """
-    Create a new security assessment
+    Create a new comprehensive security/compliance assessment
     
     Permissions: Analysts, Auditors, Admins
     """
     # Verify user has permission
     user = db.query(User).filter(User.id == current_user["id"]).first()
-    if user.role.name not in ["analyst", "auditor", "admin", "super_admin"]:
+    if user.role_id not in [7, 8, 1]:  # analyst=7, auditor=8, super_admin=1
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions to create assessments"
         )
     
-    # Create assessment
+    # Verify lead assessor exists and belongs to same agency
+    lead_assessor = db.query(User).filter(
+        User.id == assessment_data.lead_assessor_user_id,
+        User.agency_id == user.agency_id
+    ).first()
+    if not lead_assessor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lead assessor not found or not in same agency"
+        )
+    
+    # Create comprehensive assessment
     assessment = Assessment(
+        project_id=assessment_data.project_id,
         agency_id=user.agency_id,
-        title=assessment_data.title,
+        name=assessment_data.name,
         assessment_type=assessment_data.assessment_type,
         framework=assessment_data.framework,
-        scope=assessment_data.scope,
-        status="planning",
-        progress_percentage=0,
-        target_completion_date=assessment_data.target_completion_date,
-        assessment_period_start=assessment_data.period_start,
-        assessment_period_end=assessment_data.period_end,
-        metadata_json=assessment_data.metadata or {}
+        scope_description=assessment_data.scope_description,
+        included_controls=assessment_data.included_controls or [],
+        excluded_areas=assessment_data.excluded_areas,
+        planned_start_date=assessment_data.planned_start_date,
+        planned_end_date=assessment_data.planned_end_date,
+        actual_start_date=assessment_data.actual_start_date,
+        actual_end_date=assessment_data.actual_end_date,
+        lead_assessor_user_id=assessment_data.lead_assessor_user_id,
+        team_members=assessment_data.team_members or [],
+        status=assessment_data.status,
+        completion_percentage=assessment_data.completion_percentage,
+        overall_compliance_score=assessment_data.overall_compliance_score,
+        executive_summary=assessment_data.executive_summary,
+        final_report_file_path=assessment_data.final_report_file_path,
+        created_by_user_id=current_user["id"]
     )
-    
-    # Assign analyst if specified
-    if assessment_data.assigned_to:
-        assigned_user = db.query(User).filter(
-            User.id == assessment_data.assigned_to,
-            User.agency_id == user.agency_id
-        ).first()
-        if assigned_user:
-            assessment.assigned_to = assessment_data.assigned_to
     
     db.add(assessment)
     db.commit()
@@ -108,11 +119,11 @@ async def list_assessments(
         query = query.filter(Assessment.assessment_type == assessment_type)
     
     if assigned_to_me:
-        query = query.filter(Assessment.assigned_to == current_user["id"])
+        query = query.filter(Assessment.lead_assessor_user_id == current_user["id"])
     
     # Load relationships
     query = query.options(
-        joinedload(Assessment.analyst)
+        joinedload(Assessment.lead_assessor)
     )
     
     assessments = query.order_by(Assessment.created_at.desc()).all()
@@ -130,15 +141,15 @@ async def list_assessments(
         
         result.append({
             "id": assessment.id,
-            "title": assessment.title,
+            "title": assessment.name,
             "assessment_type": assessment.assessment_type,
             "framework": assessment.framework,
             "status": assessment.status,
-            "progress_percentage": assessment.progress_percentage,
-            "assigned_to": assessment.analyst.username if assessment.analyst else None,
+            "progress_percentage": assessment.completion_percentage,
+            "assigned_to": assessment.lead_assessor.username if assessment.lead_assessor else None,
             "findings_count": findings_count,
             "controls_tested_count": controls_count,
-            "target_completion_date": assessment.target_completion_date,
+            "target_completion_date": assessment.planned_end_date,
             "created_at": assessment.created_at
         })
     
@@ -192,7 +203,7 @@ async def get_assessment(
         "findings_resolved": resolved_findings,
         "findings_by_severity": findings_by_severity,
         "controls_tested_count": len(controls),
-        "assigned_to_username": assessment.analyst.username if assessment.analyst else None
+        "assigned_to_username": assessment.lead_assessor.username if assessment.lead_assessor else None
     }
 
 
@@ -219,7 +230,7 @@ async def update_assessment(
     
     # Check permissions (only assigned analyst, auditors, or admins can update)
     if user.role.name not in ["admin", "super_admin", "auditor"]:
-        if assessment.assigned_to != current_user["id"]:
+        if assessment.lead_assessor_user_id != current_user["id"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You can only update assessments assigned to you"
@@ -278,7 +289,7 @@ async def assign_assessment(
             detail="Assigned user not found or not in same agency"
         )
     
-    assessment.assigned_to = assignment.assigned_to
+    assessment.lead_assessor_user_id = assignment.assigned_to
     assessment.status = "in_progress"
     
     db.commit()
@@ -314,7 +325,7 @@ async def update_progress(
         )
     
     # Only assigned analyst can update progress
-    if assessment.assigned_to != current_user["id"] and user.role.name not in ["admin", "super_admin"]:
+    if assessment.lead_assessor_user_id != current_user["id"] and user.role.name not in ["admin", "super_admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only assigned analyst can update progress"
@@ -475,7 +486,7 @@ async def get_assessment_findings(
             "severity": finding.severity,
             "status": finding.status,
             "assigned_to": finding.assigned_to,
-            "due_date": finding.due_date,
+            "due_date": finding.target_remediation_date,
             "created_at": finding.created_at
         })
     
@@ -503,7 +514,7 @@ async def complete_assessment(
         )
     
     # Only assigned analyst or admin can complete
-    if assessment.assigned_to != current_user["id"] and user.role.name not in ["admin", "super_admin"]:
+    if assessment.lead_assessor_user_id != current_user["id"] and user.role.name not in ["admin", "super_admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only assigned analyst can complete assessment"
