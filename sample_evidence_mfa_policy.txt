@@ -1,0 +1,81 @@
+# Multi-Factor Authentication (MFA) Policy
+
+**Document Type:** Information Security Policy  
+**Policy Number:** ISP-MFA-001  
+**Effective Date:** January 1, 2025  
+**Version:** 1.0  
+
+## 1. Purpose
+
+This policy establishes requirements for Multi-Factor Authentication (MFA) to protect organizational systems and data from unauthorized access.
+
+## 2. Scope
+
+This policy applies to all users, employees, contractors, and third parties accessing company information systems.
+
+## 3. Policy Statement
+
+### 3.1 MFA Requirements
+
+- All users MUST enable MFA for accessing:
+  - Email systems (Office 365, Gmail, etc.)
+  - Cloud infrastructure (Azure, AWS, GCP)
+  - Remote access systems (VPN, Remote Desktop)
+  - Administrative accounts and privileged access
+  - Financial and HR systems
+
+### 3.2 Acceptable Authentication Factors
+
+**Knowledge Factors (Something you know):**
+- Passwords/Passphrases
+
+**Possession Factors (Something you have):**
+- Mobile authenticator apps (Microsoft Authenticator, Google Authenticator, Authy)
+- Hardware security keys (YubiKey, Titan Security Key)
+- SMS codes (acceptable for low-risk systems only)
+
+**Inherence Factors (Something you are):**
+- Biometric authentication (fingerprint, facial recognition)
+
+### 3.3 Implementation Standards
+
+1. **Primary Factor:** Complex password (minimum 12 characters)
+2. **Secondary Factor:** Authenticator app or hardware key (PREFERRED) or SMS (ACCEPTABLE)
+3. **High-Risk Systems:** Require authenticator app or hardware key only
+
+### 3.4 Exemptions
+
+- Systems with technical limitations may be exempted with CISO approval
+- All exemptions must be documented and reviewed quarterly
+
+## 4. Responsibilities
+
+### 4.1 Users
+- Enable and maintain MFA on all applicable accounts
+- Safeguard authentication devices
+- Report lost or compromised authentication factors immediately
+
+### 4.2 IT Department
+- Implement and maintain MFA infrastructure
+- Provide user training and support
+- Monitor MFA adoption and compliance
+
+### 4.3 Security Team
+- Audit MFA compliance monthly
+- Review and approve exemption requests
+- Enforce policy violations
+
+## 5. Compliance and Enforcement
+
+- **Non-compliance:** Access will be revoked until MFA is enabled
+- **Violations:** May result in disciplinary action per HR policy
+
+## 6. Policy Review
+
+This policy will be reviewed annually or after significant security incidents.
+
+---
+
+**Approved by:** Chief Information Security Officer (CISO)  
+**Date:** January 1, 2025  
+**Next Review:** January 1, 2026

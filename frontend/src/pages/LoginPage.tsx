@@ -38,7 +38,7 @@ const LoginPage: React.FC = () => {
     try {
       const success = await login(username, password)
       if (success) {
-        navigate('/dashboard')
+        navigate('/agentic-chat')
       } else {
         setError('Invalid username or password')
       }

@@ -54,7 +54,7 @@ const App: React.FC = () => {
         <Route path="/users" element={<UsersPage />} />
         <Route path="/agent-tasks" element={<AgentTasksPage />} />
         <Route path="/agencies" element={<AgenciesPage />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/agentic-chat" replace />} />
       </Routes>
     </Layout>
   )

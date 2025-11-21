@@ -1,0 +1,320 @@
+================================================================================
+CONTEXT TRANSFER - QA COMPLIANCE ASSISTANT
+Date: November 21, 2025
+Branch: feature/assessments-and-findings
+================================================================================
+
+PROJECT STATUS
+--------------
+Phase 3: Assessment & Finding Management COMPLETED
+- Fixed 14 backend deployments (v0.106 to v0.119)
+- Fixed 1 frontend deployment (v0.120)
+- All Phase 1/Phase 3 field name mismatches resolved
+- Role permissions enforced (maker-checker separation)
+- AI tools for assessment and finding creation working
+
+
+AZURE INFRASTRUCTURE (rg-qca-dev)
+----------------------------------
+Container Apps:
+  ca-api-qca-dev          ✅ Backend (revision 0000126, v0.119-finding-fields) HEALTHY
+  ca-frontend-qca-dev     ✅ Frontend (revision 0000029, v0.120-fixes) HEALTHY
+  ca-mcp-qca-dev          ❌ MCP Server (NOT DEPLOYED)
+
+Database:
+  psql-qca-dev-2f37g0.postgres.database.azure.com
+  - Standard_B1ms, 50 max connections
+  - Username: qcaadmin
+  - Database: qca_db
+
+Container Registry:
+  acrqcadev2f37g0.azurecr.io
+  - qca-api:v0.119-finding-fields (current)
+  - qca-frontend:v0.120-fixes (current)
+
+
+RECENT FIXES DEPLOYED
+---------------------
+Backend (v0.106-v0.119):
+  - Fixed field mapping: name→title, completion_percentage→progress_percentage
+  - Added business_impact column to findings table
+  - Fixed discovery_date field in create_finding AI tool
+  - Fixed assessment and finding detail endpoints with explicit field mapping
+  - Removed non-existent relationships (resolver/validator/analyst)
+  - Database connection exhaustion resolved (deactivated old revisions)
+
+Frontend (v0.120):
+  - Hide Submit Evidence button for auditors (maker-checker enforcement)
+  - User name dropdown in Assign Finding dialog (instead of User ID input)
+  - Conversation history welcome message fix (isRestoringSession flag reset)
+
+
+CRITICAL ISSUES DISCOVERED
+---------------------------
+1. MCP Server Not Deployed (SEVERITY: HIGH)
+   - MCP client code exists: api/src/mcp/client.py
+   - MCP server code exists: mcp_server/src/main.py
+   - BUT Azure Container App ca-mcp-qca-dev does NOT exist
+   - Impact: mcp_fetch_evidence and mcp_analyze_compliance tools BROKEN
+   - Expected URL: https://ca-mcp-qca-dev.victoriousmushroom-f7d2d81f.westus2.azurecontainerapps.io
+
+2. AI Evidence Analysis Prompting Issues (SEVERITY: MEDIUM)
+   - User says "Analyze my evidence for MFA control"
+   - AI only lists 4 evidence items (no actual analysis)
+   - Uses wrong tool: resolve_control_to_evidence (designed for submission, not analysis)
+   - Missing: Dedicated evidence analysis tool with AI-powered insights
+
+3. RAG Architecture Limitations (SEVERITY: MEDIUM)
+   - Vector search working: api/src/rag/vector_search.py
+   - Control requirements HARDCODED: CONTROL_REQUIREMENTS dict in task_handlers.py
+   - Graph RAG HARDCODED: CONTROL_GRAPH dict (only 4 controls: 1, 3, 4, 5)
+   - No file content analysis - only metadata keyword matching
+
+
+AI TOOLS STATUS
+----------------
+Working Tools:
+  ✅ create_assessment - Creates IM8/ISO27001/NIST assessments via natural language
+  ✅ create_finding - Creates security findings with CVSS scoring
+  ✅ list_projects - Lists projects for user's agency
+  ✅ search_documents - Vector search across compliance documents
+  ✅ resolve_control_to_evidence - Finds evidence for control (for submission)
+  ✅ get_evidence_by_control - Gets evidence list for control
+
+Broken Tools (MCP server missing):
+  ❌ mcp_fetch_evidence - Fetch evidence from URLs
+  ❌ mcp_analyze_compliance - Full compliance analysis with scoring
+
+Needs Improvement:
+  ⚠️ analyze_evidence - Only does keyword matching, no deep analysis
+
+
+PHASE 1 VS PHASE 3 FIELD NAMING
+--------------------------------
+Database uses Phase 1 schema, API expects Phase 3 names:
+
+Assessment Table:
+  DB Field: name                    → API expects: title
+  DB Field: completion_percentage   → API expects: progress_percentage
+  DB Field: lead_assessor_user_id   → API expects: assigned_to
+  DB Field: planned_end_date        → API expects: (same)
+  DB Field: actual_end_date         → API expects: (same)
+
+Finding Table:
+  DB Field: discovery_date          → API expects: (same)
+  DB Field: assigned_to_user_id     → API expects: (same)
+  DB Field: risk_level              → API expects: severity
+  DB Field: remediation_plan        → API expects: remediation_recommendation
+  DB Field: verification_date       → API expects: verified_at
+
+Solution: Explicit field mapping in routers (lines 202-222 in assessments.py, lines 228-259 in findings.py)
+
+
+ROLE PERMISSIONS (MAKER-CHECKER)
+---------------------------------
+Analyst (Maker):
+  - Upload evidence
+  - Submit evidence for review
+  - Create assessments and findings
+  - Analyze compliance
+
+Auditor (Checker):
+  - Create projects and controls
+  - Review evidence (approve/reject)
+  - Generate reports
+  - NO evidence upload capability
+
+Viewer:
+  - Read-only access
+  - No tool execution
+
+
+KEY FILES TO KNOW
+------------------
+Backend:
+  api/src/services/agentic_assistant.py      - Main AI agent with tool calling (2222 lines)
+  api/src/routers/assessments.py             - Assessment CRUD (fixed field mapping)
+  api/src/routers/findings.py                - Finding CRUD (fixed field mapping)
+  api/src/routers/analytics.py               - Dashboard metrics (fixed 15 field refs)
+  api/src/workers/task_handlers.py           - RAG knowledge base (CONTROL_REQUIREMENTS, CONTROL_GRAPH)
+  api/src/mcp/client.py                      - MCP client (server not deployed)
+  api/src/rag/vector_search.py               - Vector search for documents
+
+Frontend:
+  frontend/src/components/dashboards/AgencyUserDashboard.tsx  - Fixed: Hide Submit Evidence for auditors
+  frontend/src/pages/FindingDetailPage.tsx                    - Fixed: User name dropdown
+  frontend/src/pages/AgenticChatPage.tsx                      - Fixed: Conversation history
+
+MCP Server:
+  mcp_server/src/main.py                                - FastAPI MCP server (not deployed)
+  mcp_server/src/mcp_tools/compliance_analyzer.py       - Compliance scoring tool
+  mcp_server/src/mcp_tools/evidence_fetcher.py          - Fetch evidence from URLs
+
+
+TECH STACK
+----------
+Backend: FastAPI + SQLAlchemy (synchronous) + Pydantic validation
+Frontend: React 18 + TypeScript + Material-UI + React Query
+Database: PostgreSQL 14
+AI Provider: GitHub Models (gpt-4o-mini) via OpenAI-compatible API
+Deployment: Azure Container Apps
+Registry: Azure Container Registry
+Environment: LLM_PROVIDER=github (default)
+
+
+RECENT GIT COMMITS
+------------------
+aa722d0 - Fix: Reset isRestoringSession flag to allow welcome message when no conversation history
+b331b46 - Fix: Replace user ID input with user name dropdown in Assign Finding dialog
+0fd7dd5 - Fix: Hide Submit Evidence button for auditors - separation of duties
+
+
+PENDING WORK (TODO LIST)
+-------------------------
+Priority 1: Test AI Finding Creation
+  - Login to Agentic Chat as analyst (alice)
+  - Send: "Create a critical finding for SQL injection in login page"
+  - Verify: Finding created with discovery_date and business_impact populated
+  - URL: https://ca-frontend-qca-dev.victoriousmushroom-f7d2d81f.westus2.azurecontainerapps.io/agentic-chat
+
+Priority 2: Deploy MCP Server (if needed)
+  Commands:
+    cd mcp_server
+    az acr build --registry acrqcadev2f37g0 --image qca-mcp:v1.0 --file Dockerfile .
+    az containerapp create --name ca-mcp-qca-dev --resource-group rg-qca-dev \
+      --image acrqcadev2f37g0.azurecr.io/qca-mcp:v1.0 --target-port 8001 \
+      --ingress external --environment cae-qca-dev
+
+Priority 3: Improve AI Evidence Analysis
+  Recommendations provided (no code changes yet):
+    1. Add dedicated analyze_evidence_for_control tool
+    2. Update system prompt to distinguish "analyze" vs "list" vs "submit"
+    3. Enhance get_evidence_by_control to include AI analysis summary
+    4. Use LLM reasoning to provide insights instead of just listing
+
+
+RECOMMENDATIONS FOR EVIDENCE ANALYSIS FIX
+------------------------------------------
+Quick Win - Prompt-Only Fix:
+  Update analyst system prompt to analyze evidence when user asks:
+  - Call get_evidence_by_control tool
+  - DO NOT just list evidence
+  - Provide AI analysis:
+    * Count evidence by type and verification status
+    * Assess coverage (Good if 3+, Limited if 1-2, None if 0)
+    * Identify patterns (multiple rejections = compliance issue)
+    * Generate recommendations (what's missing or needs attention)
+
+Full Solution - New Tool:
+  Create analyze_evidence_for_control tool:
+    Inputs: control_id, analysis_type
+    Outputs:
+      - Evidence summary (count, types, status)
+      - Quality assessment per evidence
+      - Gap identification
+      - Recommendations
+
+
+USEFUL COMMANDS
+---------------
+Check Infrastructure:
+  az containerapp list --resource-group rg-qca-dev --query "[].{Name:name, Status:properties.runningStatus}" -o table
+  az acr repository list --name acrqcadev2f37g0 -o table
+
+View Logs:
+  az containerapp logs show --name ca-api-qca-dev --resource-group rg-qca-dev --tail 100 --follow false
+  az containerapp logs show --name ca-frontend-qca-dev --resource-group rg-qca-dev --tail 100 --follow false
+
+Database Access:
+  Connection: psql-qca-dev-2f37g0.postgres.database.azure.com
+  User: qcaadmin
+  Password: admin123
+  Database: qca_db
+
+Git Status:
+  git status
+  git log --oneline -5
+  git branch -a
+
+
+RAG ARCHITECTURE DETAILS
+-------------------------
+Vector Search (Working):
+  File: api/src/rag/vector_search.py
+  Features:
+    - Stores ISO 27001, NIST CSF, best practice documents
+    - Generates embeddings using LLM service
+    - Cosine similarity search with 0.7 threshold
+    - Returns top-k documents with similarity scores
+  Used by: search_documents tool
+
+Knowledge-Based RAG (Limited):
+  File: api/src/workers/task_handlers.py lines 19-98
+  Data: CONTROL_REQUIREMENTS dictionary
+  Controls: Only 4 controls hardcoded (1, 3, 4, 5)
+  Analysis: Keyword matching + evidence type validation
+  Used by: handle_analyze_evidence_rag_task
+
+Graph RAG (Limited):
+  File: api/src/workers/task_handlers.py lines 78-130
+  Data: CONTROL_GRAPH dictionary
+  Relationships: same_domain, related, downstream
+  Scoring: Relevance based on evidence type and keyword overlap
+  Used by: handle_suggest_related_controls_task
+
+
+VALIDATION SCRIPTS CREATED
+---------------------------
+Created during debugging phase (all passing):
+  validate_finding_fields.py
+  test_finding_creation_exact.py
+  validate_assessment_fields.py
+  run_all_validations.py
+  check_assessment_created.py
+
+These validate that DB schema matches API expectations.
+
+
+DATA SAMPLES
+------------
+Assessment 1 (Created by AI):
+  name: "IM8 Compliance Assessment for Health Sciences Authority"
+  status: in_progress
+  lead_assessor_user_id: 2
+  completion_percentage: 0.0
+
+Finding 7 (Created by AI):
+  title: "Weak Password Policy"
+  severity: critical
+  discovery_date: 2025-11-20
+  status: open
+  business_impact: (populated)
+
+Users:
+  alice (ID=2, Role=analyst, Agency=2)
+  edward (Role=auditor)
+
+
+NEXT STEPS FOR NEW CONTEXT
+---------------------------
+1. Acknowledge receipt of this context transfer
+2. Verify understanding of:
+   - Current deployment status (backend v0.119, frontend v0.120)
+   - Critical issue: MCP server not deployed
+   - Pending task: Test AI finding creation
+3. Ask user what they want to work on next:
+   - Test finding creation (Priority 1)
+   - Deploy MCP server (Priority 2)
+   - Implement evidence analysis improvements (Priority 3)
+
+
+ALL CODE CHANGES COMMITTED AND PUSHED
+--------------------------------------
+Branch: feature/assessments-and-findings
+Latest commit: aa722d0
+All fixes deployed to Azure Container Apps
+System ready for continued development
+
+================================================================================
+END OF CONTEXT TRANSFER
+================================================================================

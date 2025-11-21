@@ -1,0 +1,25 @@
+# Fast build Dockerfile for MCP Server
+# Uses pre-built base image with dependencies installed
+
+# Use existing image with dependencies as base
+FROM acrqcadev2f37g0.azurecr.io/qca-mcp-base:latest
+
+# Set working directory
+WORKDIR /app
+
+# Copy only source code (dependencies already in base image)
+COPY src/ /app/mcp_server/src/
+COPY __init__.py /app/mcp_server/
+
+# Set Python path
+ENV PYTHONPATH=/app
+
+# Expose port
+EXPOSE 8001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8001/health || exit 1
+
+# Run application
+CMD ["uvicorn", "mcp_server.src.main:app", "--host", "0.0.0.0", "--port", "8001"]

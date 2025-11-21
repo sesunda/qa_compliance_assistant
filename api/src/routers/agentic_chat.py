@@ -167,7 +167,7 @@ async def chat(
         conv_manager.add_message(
             session.session_id,
             role="user",
-            content=message + (f" [File: {file.filename}]" if file else "")
+            content=message + (f" [File uploaded: {file.filename}]" if file else "")
         )
         
         # Call AgenticAssistant with all context
