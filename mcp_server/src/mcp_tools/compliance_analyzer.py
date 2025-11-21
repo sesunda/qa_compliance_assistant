@@ -4,6 +4,7 @@ Analyzes project compliance against IM8/ISO/NIST frameworks.
 """
 
 from typing import Dict, Any, List, Optional
+from collections import defaultdict
 from pydantic import BaseModel, Field
 from datetime import datetime
 
@@ -100,12 +101,7 @@ class ComplianceAnalyzerTool:
         # Assess each control
         control_assessments = []
         total_score = 0.0
-        status_counts = {
-            "implemented": 0,
-            "partial": 0,
-            "not_implemented": 0,
-            "not_applicable": 0
-        }
+        status_counts = defaultdict(int)  # Auto-initialize any status to 0
         critical_gaps = []
         
         for control in controls:
