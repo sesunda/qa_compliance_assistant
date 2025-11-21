@@ -174,7 +174,7 @@ class ComplianceAnalyzerTool:
                     c.description,
                     c.control_type,
                     c.status,
-                    c.implementation_notes
+                    c.test_results
                 FROM controls c
                 WHERE c.project_id = :project_id
                 ORDER BY c.id
@@ -194,7 +194,7 @@ class ComplianceAnalyzerTool:
                     "category": row[3],  # Using control_type as category
                     "priority": "medium",  # Default priority
                     "status": row[4] or "not_started",  # c.status with default
-                    "implementation_notes": row[5]  # c.implementation_notes
+                    "implementation_notes": row[5] or ""  # c.test_results used as notes
                 })
             
             return controls
