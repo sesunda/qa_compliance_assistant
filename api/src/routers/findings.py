@@ -193,7 +193,9 @@ async def list_findings(
             "due_date": finding.target_remediation_date,
             "assessment_title": finding.assessment.name,
             "created_at": finding.created_at,
-            "false_positive": finding.status == "false_positive"
+            "false_positive": finding.status == "false_positive",
+            "discovery_date": finding.discovery_date,
+            "business_impact": finding.business_impact
         })
     
     return result
@@ -256,7 +258,9 @@ async def get_finding(
         "control_name": finding.control.name if finding.control else None,
         "comments_count": comments_count,
         "created_at": finding.created_at,
-        "metadata_json": None
+        "metadata_json": None,
+        "discovery_date": finding.discovery_date,
+        "business_impact": finding.business_impact
     }
 
 
