@@ -258,25 +258,80 @@ class ConversationSessionSummary(BaseModel):
         from_attributes = True
 
 
-# Assessment Schemas
+# Assessment Schemas (Comprehensive)
 class AssessmentCreate(BaseModel):
-    title: str
-    assessment_type: str  # vapt, infra_pt, compliance_audit
-    framework: Optional[str] = None  # ISO27001, NIST, PCI-DSS, etc.
-    scope: Optional[str] = None
-    target_completion_date: Optional[datetime] = None
-    period_start: Optional[datetime] = None
-    period_end: Optional[datetime] = None
-    assigned_to: Optional[int] = None
-    metadata: Optional[Dict[str, Any]] = None
+    # Core Info
+    project_id: int
+    name: str
+    assessment_type: str  # compliance, risk, security_audit, penetration_test, gap_analysis
+    framework: str  # IM8, ISO27001, NIST, SOC2, FISMA
+    
+    # Scope
+    scope_description: Optional[str] = None
+    included_controls: Optional[List[int]] = None  # Array of control IDs
+    excluded_areas: Optional[str] = None
+    
+    # Schedule
+    planned_start_date: Optional[date] = None
+    planned_end_date: Optional[date] = None
+    actual_start_date: Optional[date] = None
+    actual_end_date: Optional[date] = None
+    
+    # Team
+    lead_assessor_user_id: int
+    team_members: Optional[List[int]] = None  # Array of user IDs
+    
+    # Status
+    status: Optional[str] = "not_started"  # not_started, planning, fieldwork, review, final, archived
+    completion_percentage: Optional[float] = 0
+    
+    # Results
+    overall_compliance_score: Optional[float] = None
+    
+    # Deliverables
+    executive_summary: Optional[str] = None
+    final_report_file_path: Optional[str] = None
 
 
 class AssessmentUpdate(BaseModel):
-    title: Optional[str] = None
-    scope: Optional[str] = None
+    # Core Info
+    name: Optional[str] = None
+    assessment_type: Optional[str] = None
+    framework: Optional[str] = None
+    
+    # Scope
+    scope_description: Optional[str] = None
+    included_controls: Optional[List[int]] = None
+    excluded_areas: Optional[str] = None
+    
+    # Schedule
+    planned_start_date: Optional[date] = None
+    planned_end_date: Optional[date] = None
+    actual_start_date: Optional[date] = None
+    actual_end_date: Optional[date] = None
+    
+    # Team
+    lead_assessor_user_id: Optional[int] = None
+    team_members: Optional[List[int]] = None
+    
+    # Status
     status: Optional[str] = None
-    target_completion_date: Optional[datetime] = None
-    metadata: Optional[Dict[str, Any]] = None
+    completion_percentage: Optional[float] = None
+    
+    # Results
+    overall_compliance_score: Optional[float] = None
+    findings_count_critical: Optional[int] = None
+    findings_count_high: Optional[int] = None
+    findings_count_medium: Optional[int] = None
+    findings_count_low: Optional[int] = None
+    
+    # Deliverables
+    executive_summary: Optional[str] = None
+    final_report_file_path: Optional[str] = None
+    
+    # Approval
+    approved_by_user_id: Optional[int] = None
+    approved_at: Optional[datetime] = None
 
 
 class AssessmentAssignment(BaseModel):
@@ -341,31 +396,93 @@ class AssessmentSummary(BaseModel):
         from_attributes = True
 
 
-# Finding Schemas
+# Finding Schemas (Comprehensive)
 class FindingCreate(BaseModel):
+    # References
     assessment_id: int
+    project_id: int
     control_id: Optional[int] = None
+    
+    # Core Info
     title: str
     description: str
     severity: str  # critical, high, medium, low, info
-    priority: Optional[str] = "medium"
-    risk_rating: Optional[str] = None
-    affected_systems: Optional[str] = None
+    cvss_score: Optional[float] = None  # 0.0-10.0
+    category: Optional[str] = None  # injection, broken_auth, sensitive_data, etc.
+    
+    # Asset Info
+    affected_asset: Optional[str] = None
+    affected_url: Optional[str] = None
+    affected_component: Optional[str] = None
+    
+    # Technical Details
+    reproduction_steps: Optional[str] = None
+    proof_of_concept: Optional[str] = None
+    evidence_file_paths: Optional[List[str]] = None  # Array of file paths
+    
+    # Impact
+    business_impact: Optional[str] = None
+    likelihood: Optional[str] = None  # very_low, low, medium, high, very_high
+    
+    # Remediation
     remediation_recommendation: Optional[str] = None
-    assigned_to: Optional[int] = None
+    remediation_complexity: Optional[str] = None  # low, medium, high
+    remediation_priority: Optional[str] = None  # P1, P2, P3, P4
+    estimated_effort_hours: Optional[float] = None
+    
+    # Workflow
+    status: Optional[str] = "open"  # open, in_progress, resolved, accepted_risk, false_positive
+    assigned_to_user_id: Optional[int] = None
     due_date: Optional[datetime] = None
-    metadata: Optional[Dict[str, Any]] = None
+    
+    # Resolution
+    resolution_description: Optional[str] = None
+    resolution_verification_evidence: Optional[str] = None
 
 
 class FindingUpdate(BaseModel):
+    # Core Info
     title: Optional[str] = None
     description: Optional[str] = None
     severity: Optional[str] = None
-    priority: Optional[str] = None
-    affected_systems: Optional[str] = None
+    cvss_score: Optional[float] = None
+    category: Optional[str] = None
+    
+    # Asset Info
+    affected_asset: Optional[str] = None
+    affected_url: Optional[str] = None
+    affected_component: Optional[str] = None
+    
+    # Technical Details
+    reproduction_steps: Optional[str] = None
+    proof_of_concept: Optional[str] = None
+    evidence_file_paths: Optional[List[str]] = None
+    
+    # Impact
+    business_impact: Optional[str] = None
+    likelihood: Optional[str] = None
+    
+    # Remediation
     remediation_recommendation: Optional[str] = None
+    remediation_complexity: Optional[str] = None
+    remediation_priority: Optional[str] = None
+    estimated_effort_hours: Optional[float] = None
+    
+    # Workflow
+    status: Optional[str] = None
+    assigned_to_user_id: Optional[int] = None
     due_date: Optional[datetime] = None
-    metadata: Optional[Dict[str, Any]] = None
+    
+    # Resolution
+    resolution_description: Optional[str] = None
+    resolution_verification_evidence: Optional[str] = None
+    resolved_by_user_id: Optional[int] = None
+    resolved_at: Optional[datetime] = None
+    
+    # Validation
+    validated_by_user_id: Optional[int] = None
+    validated_at: Optional[datetime] = None
+    validation_notes: Optional[str] = None
 
 
 class FindingAssignment(BaseModel):
@@ -392,6 +509,8 @@ class FindingListResponse(BaseModel):
     assessment_title: str
     created_at: datetime
     false_positive: bool
+    discovery_date: Optional[date] = None
+    business_impact: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -425,6 +544,8 @@ class FindingResponse(BaseModel):
     comments_count: int
     created_at: datetime
     metadata_json: Optional[Dict[str, Any]] = None
+    discovery_date: Optional[date] = None
+    business_impact: Optional[str] = None
     
     class Config:
         from_attributes = True
