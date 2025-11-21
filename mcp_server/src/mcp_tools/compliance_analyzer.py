@@ -104,6 +104,12 @@ class ComplianceAnalyzerTool:
         status_counts = defaultdict(int)  # Auto-initialize any status to 0
         critical_gaps = []
         
+        # Normalize statuses (pending -> not_implemented for reporting)
+        def normalize_status(status: str) -> str:
+            if status == "pending":
+                return "not_implemented"
+            return status
+        
         for control in controls:
             assessment = await self._assess_control(
                 control,
@@ -114,7 +120,9 @@ class ComplianceAnalyzerTool:
             
             control_assessments.append(assessment)
             total_score += assessment.score
-            status_counts[assessment.status] += 1
+            # Normalize status for counting (pending -> not_implemented)
+            normalized_status = normalize_status(assessment.status)
+            status_counts[normalized_status] += 1
             
             # Collect critical gaps (score < 0.3)
             if assessment.score < 0.3 and assessment.status != "not_applicable":
@@ -282,7 +290,7 @@ class ComplianceAnalyzerTool:
         - implemented + no evidence: 0.6
         - partial + evidence >= 1: 0.5
         - partial + no evidence: 0.3
-        - not_implemented: 0.0
+        - not_implemented/pending: 0.0
         """
         if status == "not_applicable":
             return 1.0
@@ -298,7 +306,7 @@ class ComplianceAnalyzerTool:
                 return 0.5
             else:
                 return 0.3
-        else:  # not_implemented
+        else:  # not_implemented, pending, or any other status
             return 0.0
     
     def _identify_gaps(
