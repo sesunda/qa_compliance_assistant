@@ -28,6 +28,7 @@ class AgenticAssistant:
         "search_documents": {"temperature": 0.3, "max_tokens": 800},  # RAG needs more space
         "analyze_evidence": {"temperature": 0.2, "max_tokens": 600},
         "analyze_evidence_rag": {"temperature": 0.2, "max_tokens": 600},
+        "analyze_evidence_for_control": {"temperature": 0.3, "max_tokens": 1000},  # AI insights need more space
         "submit_for_review": {"temperature": 0.1, "max_tokens": 300},
         "submit_evidence_for_review": {"temperature": 0.1, "max_tokens": 300},
         "request_evidence_upload": {"temperature": 0.2, "max_tokens": 400},
@@ -309,8 +310,25 @@ class AgenticAssistant:
             {
                 "type": "function",
                 "function": {
+                    "name": "analyze_evidence_for_control",
+                    "description": "AI-powered analysis of evidence quality and coverage for a control. Provides insights on: evidence completeness, quality scoring, gaps identified, recommendations for improvement. Use when user asks: 'analyze evidence for control X', 'how good is our evidence for control Y', 'what's missing for control Z', 'assess evidence quality for control'. DO NOT use for simple listing - use get_evidence_by_control instead.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "control_id": {
+                                "type": "integer",
+                                "description": "The control ID to analyze evidence for"
+                            }
+                        },
+                        "required": ["control_id"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
                     "name": "get_evidence_by_control",
-                    "description": "Retrieve all evidence documents for a specific control. Returns evidence ID, title, file name, type, upload date, and status. Use when user asks: 'show evidence for control X', 'what evidence do we have for control Y', 'list all evidence for control Z'.",
+                    "description": "Retrieve all evidence documents for a specific control. Returns evidence ID, title, file name, type, upload date, and status. Use when user asks: 'show evidence for control X', 'what evidence do we have for control Y', 'list all evidence for control Z'. This is for LISTING only - for AI analysis use analyze_evidence_for_control instead.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -718,6 +736,7 @@ CORE RULES:
         ]
         EVIDENCE_QUERY_TOOLS = [
             'analyze_evidence',  # Auditors can query evidence analysis
+            'analyze_evidence_for_control',  # AI-powered evidence quality analysis
             'suggest_related_controls',  # Auditors can use Graph RAG for relationships
             'get_evidence_by_control',  # Query evidence for specific control
             'get_recent_evidence',  # View recently uploaded evidence
@@ -781,8 +800,33 @@ ANALYST ACTIONS:
 - View available projects (list_projects tool)
 - Create assessments and findings for security/compliance tracking
 - Upload evidence for controls (your agency only)
+- Analyze evidence quality and coverage (NEW: use analyze_evidence_for_control)
+- List evidence documents (use get_evidence_by_control)
 - Analyze compliance status
 - Submit evidence for review
+
+EVIDENCE TOOLS - KNOW THE DIFFERENCE:
+1. analyze_evidence_for_control: AI-powered quality analysis, gap identification, recommendations
+   - Use when: "analyze evidence for Control X", "how good is evidence for X", "what's missing for X"
+   - Returns: quality score, completeness rating, gaps, recommendations
+   
+2. get_evidence_by_control: Simple listing of evidence documents
+   - Use when: "show evidence for Control X", "list evidence for X", "what evidence exists for X"
+   - Returns: list of evidence IDs, titles, types, dates
+
+3. get_recent_evidence: List your recent uploads
+   - Use when: "show my recent uploads", "what did I upload"
+
+WHEN USER ASKS TO "ANALYZE" EVIDENCE:
+- They want AI insights, NOT a simple list
+- Use analyze_evidence_for_control tool
+- Provide quality assessment, gaps, and actionable recommendations
+- Example: "Overall quality: good (72%). Missing audit logs. Recommend adding test results."
+
+WHEN USER ASKS TO "LIST" OR "SHOW" EVIDENCE:
+- They want to see what exists
+- Use get_evidence_by_control tool
+- Return simple list with IDs, titles, types
 
 ASSESSMENT & FINDING CREATION:
 When user wants to create assessments or findings, use these tools:
@@ -1579,7 +1623,10 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
             "create_project": ["agency_id"],
             "create_controls": ["project_id"],
             "analyze_evidence": ["evidence_id", "control_id"],
-            "suggest_related_controls": ["evidence_id", "control_id"]
+            "analyze_evidence_for_control": ["control_id"],
+            "suggest_related_controls": ["evidence_id", "control_id"],
+            "get_evidence_by_control": ["control_id"],
+            "get_recent_evidence": ["limit", "user_id"]
         }
         
         coerced = args.copy()
@@ -1978,6 +2025,141 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                 
             except Exception as e:
                 logger.error(f"get_recent_evidence failed: {e}", exc_info=True)
+                return {"error": str(e), "status": "error"}
+        
+        # FAST PATH: AI-powered evidence analysis for control
+        if function_name == "analyze_evidence_for_control":
+            logger.info(f"Executing analyze_evidence_for_control synchronously (fast path)")
+            
+            from api.src import models
+            
+            try:
+                control_id = function_args.get("control_id")
+                
+                if not control_id:
+                    return {"error": "Missing required parameter: control_id", "status": "validation_failed"}
+                
+                # Get control details
+                control = db.query(models.Control).filter(models.Control.id == control_id).first()
+                if not control:
+                    return {"error": f"Control {control_id} not found", "status": "not_found"}
+                
+                # Get all evidence for the control
+                evidence_list = db.query(models.Evidence).filter(
+                    models.Evidence.control_id == control_id
+                ).order_by(models.Evidence.uploaded_at.desc()).all()
+                
+                if not evidence_list:
+                    return {
+                        "status": "success",
+                        "control_id": control_id,
+                        "control_name": control.name,
+                        "evidence_count": 0,
+                        "quality_score": 0.0,
+                        "completeness": "none",
+                        "analysis": {
+                            "summary": f"No evidence has been uploaded for {control.name} yet.",
+                            "gaps": [
+                                "No policy documents provided",
+                                "No audit reports available",
+                                "No configuration evidence",
+                                "No test results or validation"
+                            ],
+                            "recommendations": [
+                                f"Upload policy document addressing {control.description[:100]}...",
+                                "Provide audit logs or reports demonstrating compliance",
+                                "Include configuration screenshots or settings exports",
+                                "Add test results validating the control implementation"
+                            ]
+                        }
+                    }
+                
+                # Calculate evidence quality metrics
+                evidence_types = {}
+                verified_count = 0
+                total_evidence = len(evidence_list)
+                
+                for ev in evidence_list:
+                    evidence_types[ev.evidence_type] = evidence_types.get(ev.evidence_type, 0) + 1
+                    if ev.verification_status == "verified":
+                        verified_count += 1
+                
+                # Quality scoring algorithm
+                type_diversity_score = min(len(evidence_types) / 4.0, 1.0)  # 4 types = full score
+                verification_score = verified_count / total_evidence if total_evidence > 0 else 0
+                quantity_score = min(total_evidence / 3.0, 1.0)  # 3+ pieces = full score
+                
+                quality_score = round((type_diversity_score * 0.4 + verification_score * 0.4 + quantity_score * 0.2) * 100, 1)
+                
+                # Determine completeness level
+                if quality_score >= 80:
+                    completeness = "excellent"
+                elif quality_score >= 60:
+                    completeness = "good"
+                elif quality_score >= 40:
+                    completeness = "adequate"
+                elif quality_score >= 20:
+                    completeness = "partial"
+                else:
+                    completeness = "minimal"
+                
+                # Identify gaps
+                gaps = []
+                expected_types = ["policy_document", "audit_report", "configuration_screenshot", "test_result"]
+                for exp_type in expected_types:
+                    if exp_type not in evidence_types:
+                        type_labels = {
+                            "policy_document": "Policy documents",
+                            "audit_report": "Audit reports or logs",
+                            "configuration_screenshot": "Configuration evidence",
+                            "test_result": "Test results or validation"
+                        }
+                        gaps.append(f"Missing {type_labels.get(exp_type, exp_type)}")
+                
+                if verified_count < total_evidence:
+                    gaps.append(f"{total_evidence - verified_count} evidence item(s) pending verification")
+                
+                # Generate recommendations
+                recommendations = []
+                if len(evidence_types) < 3:
+                    recommendations.append("Add more diverse evidence types (policy, audit, config, test)")
+                if verified_count < total_evidence:
+                    recommendations.append("Submit pending evidence for auditor verification")
+                if total_evidence < 3:
+                    recommendations.append("Upload additional supporting evidence to strengthen compliance proof")
+                if "policy_document" not in evidence_types:
+                    recommendations.append("Add policy document establishing the control requirement")
+                if "audit_report" not in evidence_types:
+                    recommendations.append("Provide audit logs or reports demonstrating ongoing compliance")
+                
+                # Build summary
+                summary_parts = []
+                summary_parts.append(f"Found {total_evidence} evidence item(s) for {control.name}.")
+                summary_parts.append(f"Evidence types: {', '.join(evidence_types.keys())}.")
+                summary_parts.append(f"{verified_count} verified, {total_evidence - verified_count} pending verification.")
+                summary_parts.append(f"Overall quality: {completeness} ({quality_score}%).")
+                
+                logger.info(f"✅ Analyzed evidence for control {control_id}: {quality_score}% quality, {completeness} completeness")
+                
+                return {
+                    "status": "success",
+                    "control_id": control_id,
+                    "control_name": control.name,
+                    "evidence_count": total_evidence,
+                    "quality_score": quality_score,
+                    "completeness": completeness,
+                    "analysis": {
+                        "summary": " ".join(summary_parts),
+                        "evidence_breakdown": evidence_types,
+                        "verified_count": verified_count,
+                        "pending_count": total_evidence - verified_count,
+                        "gaps": gaps if gaps else ["No significant gaps identified"],
+                        "recommendations": recommendations if recommendations else ["Evidence quality is excellent - no immediate action needed"]
+                    }
+                }
+                
+            except Exception as e:
+                logger.error(f"analyze_evidence_for_control failed: {e}", exc_info=True)
                 return {"error": str(e), "status": "error"}
         
         # FAST PATH: Create assessment synchronously
