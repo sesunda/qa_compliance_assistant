@@ -126,28 +126,29 @@ class AgenticAssistant:
                     }
                 }
             },
-            {
-                "type": "function",
-                "function": {
-                    "name": "analyze_compliance",
-                    "description": "Analyze compliance status and generate insights. Use when user wants compliance analysis or assessment.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "control_id": {
-                                "type": "string",
-                                "description": "The control ID to analyze (can be numeric)"
-                            },
-                            "analysis_type": {
-                                "type": "string",
-                                "enum": ["gap", "status", "risk"],
-                                "description": "Type of compliance analysis"
-                            }
-                        },
-                        "required": ["control_id"]
-                    }
-                }
-            },
+            # DEPRECATED: Old analyze_compliance tool - use mcp_analyze_compliance instead
+            # {
+            #     "type": "function",
+            #     "function": {
+            #         "name": "analyze_compliance",
+            #         "description": "Analyze compliance status and generate insights. Use when user wants compliance analysis or assessment.",
+            #         "parameters": {
+            #             "type": "object",
+            #             "properties": {
+            #                 "control_id": {
+            #                     "type": "string",
+            #                     "description": "The control ID to analyze (can be numeric)"
+            #                 },
+            #                 "analysis_type": {
+            #                     "type": "string",
+            #                     "enum": ["gap", "status", "risk"],
+            #                     "description": "Type of compliance analysis"
+            #                 }
+            #             },
+            #             "required": ["control_id"]
+            #         }
+            #     }
+            # },
             {
                 "type": "function",
                 "function": {
@@ -726,7 +727,7 @@ CORE RULES:
             'create_assessment',  # Create comprehensive security/compliance assessments
             'create_finding'  # Create security findings and compliance gaps
         ]
-        COMMON_TOOLS = ['mcp_fetch_evidence', 'generate_report', 'search_documents', 'list_projects']
+        COMMON_TOOLS = ['mcp_fetch_evidence', 'mcp_analyze_compliance', 'generate_report', 'search_documents', 'list_projects']
         
         user_role_lower = user_role.lower()
         
