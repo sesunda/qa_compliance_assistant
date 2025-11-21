@@ -141,6 +141,7 @@ async def list_assessments(
         
         result.append({
             "id": assessment.id,
+            "project_id": assessment.project_id,  # Add project_id
             "title": assessment.name,
             "assessment_type": assessment.assessment_type,
             "framework": assessment.framework,
