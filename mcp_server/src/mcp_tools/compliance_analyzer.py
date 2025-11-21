@@ -166,18 +166,16 @@ class ComplianceAnalyzerTool:
         Session = sessionmaker(bind=engine)
         
         with Session() as session:
-            # Get controls for the project (actual schema: id, project_id, name, description, control_type, status)
+            # Get controls for the project - controls table has project_id, no join table needed
             query = text("""
                 SELECT 
                     c.id,
                     c.name,
                     c.description,
                     c.control_type,
-                    pc.status,
-                    pc.implementation_notes
+                    c.status,
+                    c.implementation_notes
                 FROM controls c
-                LEFT JOIN project_controls pc ON c.id = pc.control_id 
-                    AND pc.project_id = :project_id
                 WHERE c.project_id = :project_id
                 ORDER BY c.id
             """)
@@ -195,8 +193,8 @@ class ComplianceAnalyzerTool:
                     "description": row[2],
                     "category": row[3],  # Using control_type as category
                     "priority": "medium",  # Default priority
-                    "status": row[4],  # pc.status
-                    "implementation_notes": row[5]  # pc.implementation_notes
+                    "status": row[4] or "not_started",  # c.status with default
+                    "implementation_notes": row[5]  # c.implementation_notes
                 })
             
             return controls
