@@ -139,6 +139,9 @@ async def list_assessments(
             AssessmentControl.assessment_id == assessment.id
         ).count()
         
+        # DEBUG: Log project_id
+        logger.info(f"Assessment {assessment.id} has project_id: {assessment.project_id}")
+        
         result.append({
             "id": assessment.id,
             "project_id": assessment.project_id,  # Add project_id

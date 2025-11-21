@@ -344,6 +344,7 @@ class AssessmentProgressUpdate(BaseModel):
 
 class AssessmentListResponse(BaseModel):
     id: int
+    project_id: int
     title: str
     assessment_type: str
     framework: Optional[str] = None
@@ -362,6 +363,7 @@ class AssessmentListResponse(BaseModel):
 class AssessmentResponse(BaseModel):
     id: int
     agency_id: int
+    project_id: int
     title: str
     assessment_type: str
     framework: Optional[str] = None
