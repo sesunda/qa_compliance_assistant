@@ -207,17 +207,23 @@ const AgenticChatPage: React.FC = () => {
     
     // Restore session from localStorage or load most recent session
     const loadConversation = async () => {
-      const savedSession = localStorage.getItem('agentic_session_id');
-      if (savedSession) {
-        isRestoringSession.current = true;
-        setConversationId(savedSession);
-        // Restore message history
-        await restoreMessageHistory(savedSession);
-        isRestoringSession.current = false;
-      } else {
-        // No saved session - try to load the most recent active session
-        isRestoringSession.current = true;
-        await loadRecentSession();
+      try {
+        const savedSession = localStorage.getItem('agentic_session_id');
+        if (savedSession) {
+          isRestoringSession.current = true;
+          setConversationId(savedSession);
+          // Restore message history
+          await restoreMessageHistory(savedSession);
+        } else {
+          // No saved session - try to load the most recent active session
+          isRestoringSession.current = true;
+          await loadRecentSession();
+        }
+      } catch (error) {
+        console.error('Error loading conversation:', error);
+        // Ensure flag is reset even on error
+      } finally {
+        // Always reset flag to allow welcome message to show
         isRestoringSession.current = false;
       }
     };
@@ -336,9 +342,6 @@ const AgenticChatPage: React.FC = () => {
         // Set messages to trigger re-render
         setMessages(convertedMessages);
         console.log(`Restored ${convertedMessages.length} messages from session ${sessionId}`);
-      } else {
-        // Session exists but no messages - show welcome message
-        isRestoringSession.current = false;
       }
     } catch (error: any) {
       console.error('Error restoring message history:', error);
@@ -349,8 +352,7 @@ const AgenticChatPage: React.FC = () => {
         setConversationId(null);
       }
       
-      // Allow welcome message to show
-      isRestoringSession.current = false;
+      // Don't throw - let welcome message show instead
     }
   };
 
@@ -359,10 +361,8 @@ const AgenticChatPage: React.FC = () => {
       const response = await api.get('/agentic-chat/sessions/recent');
       const { session_id, messages: historyMessages } = response.data;
       
-      // If no recent session exists, let welcome message show
+      // If no recent session exists, just return - welcome message will show
       if (!session_id || !historyMessages || historyMessages.length === 0) {
-        // Important: Reset the flag so welcome message can show
-        isRestoringSession.current = false;
         return;
       }
       
@@ -383,11 +383,10 @@ const AgenticChatPage: React.FC = () => {
       }));
       
       setMessages(convertedMessages);
+      console.log(`Loaded recent session ${session_id} with ${convertedMessages.length} messages`);
     } catch (error) {
       console.error('Error loading recent session:', error);
-      // Reset flag so welcome message can show
-      isRestoringSession.current = false;
-      // Silently fail - user will start with fresh conversation
+      // Don't throw - let welcome message show instead
     }
   };
 
