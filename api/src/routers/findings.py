@@ -316,8 +316,8 @@ async def assign_finding(
     """Assign finding to an analyst for remediation"""
     user = db.query(User).filter(User.id == current_user["id"]).first()
     
-    # Only auditors and admins can assign
-    if user.role.name not in ["auditor", "admin", "super_admin"]:
+    # Only auditors and admins can assign (case-insensitive)
+    if user.role.name.lower() not in ["auditor", "admin", "super_admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions to assign findings"
@@ -381,8 +381,8 @@ async def resolve_finding(
             detail="Finding not found"
         )
     
-    # Only assigned analyst can resolve
-    if finding.assigned_to_user_id != current_user["id"] and user.role.name not in ["admin", "super_admin"]:
+    # Only assigned analyst can resolve (case-insensitive)
+    if finding.assigned_to_user_id != current_user["id"] and user.role.name.lower() not in ["admin", "super_admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only assigned analyst can resolve this finding"
@@ -423,8 +423,8 @@ async def validate_finding(
     """Validate a resolved finding (QA process)"""
     user = db.query(User).filter(User.id == current_user["id"]).first()
     
-    # Only auditors can validate
-    if user.role.name not in ["auditor", "admin", "super_admin"]:
+    # Only auditors can validate (case-insensitive)
+    if user.role.name.lower() not in ["auditor", "admin", "super_admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions to validate findings"
@@ -488,11 +488,11 @@ async def mark_false_positive(
     """Mark finding as false positive"""
     user = db.query(User).filter(User.id == current_user["id"]).first()
     
-    # Only auditors can mark false positives
-    if user.role.name not in ["auditor", "admin", "super_admin"]:
+    # Only auditors can mark as false positive (case-insensitive)
+    if user.role.name.lower() not in ["auditor", "admin", "super_admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to mark false positives"
+            detail="Insufficient permissions to mark findings as false positive"
         )
     
     finding = db.query(Finding).join(Assessment).filter(

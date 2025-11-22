@@ -247,7 +247,7 @@ async def update_assessment(
         )
     
     # Check permissions (only assigned analyst, auditors, or admins can update)
-    if user.role.name not in ["admin", "super_admin", "auditor"]:
+    if user.role.name.lower() not in ["admin", "super_admin", "auditor"]:
         if assessment.lead_assessor_user_id != current_user["id"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -277,8 +277,8 @@ async def assign_assessment(
     """Assign assessment to an analyst"""
     user = db.query(User).filter(User.id == current_user["id"]).first()
     
-    # Only auditors and admins can assign
-    if user.role.name not in ["auditor", "admin", "super_admin"]:
+    # Only auditors and admins can assign (case-insensitive)
+    if user.role.name.lower() not in ["auditor", "admin", "super_admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions to assign assessments"
@@ -342,8 +342,8 @@ async def update_progress(
             detail="Assessment not found"
         )
     
-    # Only assigned analyst can update progress
-    if assessment.lead_assessor_user_id != current_user["id"] and user.role.name not in ["admin", "super_admin"]:
+    # Only assigned analyst can update progress (case-insensitive)
+    if assessment.lead_assessor_user_id != current_user["id"] and user.role.name.lower() not in ["admin", "super_admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only assigned analyst can update progress"
@@ -531,8 +531,8 @@ async def complete_assessment(
             detail="Assessment not found"
         )
     
-    # Only assigned analyst or admin can complete
-    if assessment.lead_assessor_user_id != current_user["id"] and user.role.name not in ["admin", "super_admin"]:
+    # Only assigned analyst or admin can complete (case-insensitive)
+    if assessment.lead_assessor_user_id != current_user["id"] and user.role.name.lower() not in ["admin", "super_admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only assigned analyst can complete assessment"
