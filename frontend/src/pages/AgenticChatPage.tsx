@@ -146,6 +146,8 @@ const AgenticChatPage: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [coldStartMessage, setColdStartMessage] = useState('');
   const [capabilities, setCapabilities] = useState<any>(null);
   const [conversationContext, setConversationContext] = useState<any>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -205,6 +207,13 @@ const AgenticChatPage: React.FC = () => {
     // Fetch available capabilities
     fetchCapabilities();
     
+    // Show cold start message after 3 seconds if still loading
+    const coldStartTimer = setTimeout(() => {
+      if (pageLoading) {
+        setColdStartMessage('🔄 System is waking up from sleep mode... Loading conversations (10-15 seconds)');
+      }
+    }, 3000);
+    
     // Restore session from localStorage or load most recent session
     const loadConversation = async () => {
       try {
@@ -224,7 +233,10 @@ const AgenticChatPage: React.FC = () => {
         // Ensure flag is reset even on error
       } finally {
         // Always reset flag to allow welcome message to show
+        clearTimeout(coldStartTimer);
         isRestoringSession.current = false;
+        setPageLoading(false);
+        setColdStartMessage('');
       }
     };
     
@@ -673,6 +685,24 @@ const AgenticChatPage: React.FC = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      {/* Loading indicator for page initialization */}
+      {pageLoading && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+          <CircularProgress size={60} sx={{ mb: 3 }} />
+          <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+            Loading...
+          </Typography>
+          {coldStartMessage && (
+            <Alert severity="info" sx={{ mt: 2, maxWidth: 500 }}>
+              {coldStartMessage}
+            </Alert>
+          )}
+        </Box>
+      )}
+      
+      {/* Main chat interface - only show when not loading */}
+      {!pageLoading && (
+        <>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <SmartToyIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
@@ -1245,6 +1275,8 @@ const AgenticChatPage: React.FC = () => {
         <Alert severity="warning" sx={{ mt: 2 }}>
           AI service is not configured. Please set AZURE_OPENAI_ENDPOINT or OPENAI_API_KEY environment variables.
         </Alert>
+      )}
+      </>
       )}
     </Container>
   );
