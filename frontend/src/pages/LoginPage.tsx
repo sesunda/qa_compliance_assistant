@@ -21,6 +21,7 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [coldStartMessage, setColdStartMessage] = useState('')
   const { login } = useAuth()
   const navigate = useNavigate()
 
@@ -28,6 +29,7 @@ const LoginPage: React.FC = () => {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setColdStartMessage('')
 
     if (!username || !password) {
       setError('Please enter both username and password')
@@ -35,15 +37,34 @@ const LoginPage: React.FC = () => {
       return
     }
 
+    // Show cold start message after 3 seconds if still loading
+    const coldStartTimer = setTimeout(() => {
+      if (loading) {
+        setColdStartMessage('🔄 System is waking up from sleep mode... Please wait (10-15 seconds)')
+      }
+    }, 3000)
+
     try {
       const success = await login(username, password)
+      clearTimeout(coldStartTimer)
       if (success) {
         navigate('/agentic-chat')
       } else {
         setError('Invalid username or password')
+        setColdStartMessage('')
       }
     } catch (err: any) {
-      setError('An unexpected error occurred')
+      clearTimeout(coldStartTimer)
+      
+      // Check if it's a cold start/timeout error
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        setError('System is taking longer than expected to wake up. Please try again in a moment.')
+      } else if (err.response?.status === 502 || err.response?.status === 503) {
+        setError('System is waking up. Please wait a moment and try again.')
+      } else {
+        setError('An unexpected error occurred')
+      }
+      setColdStartMessage('')
     } finally {
       setLoading(false)
     }
@@ -146,6 +167,12 @@ const LoginPage: React.FC = () => {
               {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
                   {error}
+                </Alert>
+              )}
+              
+              {coldStartMessage && (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  {coldStartMessage}
                 </Alert>
               )}
               
