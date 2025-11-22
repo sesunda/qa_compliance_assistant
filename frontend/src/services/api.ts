@@ -44,30 +44,34 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
     
+    // Initialize retry count if not set
+    if (!originalRequest._retryCount) {
+      originalRequest._retryCount = 0
+    }
+    
     // Handle cold start: Retry on timeout or 502/503/504 errors
-    if (!originalRequest._retry && (
+    const isColdStartError = (
       error.code === 'ECONNABORTED' || 
       error.response?.status === 502 || 
       error.response?.status === 503 || 
       error.response?.status === 504
-    )) {
-      // Mark request as retried
-      originalRequest._retry = true
-      originalRequest._retryCount = (originalRequest._retryCount || 0) + 1
+    )
+    
+    if (isColdStartError && originalRequest._retryCount < 3) {
+      // Increment retry count
+      originalRequest._retryCount += 1
       
-      // Retry up to 3 times with exponential backoff
-      if (originalRequest._retryCount <= 3) {
-        const delay = Math.min(1000 * Math.pow(2, originalRequest._retryCount - 1), 5000) // Max 5s delay
-        
-        console.log(`🔄 Container app waking up... Retry ${originalRequest._retryCount}/3 in ${delay}ms`)
-        
-        await new Promise(resolve => setTimeout(resolve, delay))
-        
-        // Increase timeout for retries
-        originalRequest.timeout = 30000
-        
-        return api(originalRequest)
-      }
+      // Exponential backoff: 1s, 2s, 4s
+      const delay = Math.min(1000 * Math.pow(2, originalRequest._retryCount - 1), 5000) // Max 5s delay
+      
+      console.log(`🔄 Container app waking up... Retry ${originalRequest._retryCount}/3 in ${delay}ms`)
+      
+      await new Promise(resolve => setTimeout(resolve, delay))
+      
+      // Ensure timeout is sufficient for retries
+      originalRequest.timeout = 30000
+      
+      return api(originalRequest)
     }
     
     if (error.response?.status === 401) {
