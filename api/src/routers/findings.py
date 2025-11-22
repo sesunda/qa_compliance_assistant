@@ -157,7 +157,16 @@ async def list_findings(
         Assessment.agency_id == user.agency_id
     )
     
-    # Apply filters
+    # Auto-filter for analysts: only show findings assigned to them (unless explicitly showing all)
+    # Auditors and admins see all findings by default
+    if user.role.name.lower() == "analyst" and not assigned_to_me:
+        # For analysts, default to showing only their assigned findings
+        query = query.filter(Finding.assigned_to_user_id == current_user["id"])
+    elif assigned_to_me:
+        # Explicit filter: show only assigned findings (works for all roles)
+        query = query.filter(Finding.assigned_to_user_id == current_user["id"])
+    
+    # Apply other filters
     if assessment_id:
         query = query.filter(Finding.assessment_id == assessment_id)
     
