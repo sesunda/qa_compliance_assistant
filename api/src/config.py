@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "llama2"
 
+    # Azure AI Search settings
+    AZURE_SEARCH_ENABLED: bool = False  # Feature flag - set to True to use Azure AI Search
+    AZURE_SEARCH_ENDPOINT: str = "https://qca-search-dev.search.windows.net"
+    AZURE_SEARCH_API_KEY: str = ""
+    AZURE_SEARCH_INDEX_NAME: str = "compliance-knowledge"
+    
     # Evidence storage configuration
     EVIDENCE_STORAGE_BACKEND: str = "local"  # Options: local, azure
     EVIDENCE_STORAGE_PATH: str = "/app/storage/evidence"

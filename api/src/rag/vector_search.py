@@ -1,4 +1,12 @@
-"""Vector search implementation for RAG system"""
+"""
+Vector search implementation for RAG system
+
+🎓 DUAL BACKEND SUPPORT:
+- In-Memory: Fast, free, works offline (current default)
+- Azure AI Search: Scalable, production-ready, advanced features
+
+Toggle via AZURE_SEARCH_ENABLED in .env
+"""
 
 import numpy as np
 from typing import List, Dict, Any, Optional
@@ -199,3 +207,114 @@ class VectorStore:
 
 # Global vector store instance
 vector_store = VectorStore()
+
+
+class UnifiedVectorSearch:
+    """
+    Unified interface for vector search across multiple backends
+    
+    🎓 LEARNING - Strategy Pattern:
+    - Single interface, multiple implementations
+    - Switch backends via feature flag (no code changes)
+    - Useful for A/B testing, gradual migration
+    
+    Usage:
+        search = UnifiedVectorSearch()
+        results = await search.search("authentication requirements")
+    
+    Backend selection:
+        - AZURE_SEARCH_ENABLED=False → In-memory (default, always works)
+        - AZURE_SEARCH_ENABLED=True → Azure AI Search (requires setup)
+    """
+    
+    def __init__(self):
+        self.backend = settings.AZURE_SEARCH_ENABLED
+        
+        if self.backend:
+            # Use Azure AI Search
+            from .azure_search import azure_search_store
+            self.store = azure_search_store
+            print("🔵 Vector search backend: Azure AI Search")
+        else:
+            # Use in-memory vector store (default)
+            self.store = vector_store
+            print("🟢 Vector search backend: In-Memory (current)")
+    
+    async def search(
+        self,
+        query: str,
+        top_k: int = 5,
+        framework_filter: Optional[str] = None,
+        category_filter: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Search across compliance documents
+        
+        Args:
+            query: User's question or search query
+            top_k: Number of results to return
+            framework_filter: Optional filter (e.g., "ISO 27001", "NIST CSF")
+            category_filter: Optional filter (e.g., "access_control")
+        
+        Returns:
+            List of relevant documents with scores
+        """
+        if self.backend:
+            # Azure AI Search supports filtering
+            return await self.store.search(
+                query=query,
+                top_k=top_k,
+                framework_filter=framework_filter,
+                category_filter=category_filter,
+                hybrid=True  # Use hybrid search
+            )
+        else:
+            # In-memory search (basic filtering in post-processing)
+            results = await self.store.search(query=query, top_k=top_k)
+            
+            # Apply filters manually
+            if framework_filter:
+                results = [r for r in results if r.get("framework") == framework_filter]
+            if category_filter:
+                results = [r for r in results if r.get("category") == category_filter]
+            
+            return results[:top_k]
+    
+    async def initialize(self):
+        """
+        Initialize the backend (create indexes, load data, etc.)
+        Call this once during app startup
+        """
+        if self.backend:
+            # Azure AI Search: Create index and upload documents
+            await self.store.create_index()
+            
+            # Get compliance documents from in-memory store
+            compliance_docs = vector_store.documents
+            if compliance_docs:
+                await self.store.upload_documents(compliance_docs)
+                print(f"✓ Uploaded {len(compliance_docs)} documents to Azure AI Search")
+        else:
+            # In-memory: Pre-generate embeddings
+            await self.store.index_documents()
+            print(f"✓ Indexed {len(self.store.documents)} documents in memory")
+    
+    def get_backend_info(self) -> Dict[str, Any]:
+        """Get information about current backend"""
+        if self.backend:
+            return {
+                "backend": "Azure AI Search",
+                "endpoint": settings.AZURE_SEARCH_ENDPOINT,
+                "index": settings.AZURE_SEARCH_INDEX_NAME,
+                "features": ["hybrid_search", "metadata_filtering", "scalable"]
+            }
+        else:
+            return {
+                "backend": "In-Memory",
+                "document_count": len(vector_store.documents),
+                "features": ["fast", "offline", "free"]
+            }
+
+
+# Global unified search interface
+unified_search = UnifiedVectorSearch()
