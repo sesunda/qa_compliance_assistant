@@ -264,17 +264,17 @@ class AgenticAssistant:
                 "type": "function",
                 "function": {
                     "name": "suggest_related_controls",
-                    "description": "Suggest other controls that uploaded evidence might apply to using Graph RAG. Identifies related controls in the same domain or with similar requirements. Use to help analyst reuse evidence across multiple controls.",
+                    "description": "ONLY use AFTER evidence has been uploaded. Suggest other controls that the uploaded evidence might also satisfy. This is for evidence reuse workflow, NOT for general questions about controls. If user asks about control requirements or policies without uploading evidence first, use search_documents instead. Requires valid evidence_id from a recent upload.",
                     "parameters": {
                         "type": "object",
                         "properties": {
                             "evidence_id": {
                                 "type": "integer",
-                                "description": "Evidence ID to analyze (required)"
+                                "description": "Evidence ID to analyze (required) - must be from a recent upload"
                             },
                             "control_id": {
                                 "type": "integer",
-                                "description": "Primary control ID (required)"
+                                "description": "Primary control ID (required) - the control this evidence was uploaded for"
                             },
                             "max_suggestions": {
                                 "type": "integer",
@@ -669,13 +669,13 @@ class AgenticAssistant:
                 "type": "function",
                 "function": {
                     "name": "search_documents",
-                    "description": "Search uploaded compliance documents using semantic vector search. Returns relevant document excerpts with similarity scores and source citations. Use when user asks questions about uploaded documents, policies, audit reports, or evidence content.",
+                    "description": "Search compliance knowledge base for control requirements, policies, best practices, and standards. Use this tool when user asks: 'What are the requirements for Control X?', 'Tell me about password policies', 'What does Control Y require?', 'Show me MFA requirements', etc. This searches the compliance document library, NOT uploaded evidence. Returns relevant excerpts with source citations.",
                     "parameters": {
                         "type": "object",
                         "properties": {
                             "query": {
                                 "type": "string",
-                                "description": "Natural language search query"
+                                "description": "Natural language search query about control requirements or policies"
                             },
                             "control_id": {
                                 "type": "integer",
