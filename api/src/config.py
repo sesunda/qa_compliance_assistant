@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     OLLAMA_MODEL: str = "llama2"
 
     # Azure AI Search settings
-    AZURE_SEARCH_ENABLED: bool = False  # Feature flag - set to True to use Azure AI Search
+    AZURE_SEARCH_ENABLED: bool = True  # Feature flag - set to True to use Azure AI Search
     AZURE_SEARCH_ENDPOINT: str = "https://qca-search-dev.search.windows.net"
     AZURE_SEARCH_API_KEY: str = ""
     AZURE_SEARCH_INDEX_NAME: str = "compliance-knowledge"
