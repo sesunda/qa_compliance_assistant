@@ -168,6 +168,9 @@ class LLMService:
         - Using text-embedding-3-small model via GitHub Models API
         - Falls back to sentence-transformers ONLY if no API available
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         # Try OpenAI/GitHub Models first (1536 dims) - REQUIRED for Azure Search
         if settings.LLM_PROVIDER in ["openai", "github"] or settings.GITHUB_TOKEN:
             try:
@@ -175,26 +178,33 @@ class LLMService:
                 
                 # Use GitHub Models endpoint if GitHub token available
                 if settings.GITHUB_TOKEN:
+                    logger.info(f"🔵 Using OpenAI embeddings via GitHub Models (1536 dims)")
                     client = OpenAI(
                         base_url="https://models.inference.ai.azure.com",
                         api_key=settings.GITHUB_TOKEN
                     )
                 else:
+                    logger.info(f"🔵 Using OpenAI embeddings directly (1536 dims)")
                     client = OpenAI(api_key=settings.OPENAI_API_KEY)
                 
                 response = client.embeddings.create(
                     model="text-embedding-3-small",  # 1536 dimensions
                     input=text
                 )
-                return response.data[0].embedding
+                embedding = response.data[0].embedding
+                logger.info(f"✅ OpenAI embedding generated: {len(embedding)} dimensions")
+                return embedding
             except Exception as e:
-                print(f"⚠️ OpenAI embedding failed: {e}, falling back to sentence-transformers")
+                logger.error(f"❌ OpenAI embedding failed: {e}", exc_info=True)
+                logger.warning(f"⚠️ Falling back to sentence-transformers (384 dims) - will cause Azure Search errors!")
         
         # Fallback: sentence-transformers (384 dims) - INCOMPATIBLE with Azure Search!
         # This will cause vector dimension mismatch errors
-        print("⚠️ WARNING: Using 384-dim embeddings, incompatible with Azure Search (1536 dims)")
+        logger.warning("⚠️ WARNING: Using 384-dim embeddings, INCOMPATIBLE with Azure Search (1536 dims expected)")
         from .enhanced_embeddings import enhanced_embedding_service
-        return enhanced_embedding_service.get_enhanced_embedding(text, context_type="im8_compliance")
+        embedding = enhanced_embedding_service.get_enhanced_embedding(text, context_type="im8_compliance")
+        logger.warning(f"⚠️ Fallback embedding generated: {len(embedding)} dimensions")
+        return embedding
     
     async def _groq_completion(self, messages: List[Dict[str, str]], max_tokens: int) -> str:
         """Generate completion using Groq"""
