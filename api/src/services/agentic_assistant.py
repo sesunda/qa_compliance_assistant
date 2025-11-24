@@ -1362,37 +1362,44 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
             Search results with context and sources
         """
         try:
-            from ..rag.vector_search import vector_store
+            from ..rag.vector_search import unified_search
             
-            logger.info(f"Searching documents: {query}")
+            logger.info(f"Searching documents: {query} (backend: {'Azure AI Search' if unified_search.backend else 'In-Memory'})")
             
-            # Perform vector search
-            search_results = await vector_store.search(
+            # Perform vector search using unified interface (routes to Azure Search when enabled)
+            search_results = await unified_search.search(
                 query=query,
-                user_id=current_user["id"],
-                agency_id=current_user.get("agency_id"),
-                filters={"control_id": control_id} if control_id else {},
-                top_k=top_k
+                top_k=top_k,
+                framework_filter=None,  # Can add filtering later
+                category_filter=None
             )
             
-            # Format results
+            # Format results (works with both Azure Search and in-memory)
             context_chunks = []
             sources = []
             
             for result in search_results:
-                context_chunks.append(result.get("content", ""))
-                sources.append({
-                    "document_name": result.get("metadata", {}).get("filename", "Unknown"),
-                    "page": result.get("metadata", {}).get("page_number"),
-                    "control_id": result.get("metadata", {}).get("control_id"),
-                    "score": result.get("score", 0.0)
-                })
+                # Extract content
+                content = result.get("content", "")
+                context_chunks.append(content)
+                
+                # Build source metadata (compatible with both backends)
+                source = {
+                    "framework": result.get("framework", "Unknown"),
+                    "category": result.get("category", "General"),
+                    "title": result.get("title", "Untitled"),
+                    "control_id": result.get("id", "N/A"),
+                    "score": result.get("similarity_score", 0.0),
+                    "search_type": result.get("search_type", "unknown")
+                }
+                sources.append(source)
             
             return {
                 "success": True,
                 "context": "\n\n---\n\n".join(context_chunks),
                 "sources": sources,
-                "total_results": len(search_results)
+                "total_results": len(search_results),
+                "backend": "Azure AI Search" if unified_search.backend else "In-Memory"
             }
             
         except Exception as e:
