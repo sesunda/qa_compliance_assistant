@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-3.5-turbo"
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-ada-002"
     
+    # GitHub Models settings (free via GitHub token)
+    GITHUB_TOKEN: str = ""  # GitHub personal access token for models.inference.ai.azure.com
+    GITHUB_MODEL: str = "gpt-4o-mini"  # Available: gpt-4o, gpt-4o-mini, Llama-3.1-70B-Instruct
+    
     # Groq Settings (Free tier: 30 req/min, 6000 req/day)
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "llama-3.1-8b-instant"  # Current supported model
