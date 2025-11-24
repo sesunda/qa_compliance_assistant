@@ -1383,13 +1383,23 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                 content = result.get("content", "")
                 context_chunks.append(content)
                 
-                # Build source metadata (compatible with both backends)
+                # Build source metadata (compatible with frontend expectations)
+                # Frontend expects: document_name, page, score
+                framework = result.get("framework", "Unknown")
+                control_id = result.get("id", "N/A")
+                title = result.get("title", "Untitled")
+                
+                # Format document_name: "Framework - Control ID: Title"
+                document_name = f"{framework} - {control_id}: {title}"
+                
                 source = {
-                    "framework": result.get("framework", "Unknown"),
-                    "category": result.get("category", "General"),
-                    "title": result.get("title", "Untitled"),
-                    "control_id": result.get("id", "N/A"),
+                    "document_name": document_name,
+                    "page": None,  # Documents don't have page numbers
                     "score": result.get("similarity_score", 0.0),
+                    # Keep extra metadata for debugging
+                    "framework": framework,
+                    "category": result.get("category", "General"),
+                    "control_id": control_id,
                     "search_type": result.get("search_type", "unknown")
                 }
                 sources.append(source)
