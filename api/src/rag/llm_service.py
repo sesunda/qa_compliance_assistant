@@ -160,11 +160,40 @@ class LLMService:
             return self._mock_completion(messages)
     
     async def get_embedding(self, text: str) -> List[float]:
-        """Get text embedding using enhanced embedding service with relationship context"""
-        # Import here to avoid circular imports
-        from .enhanced_embeddings import enhanced_embedding_service
+        """
+        Get text embedding using OpenAI embeddings (1536 dims)
         
-        # Use enhanced embeddings with IM8/Singapore context
+        🎓 CRITICAL: Must match Azure Search index dimension (1536)
+        - Azure Search index expects 1536-dimensional vectors
+        - Using text-embedding-3-small model via GitHub Models API
+        - Falls back to sentence-transformers ONLY if no API available
+        """
+        # Try OpenAI/GitHub Models first (1536 dims) - REQUIRED for Azure Search
+        if settings.LLM_PROVIDER in ["openai", "github"] or settings.GITHUB_TOKEN:
+            try:
+                from openai import OpenAI
+                
+                # Use GitHub Models endpoint if GitHub token available
+                if settings.GITHUB_TOKEN:
+                    client = OpenAI(
+                        base_url="https://models.inference.ai.azure.com",
+                        api_key=settings.GITHUB_TOKEN
+                    )
+                else:
+                    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+                
+                response = client.embeddings.create(
+                    model="text-embedding-3-small",  # 1536 dimensions
+                    input=text
+                )
+                return response.data[0].embedding
+            except Exception as e:
+                print(f"⚠️ OpenAI embedding failed: {e}, falling back to sentence-transformers")
+        
+        # Fallback: sentence-transformers (384 dims) - INCOMPATIBLE with Azure Search!
+        # This will cause vector dimension mismatch errors
+        print("⚠️ WARNING: Using 384-dim embeddings, incompatible with Azure Search (1536 dims)")
+        from .enhanced_embeddings import enhanced_embedding_service
         return enhanced_embedding_service.get_enhanced_embedding(text, context_type="im8_compliance")
     
     async def _groq_completion(self, messages: List[Dict[str, str]], max_tokens: int) -> str:
