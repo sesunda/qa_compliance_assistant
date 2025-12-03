@@ -12,10 +12,8 @@ passlib[bcrypt]==1.7.4
 python-dateutil==2.8.2
 pytz==2024.1
 email-validator==2.1.0
-openai>=1.99.0
-groq==0.11.0
-anthropic==0.37.0
-# sentence-transformers and torch removed - using OpenAI/GitHub embeddings API instead
+# openai version controlled by agent-framework-azure-ai
+# groq and anthropic removed - using GitHub Models API exclusively
 numpy==1.24.3
 scikit-learn==1.3.0
 networkx==3.2.1
@@ -28,6 +26,11 @@ azure-identity==1.19.0
 azure-search-documents==11.5.1
 openpyxl==3.1.5
 sse-starlette==1.6.5
+
+# Pin transitive dependencies to prevent resolution-too-deep
+tqdm==4.66.1
+packaging==24.0
+fsspec==2024.10.0
 
 # Microsoft Agent Framework (--pre flag required during preview)
 agent-framework-azure-ai==1.0.0b251120
