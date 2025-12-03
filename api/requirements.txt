@@ -12,7 +12,7 @@ passlib[bcrypt]==1.7.4
 python-dateutil==2.8.2
 pytz==2024.1
 email-validator==2.1.0
-openai==1.54.0
+openai>=1.99.0
 groq==0.11.0
 anthropic==0.37.0
 # sentence-transformers and torch removed - using OpenAI/GitHub embeddings API instead
