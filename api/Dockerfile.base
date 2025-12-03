@@ -4,9 +4,13 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies and build tools for scipy/numpy
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    build-essential \
+    gcc \
+    g++ \
+    gfortran \
     && rm -rf /var/lib/apt/lists/* \
     && pip install --no-cache-dir --upgrade pip
 
