@@ -70,6 +70,13 @@ class Settings(BaseSettings):
     AZURE_STORAGE_CONTAINER_EVIDENCE: str = "evidence"
     AZURE_STORAGE_CONTAINER_REPORTS: str = "reports"
     
+    # Agent Framework feature flag
+    USE_AGENT_FRAMEWORK: bool = False  # Toggle to enable Agent Framework (gradual rollout)
+    
+    # LangSmith tracing (optional observability)
+    LANGCHAIN_TRACING_V2: bool = False
+    LANGCHAIN_API_KEY: str = ""
+    
     class Config:
         env_file = ".env"
 

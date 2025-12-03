@@ -12,6 +12,7 @@ from api.src.rag.im8_agent import im8_agent
 from api.src.services.ai_task_orchestrator import ai_task_orchestrator
 from api.src.services.conversation_manager import ConversationManager
 from api.src.services.agentic_assistant import AgenticAssistant
+from api.src.config import settings
 import os
 import tempfile
 import logging
@@ -20,8 +21,19 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/rag", tags=["RAG System"])
 
-# Initialize agentic assistant
+# Initialize assistants (both for feature flag support)
 agentic_assistant = AgenticAssistant()
+
+# Agent Framework assistant (lazy load based on feature flag)
+agent_framework_assistant = None
+if settings.USE_AGENT_FRAMEWORK:
+    try:
+        from api.src.services.agent_framework_assistant import agent_framework_assistant as af_assistant
+        agent_framework_assistant = af_assistant
+        logger.info("✅ Agent Framework enabled and initialized")
+    except Exception as e:
+        logger.warning(f"⚠️ Agent Framework initialization failed: {e}")
+        logger.info("Falling back to legacy agentic assistant")
 
 
 class RAGQuery(BaseModel):
@@ -79,18 +91,30 @@ async def ask_question(
             content=request.query
         )
         
-        # Use Groq agentic assistant if enabled
+        # Use agentic assistant if enabled (Agent Framework or legacy)
         if request.use_agent:
-            logger.info(f"Using agentic assistant for session {session.session_id}")
-            
-            result = await agentic_assistant.chat(
-                message=request.query,
-                conversation_manager=conv_manager,
-                session_id=session.session_id,
-                db=db,
-                current_user=current_user,
-                file_path=None  # TODO: Support file uploads
-            )
+            # Choose implementation based on feature flag
+            if settings.USE_AGENT_FRAMEWORK and agent_framework_assistant:
+                logger.info(f"Using Agent Framework for session {session.session_id}")
+                
+                result = await agent_framework_assistant.chat(
+                    message=request.query,
+                    session_id=session.session_id,
+                    db=db,
+                    current_user=current_user,
+                    file_path=None  # TODO: Support file uploads
+                )
+            else:
+                logger.info(f"Using legacy agentic assistant for session {session.session_id}")
+                
+                result = await agentic_assistant.chat(
+                    message=request.query,
+                    conversation_manager=conv_manager,
+                    session_id=session.session_id,
+                    db=db,
+                    current_user=current_user,
+                    file_path=None  # TODO: Support file uploads
+                )
             
             response = {
                 "query": request.query,

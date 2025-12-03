@@ -30,3 +30,6 @@ azure-identity>=1.15.0
 azure-search-documents>=11.4.0  # Azure AI Search for vector search
 openpyxl>=3.1.2  # IM8 Excel document processing
 sse-starlette==1.6.5  # Server-Sent Events for real-time task updates
+
+# Microsoft Agent Framework (--pre flag required during preview)
+agent-framework-azure-ai==0.1.0  # Core + Azure AI integration, workflows, orchestration
