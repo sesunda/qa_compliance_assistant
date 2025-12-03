@@ -10,7 +10,6 @@ Toggle via AZURE_SEARCH_ENABLED in .env
 
 import numpy as np
 from typing import List, Dict, Any, Optional
-from sklearn.metrics.pairwise import cosine_similarity
 import json
 import os
 from api.src.config import settings
@@ -179,11 +178,14 @@ class VectorStore:
         # Get query embedding
         query_embedding = await self.get_embedding(query)
         
-        # Calculate similarities
-        similarities = cosine_similarity(
-            [query_embedding], 
-            self.document_embeddings
-        )[0]
+        # Calculate cosine similarities using numpy
+        query_vec = np.array(query_embedding).reshape(1, -1)
+        doc_vecs = np.array(self.document_embeddings)
+        
+        # Cosine similarity = dot product of normalized vectors
+        query_norm = query_vec / (np.linalg.norm(query_vec) + 1e-10)
+        doc_norms = doc_vecs / (np.linalg.norm(doc_vecs, axis=1, keepdims=True) + 1e-10)
+        similarities = np.dot(doc_norms, query_norm.T).flatten()
         
         # Get top results
         top_indices = np.argsort(similarities)[::-1][:top_k]
