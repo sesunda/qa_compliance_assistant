@@ -196,15 +196,10 @@ class LLMService:
                 return embedding
             except Exception as e:
                 logger.error(f"❌ OpenAI embedding failed: {e}", exc_info=True)
-                logger.warning(f"⚠️ Falling back to sentence-transformers (384 dims) - will cause Azure Search errors!")
+                raise ValueError(f"Embedding generation failed. Ensure GITHUB_TOKEN or OPENAI_API_KEY is set. Error: {e}")
         
-        # Fallback: sentence-transformers (384 dims) - INCOMPATIBLE with Azure Search!
-        # This will cause vector dimension mismatch errors
-        logger.warning("⚠️ WARNING: Using 384-dim embeddings, INCOMPATIBLE with Azure Search (1536 dims expected)")
-        from .enhanced_embeddings import enhanced_embedding_service
-        embedding = enhanced_embedding_service.get_enhanced_embedding(text, context_type="im8_compliance")
-        logger.warning(f"⚠️ Fallback embedding generated: {len(embedding)} dimensions")
-        return embedding
+        # No API available - raise error instead of using incompatible fallback
+        raise ValueError("No embedding API available. Set GITHUB_TOKEN or OPENAI_API_KEY for embeddings.")
     
     async def _groq_completion(self, messages: List[Dict[str, str]], max_tokens: int) -> str:
         """Generate completion using Groq"""

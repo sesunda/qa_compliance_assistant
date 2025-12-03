@@ -15,8 +15,9 @@ email-validator==2.1.0
 openai>=1.50.0
 groq>=0.4.0
 anthropic>=0.5.0
-sentence-transformers>=2.2.2
-torch>=1.9.0
+# sentence-transformers and torch removed - using OpenAI/GitHub embeddings API instead
+# sentence-transformers>=2.2.2  # Only needed as fallback, ~2GB
+# torch>=1.9.0  # Only needed for sentence-transformers, ~3GB
 numpy>=1.21.0
 numpy==1.24.3
 scikit-learn==1.3.0
