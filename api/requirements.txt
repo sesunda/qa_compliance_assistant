@@ -32,4 +32,4 @@ openpyxl>=3.1.2  # IM8 Excel document processing
 sse-starlette==1.6.5  # Server-Sent Events for real-time task updates
 
 # Microsoft Agent Framework (--pre flag required during preview)
-agent-framework-azure-ai==0.1.0  # Core + Azure AI integration, workflows, orchestration
+agent-framework-azure-ai==1.0.0b251120  # Core + Azure AI integration, workflows, orchestration
