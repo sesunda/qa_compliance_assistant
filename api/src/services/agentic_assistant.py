@@ -26,6 +26,7 @@ class AgenticAssistant:
     TOOL_COMPLEXITY = {
         "upload_evidence": {"temperature": 0.2, "max_tokens": 400},
         "search_documents": {"temperature": 0.3, "max_tokens": 800},  # RAG needs more space
+        "search_evidence_content": {"temperature": 0.3, "max_tokens": 800},  # Evidence content search
         "analyze_evidence": {"temperature": 0.2, "max_tokens": 600},
         "analyze_evidence_rag": {"temperature": 0.2, "max_tokens": 600},
         "analyze_evidence_for_control": {"temperature": 0.3, "max_tokens": 1000},  # AI insights need more space
@@ -690,6 +691,36 @@ class AgenticAssistant:
                         "required": ["query"]
                     }
                 }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "search_evidence_content",
+                    "description": "Search INSIDE uploaded evidence documents (PDFs, Word docs, etc.) for specific content. Use this tool when user asks: 'Find evidence mentioning password policy', 'Which documents talk about MFA?', 'Search uploaded files for audit logs', 'What evidence discusses encryption?'. This searches the CONTENT of uploaded files, not just metadata. Different from search_documents which searches the compliance knowledge base.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "Natural language search query to find inside evidence documents"
+                            },
+                            "control_id": {
+                                "type": "integer",
+                                "description": "Filter by specific control ID (optional)"
+                            },
+                            "project_id": {
+                                "type": "integer",
+                                "description": "Filter by specific project ID (optional)"
+                            },
+                            "top_k": {
+                                "type": "integer",
+                                "description": "Number of results to return",
+                                "default": 5
+                            }
+                        },
+                        "required": ["query"]
+                    }
+                }
             }
         ]
         
@@ -752,7 +783,7 @@ CORE RULES:
             'create_assessment',  # Create comprehensive security/compliance assessments
             'create_finding'  # Create security findings and compliance gaps
         ]
-        COMMON_TOOLS = ['mcp_fetch_evidence', 'mcp_analyze_compliance', 'generate_report', 'search_documents', 'list_projects']
+        COMMON_TOOLS = ['mcp_fetch_evidence', 'mcp_analyze_compliance', 'generate_report', 'search_documents', 'search_evidence_content', 'list_projects']
         
         user_role_lower = user_role.lower()
         
@@ -1102,6 +1133,16 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                             db=db,
                             current_user=current_user
                         )
+                    elif function_name == "search_evidence_content":
+                        # Search inside uploaded evidence documents
+                        tool_result = await self.handle_search_evidence_content(
+                            query=function_args.get("query"),
+                            control_id=function_args.get("control_id"),
+                            project_id=function_args.get("project_id"),
+                            top_k=function_args.get("top_k", 5),
+                            db=db,
+                            current_user=current_user
+                        )
                     elif function_name == "list_projects":
                         # List projects
                         tool_result = await self.handle_list_projects(
@@ -1414,6 +1455,109 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
             
         except Exception as e:
             logger.error(f"Document search failed: {e}", exc_info=True)
+            return {
+                "success": False,
+                "error": str(e),
+                "context": "",
+                "sources": []
+            }
+    
+    async def handle_search_evidence_content(
+        self,
+        query: str,
+        control_id: Optional[int] = None,
+        project_id: Optional[int] = None,
+        top_k: int = 5,
+        db: Session = None,
+        current_user: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Search inside uploaded evidence documents for specific content.
+        Uses the evidence-content Azure Search index.
+        
+        Args:
+            query: Search query to find inside evidence documents
+            control_id: Filter by control ID (optional)
+            project_id: Filter by project ID (optional)
+            top_k: Number of results
+            db: Database session
+            current_user: Current user context
+            
+        Returns:
+            Search results with matching evidence content and sources
+        """
+        try:
+            from ..rag.azure_search import AzureSearchVectorStore
+            from ..rag.llm_service import LLMService
+            from ..config import settings
+            
+            logger.info(f"Searching evidence content: '{query}' (control_id={control_id}, project_id={project_id})")
+            
+            # Check if Azure Search is enabled
+            if not settings.AZURE_SEARCH_ENABLED:
+                return {
+                    "success": False,
+                    "error": "Evidence content search requires Azure AI Search to be enabled",
+                    "context": "",
+                    "sources": []
+                }
+            
+            # Initialize Azure Search for evidence-content index
+            evidence_search = AzureSearchVectorStore(index_name="evidence-content")
+            llm_service = LLMService()
+            
+            # Generate embedding for the query
+            query_embedding = await llm_service.get_embedding(query)
+            
+            # Build filter for Azure Search
+            filters = []
+            if current_user and current_user.get("agency_id"):
+                filters.append(f"agency_id eq '{current_user['agency_id']}'")
+            if control_id:
+                filters.append(f"control_id eq '{control_id}'")
+            if project_id:
+                filters.append(f"project_id eq '{project_id}'")
+            
+            filter_str = " and ".join(filters) if filters else None
+            
+            # Perform hybrid search on evidence content
+            search_results = await evidence_search.search(
+                query_text=query,
+                query_embedding=query_embedding,
+                top_k=top_k,
+                filter_expression=filter_str
+            )
+            
+            # Format results
+            context_chunks = []
+            sources = []
+            
+            for result in search_results:
+                content = result.get("content", "")
+                context_chunks.append(content)
+                
+                # Build source metadata
+                source = {
+                    "document_name": result.get("file_name", "Unknown"),
+                    "evidence_id": result.get("evidence_id"),
+                    "evidence_title": result.get("title", "Untitled"),
+                    "control_id": result.get("control_id"),
+                    "chunk_index": result.get("chunk_index", 0),
+                    "total_chunks": result.get("total_chunks", 1),
+                    "score": result.get("@search.score", 0.0)
+                }
+                sources.append(source)
+            
+            return {
+                "success": True,
+                "context": "\n\n---\n\n".join(context_chunks),
+                "sources": sources,
+                "total_results": len(search_results),
+                "message": f"Found {len(search_results)} matching excerpts from uploaded evidence"
+            }
+            
+        except Exception as e:
+            logger.error(f"Evidence content search failed: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e),
@@ -1988,6 +2132,29 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                 db.refresh(evidence)
                 
                 logger.info(f"✅ Synchronous upload completed: Evidence {evidence.id} created for control {control_id}")
+                
+                # Index evidence content for semantic search (async in background)
+                try:
+                    from ..rag.evidence_indexer import EvidenceIndexer
+                    from ..config import settings
+                    
+                    if settings.AZURE_SEARCH_ENABLED:
+                        indexer = EvidenceIndexer()
+                        # Run indexing in background (don't block response)
+                        import asyncio
+                        asyncio.create_task(indexer.index_evidence(
+                            evidence_id=evidence.id,
+                            file_path=file_path,
+                            control_id=control.id,
+                            project_id=control.project_id,
+                            agency_id=agency_id or control.agency_id,
+                            title=title,
+                            file_name=file_path.split('/')[-1] if '/' in file_path else file_path.split('\\')[-1]
+                        ))
+                        logger.info(f"📚 Queued evidence {evidence.id} for content indexing")
+                except Exception as indexing_error:
+                    # Don't fail the upload if indexing fails
+                    logger.warning(f"Evidence indexing queued but may fail: {indexing_error}")
                 
                 return {
                     "status": "success",

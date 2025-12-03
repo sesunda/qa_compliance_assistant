@@ -413,6 +413,107 @@ class AITaskOrchestrator:
         
         else:
             return f"✅ Task {task_id} created and queued for execution."
+    
+    async def execute_tool(
+        self,
+        tool_name: str,
+        arguments: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Execute a tool directly (synchronous path for Agent Framework).
+        Routes to appropriate handler based on tool name.
+        
+        Args:
+            tool_name: Name of the tool to execute
+            arguments: Tool arguments
+            
+        Returns:
+            Tool execution result
+        """
+        logger.info(f"Executing tool via orchestrator: {tool_name}")
+        
+        try:
+            # Import handlers as needed
+            if tool_name == "search_documents":
+                from ..rag.vector_search import unified_search
+                
+                search_results = await unified_search.search(
+                    query=arguments.get("query"),
+                    top_k=arguments.get("top_k", 5),
+                    framework_filter=None,
+                    category_filter=None
+                )
+                
+                return {
+                    "success": True,
+                    "results": search_results,
+                    "total_results": len(search_results)
+                }
+            
+            elif tool_name == "search_evidence_content":
+                from ..rag.azure_search import AzureSearchVectorStore
+                from ..rag.llm_service import LLMService
+                from ..config import settings
+                
+                if not settings.AZURE_SEARCH_ENABLED:
+                    return {
+                        "success": False,
+                        "error": "Evidence content search requires Azure AI Search"
+                    }
+                
+                evidence_search = AzureSearchVectorStore(index_name="evidence-content")
+                llm_service = LLMService()
+                
+                query_embedding = await llm_service.get_embedding(arguments.get("query"))
+                
+                filters = []
+                if arguments.get("control_id"):
+                    filters.append(f"control_id eq '{arguments['control_id']}'")
+                if arguments.get("project_id"):
+                    filters.append(f"project_id eq '{arguments['project_id']}'")
+                
+                filter_str = " and ".join(filters) if filters else None
+                
+                search_results = await evidence_search.search(
+                    query_text=arguments.get("query"),
+                    query_embedding=query_embedding,
+                    top_k=arguments.get("top_k", 5),
+                    filter_expression=filter_str
+                )
+                
+                return {
+                    "success": True,
+                    "results": search_results,
+                    "total_results": len(search_results)
+                }
+            
+            elif tool_name == "mcp_analyze_compliance":
+                from ..mcp.client import mcp_client
+                
+                result = await mcp_client.call_tool("analyze_compliance", arguments)
+                return {"success": True, "result": result}
+            
+            elif tool_name == "list_projects":
+                # This needs a db session - return placeholder for now
+                return {
+                    "success": False,
+                    "error": "list_projects requires database session - use direct handler"
+                }
+            
+            else:
+                # For other tools, log and return error
+                logger.warning(f"Tool {tool_name} not implemented in orchestrator execute_tool")
+                return {
+                    "success": False,
+                    "error": f"Tool {tool_name} not yet implemented in orchestrator"
+                }
+                
+        except Exception as e:
+            logger.error(f"Tool execution failed: {tool_name} - {e}", exc_info=True)
+            return {
+                "success": False,
+                "error": str(e)
+            }
 
 
 # Singleton instance

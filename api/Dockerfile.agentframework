@@ -1,0 +1,22 @@
+# Build from last successful backend image and add Agent Framework
+FROM acrqcadev2f37g0.azurecr.io/qca-backend:v0.139-fix-source-metadata
+
+WORKDIR /app
+
+# Install Microsoft Agent Framework only (fast - just one package)
+RUN pip install --no-cache-dir --pre agent-framework-azure-ai==1.0.0b251120
+
+# Copy updated application code (includes agent_framework_assistant.py)
+COPY api/ /app/api/
+
+# Set PYTHONPATH
+ENV PYTHONPATH=/app
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+CMD ["uvicorn", "api.src.main:app", "--host", "0.0.0.0", "--port", "8000"]

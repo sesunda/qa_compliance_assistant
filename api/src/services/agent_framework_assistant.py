@@ -486,7 +486,41 @@ class AgentFrameworkAssistant:
         
         tools.append(search_documents)
         
-        # Tool 16: Resolve Control to Evidence
+        # Tool 16: Search Evidence Content
+        @Tool.from_function
+        async def search_evidence_content(
+            query: str,
+            control_id: Optional[int] = None,
+            project_id: Optional[int] = None,
+            top_k: int = 5
+        ) -> Dict[str, Any]:
+            """
+            Search INSIDE uploaded evidence documents (PDFs, Word docs, etc.) for specific content.
+            Use when user wants to find evidence mentioning specific topics.
+            Different from search_documents which searches the compliance knowledge base.
+            
+            Args:
+                query: Natural language search query to find inside evidence documents
+                control_id: Optional filter by specific control ID
+                project_id: Optional filter by specific project ID
+                top_k: Number of results to return
+            
+            Returns:
+                Search results with matching evidence content and source citations
+            """
+            return await self._execute_tool_via_orchestrator(
+                "search_evidence_content",
+                {
+                    "query": query,
+                    "control_id": control_id,
+                    "project_id": project_id,
+                    "top_k": top_k
+                }
+            )
+        
+        tools.append(search_evidence_content)
+        
+        # Tool 17: Resolve Control to Evidence
         @Tool.from_function
         async def resolve_control_to_evidence(
             control_id: int
@@ -695,6 +729,7 @@ class AgentFrameworkAssistant:
             'mcp_analyze_compliance',
             'generate_report',
             'search_documents',
+            'search_evidence_content',
             'list_projects',
             'fetch_evidence'
         ]
