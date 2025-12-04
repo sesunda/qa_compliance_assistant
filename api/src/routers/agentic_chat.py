@@ -151,8 +151,9 @@ async def chat(
                     control_id=0  # Temporary, will be updated when evidence is created
                 )
                 
-                # Use the absolute_path (blob URL for Azure, local path for local)
-                file_path = result["absolute_path"]
+                # Use the relative_path for database storage (works for both local and Azure)
+                # This is what the indexer expects when downloading files
+                file_path = result["relative_path"]
                 
                 logger.info(f"Saved uploaded file via {result['storage_backend']} backend: {file_path}")
                 logger.info(f"File size: {result['file_size']} bytes, Checksum: {result['checksum']}")
