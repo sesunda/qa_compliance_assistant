@@ -1,0 +1,20 @@
+# Use the proven working v0.140 image as base
+FROM acrqcadev2f37g0.azurecr.io/qca-backend:v0.140-agent-framework
+
+WORKDIR /app
+
+# Install ONLY the new document processing packages
+RUN pip install --no-cache-dir \
+    PyMuPDF==1.24.10 \
+    python-docx==1.1.2 \
+    tiktoken==0.7.0
+
+# Copy new application code with RAG features
+COPY api/ .
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
+
+# Run the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

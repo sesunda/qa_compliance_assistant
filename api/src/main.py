@@ -11,7 +11,7 @@ import logging
 
 from api.src.config import settings
 from api.src.routers import projects, controls, evidence, reports
-from api.src.routers import control_catalog
+from api.src.routers import control_catalog, rag_router
 from api.src.workers.task_worker import get_worker
 from api.src.workers.task_handlers import TASK_HANDLERS
 
@@ -158,6 +158,7 @@ app.include_router(controls.router)
 app.include_router(evidence.router)
 app.include_router(reports.router)
 app.include_router(control_catalog.router)
+app.include_router(rag_router.router)
 
 # Import and include routers
 from api.src.routers import auth, rag, agent_tasks, agencies, conversations, assessments, findings, analytics, agentic_chat, templates, task_stream
