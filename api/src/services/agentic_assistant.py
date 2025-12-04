@@ -2130,6 +2130,10 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                         "TOTAL_EVIDENCE_COUNT": 1
                     }
                 
+                # Extract original filename from file_path
+                import os
+                original_filename = os.path.basename(file_path)
+                
                 # Create new evidence record
                 evidence = models.Evidence(
                     control_id=control.id,
@@ -2138,6 +2142,7 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                     description=description,
                     evidence_type=evidence_type,
                     file_path=file_path,
+                    original_filename=original_filename,
                     uploaded_by=current_user_id,
                     verification_status="pending"
                 )
