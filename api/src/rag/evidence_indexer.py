@@ -529,37 +529,50 @@ class EvidenceIndexer:
                         logger.warning(f"⚠️ Skipped evidence {evidence.id}: No file_path")
                         continue
                     
-                    # Build file path using evidence storage service
+                    # Download file from storage (works for both local and Azure)
                     from api.src.services.evidence_storage import evidence_storage_service
+                    import tempfile
                     
-                    file_path = evidence_storage_service.resolve_file_path(evidence.file_path)
-                    
-                    # Check if file exists
-                    import os
-                    if not os.path.exists(file_path):
+                    try:
+                        file_content = evidence_storage_service.download_file(evidence.file_path)
+                    except FileNotFoundError as e:
                         failed += 1
-                        errors.append(f"Evidence {evidence.id}: File not found at {file_path}")
+                        errors.append(f"Evidence {evidence.id}: {str(e)}")
                         logger.warning(f"⚠️ Skipped evidence {evidence.id}: File not found")
                         continue
                     
-                    # Index this evidence
-                    evidence_metadata = {
-                        "control_id": evidence.control_id,
-                        "project_id": getattr(evidence, 'project_id', None),
-                        "agency_id": evidence.agency_id,
-                        "title": evidence.title,
-                        "file_name": evidence.original_filename,
-                        "evidence_type": evidence.evidence_type
-                    }
+                    # Write to temporary file for processing
+                    import os
+                    _, file_ext = os.path.splitext(evidence.file_path)
+                    with tempfile.NamedTemporaryFile(mode='wb', suffix=file_ext, delete=False) as temp_file:
+                        temp_file.write(file_content)
+                        temp_file_path = temp_file.name
                     
-                    await self.index_evidence(
-                        evidence_id=evidence.id,
-                        file_path=file_path,
-                        evidence_metadata=evidence_metadata,
-                        db=db
-                    )
-                    indexed += 1
-                    logger.info(f"✅ Indexed evidence {evidence.id}: {evidence.original_filename}")
+                    try:
+                        # Index this evidence
+                        evidence_metadata = {
+                            "control_id": evidence.control_id,
+                            "project_id": getattr(evidence, 'project_id', None),
+                            "agency_id": evidence.agency_id,
+                            "title": evidence.title,
+                            "file_name": evidence.original_filename,
+                            "evidence_type": evidence.evidence_type
+                        }
+                        
+                        await self.index_evidence(
+                            evidence_id=evidence.id,
+                            file_path=temp_file_path,
+                            evidence_metadata=evidence_metadata,
+                            db=db
+                        )
+                        indexed += 1
+                        logger.info(f"✅ Indexed evidence {evidence.id}: {evidence.original_filename}")
+                    finally:
+                        # Clean up temp file
+                        try:
+                            os.unlink(temp_file_path)
+                        except:
+                            pass
                     
                 except FileNotFoundError as e:
                     failed += 1

@@ -94,6 +94,7 @@ async def reindex_evidence_by_id(evidence_id: int, db: Session = Depends(get_db)
         from ..models import Evidence
         from ..services.evidence_storage import evidence_storage_service
         import os
+        import tempfile
         
         logger.info(f"🔄 Reindexing evidence {evidence_id}...")
         
@@ -105,33 +106,46 @@ async def reindex_evidence_by_id(evidence_id: int, db: Session = Depends(get_db)
         if not evidence.file_path:
             raise HTTPException(status_code=400, detail=f"Evidence {evidence_id} has no file_path")
         
-        # Resolve file path
-        file_path = evidence_storage_service.resolve_file_path(evidence.file_path)
+        # Download file content from storage (works for both local and Azure)
+        try:
+            file_content = evidence_storage_service.download_file(evidence.file_path)
+        except FileNotFoundError as e:
+            raise HTTPException(status_code=404, detail=str(e))
         
-        if not os.path.exists(file_path):
-            raise HTTPException(status_code=404, detail=f"File not found at {file_path}")
+        # Write to temporary file for processing
+        _, file_ext = os.path.splitext(evidence.file_path)
+        with tempfile.NamedTemporaryFile(mode='wb', suffix=file_ext, delete=False) as temp_file:
+            temp_file.write(file_content)
+            temp_file_path = temp_file.name
         
-        # Build metadata
-        evidence_metadata = {
-            "control_id": evidence.control_id,
-            "project_id": getattr(evidence, 'project_id', None),
-            "agency_id": evidence.agency_id,
-            "title": evidence.title,
-            "file_name": evidence.original_filename or os.path.basename(file_path),
-            "evidence_type": evidence.evidence_type
-        }
-        
-        # Index it
-        evidence_indexer = EvidenceIndexer()
-        result = await evidence_indexer.index_evidence(
-            evidence_id=evidence.id,
-            file_path=file_path,
-            evidence_metadata=evidence_metadata,
-            db=db
-        )
-        
-        logger.info(f"✅ Reindexed evidence {evidence_id}")
-        return result
+        try:
+            # Build metadata
+            evidence_metadata = {
+                "control_id": evidence.control_id,
+                "project_id": getattr(evidence, 'project_id', None),
+                "agency_id": evidence.agency_id,
+                "title": evidence.title,
+                "file_name": evidence.original_filename or os.path.basename(evidence.file_path),
+                "evidence_type": evidence.evidence_type
+            }
+            
+            # Index it
+            evidence_indexer = EvidenceIndexer()
+            result = await evidence_indexer.index_evidence(
+                evidence_id=evidence.id,
+                file_path=temp_file_path,
+                evidence_metadata=evidence_metadata,
+                db=db
+            )
+            
+            logger.info(f"✅ Reindexed evidence {evidence_id}")
+            return result
+        finally:
+            # Clean up temp file
+            try:
+                os.unlink(temp_file_path)
+            except Exception as e:
+                logger.warning(f"Failed to delete temp file {temp_file_path}: {e}")
         
     except HTTPException:
         raise

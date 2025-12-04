@@ -224,6 +224,29 @@ class EvidenceStorageService:
             raise FileNotFoundError("Evidence file not found")
         return target_path
     
+    def download_file(self, relative_path: str) -> bytes:
+        """Download file content from storage (works for both local and Azure)."""
+        
+        if self.backend == "local":
+            target_path = self.base_path / relative_path
+            if not target_path.exists():
+                raise FileNotFoundError(f"Evidence file not found: {relative_path}")
+            with open(target_path, "rb") as f:
+                return f.read()
+                
+        elif self.backend == "azure":
+            container_name = settings.AZURE_STORAGE_CONTAINER_EVIDENCE
+            container_client = self.blob_service_client.get_container_client(container_name)
+            blob_client = container_client.get_blob_client(relative_path)
+            
+            try:
+                download_stream = blob_client.download_blob()
+                return download_stream.readall()
+            except Exception as e:
+                raise FileNotFoundError(f"Failed to download from Azure: {e}")
+        else:
+            raise NotImplementedError(f"download_file not supported for backend '{self.backend}'")
+    
     def get_file_url(self, relative_path: str) -> str:
         """Get a URL to access the file (useful for Azure)."""
         
