@@ -15,7 +15,10 @@ from api.src.services.evidence_storage import evidence_storage_service
 from api.src.services.excel_processor import get_excel_processor
 from api.src.services.im8_validator import get_im8_validator
 from api.src.utils.datetime_utils import now_sgt
+from api.src.rag.evidence_indexer import evidence_indexer
+import logging
 
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/evidence", tags=["evidence"])
 
@@ -140,6 +143,27 @@ async def upload_evidence(
     db.add(db_evidence)
     db.commit()
     db.refresh(db_evidence)
+    
+    # Index evidence for RAG search (async, non-blocking)
+    try:
+        # Read file content for indexing
+        file_path = evidence_storage_service.resolve_file_path(storage_meta["relative_path"])
+        with open(file_path, "rb") as f:
+            file_content = f.read()
+        
+        # Trigger indexing in background (fire and forget)
+        import asyncio
+        asyncio.create_task(evidence_indexer.index_evidence(
+            evidence_id=db_evidence.id,
+            file_content=file_content,
+            file_name=file.filename,
+            db=db
+        ))
+        logger.info(f"📄 Evidence indexing triggered for evidence {db_evidence.id}: {file.filename}")
+    except Exception as e:
+        # Log but don't fail the upload if indexing fails
+        logger.error(f"⚠️ Failed to trigger evidence indexing for {db_evidence.id}: {e}")
+    
     return db_evidence
 
 
