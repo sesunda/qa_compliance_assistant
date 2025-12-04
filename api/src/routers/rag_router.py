@@ -77,12 +77,67 @@ async def backfill_controls_only(db: Session = Depends(get_db)) -> Dict[str, Any
         control_indexer = ControlIndexer()
         result = await control_indexer.backfill_controls(db)
         
-        logger.info(f"✅ Control backfill complete: {result.get('indexed', 0)}/{result.get('total', 0)} indexed")
+        logger.info(f"✅ Controls backfill complete: {result.get('indexed', 0)}/{result.get('total', 0)} indexed")
         return result
         
     except Exception as e:
-        logger.error(f"❌ Control backfill failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Control backfill failed: {str(e)}")
+        logger.error(f"❌ Controls backfill failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Controls backfill failed: {str(e)}")
+
+
+@router.post("/reindex/evidence/{evidence_id}")
+async def reindex_evidence_by_id(evidence_id: int, db: Session = Depends(get_db)) -> Dict[str, Any]:
+    """
+    Reindex a specific evidence by ID (useful for manual fixes)
+    """
+    try:
+        from ..models import Evidence
+        from ..services.evidence_storage import evidence_storage_service
+        import os
+        
+        logger.info(f"🔄 Reindexing evidence {evidence_id}...")
+        
+        # Get evidence from database
+        evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
+        if not evidence:
+            raise HTTPException(status_code=404, detail=f"Evidence {evidence_id} not found")
+        
+        if not evidence.file_path:
+            raise HTTPException(status_code=400, detail=f"Evidence {evidence_id} has no file_path")
+        
+        # Resolve file path
+        file_path = evidence_storage_service.resolve_file_path(evidence.file_path)
+        
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail=f"File not found at {file_path}")
+        
+        # Build metadata
+        evidence_metadata = {
+            "control_id": evidence.control_id,
+            "project_id": getattr(evidence, 'project_id', None),
+            "agency_id": evidence.agency_id,
+            "title": evidence.title,
+            "file_name": evidence.original_filename or os.path.basename(file_path),
+            "evidence_type": evidence.evidence_type
+        }
+        
+        # Index it
+        evidence_indexer = EvidenceIndexer()
+        result = await evidence_indexer.index_evidence(
+            evidence_id=evidence.id,
+            file_path=file_path,
+            evidence_metadata=evidence_metadata,
+            db=db
+        )
+        
+        logger.info(f"✅ Reindexed evidence {evidence_id}")
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Reindex failed for evidence {evidence_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Reindex failed: {str(e)}")
 
 
 @router.get("/health")
