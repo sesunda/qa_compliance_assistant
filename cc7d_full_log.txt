@@ -1,0 +1,578 @@
+2025/12/03 09:15:13 Downloading source code...
+2025/12/03 09:15:14 Finished downloading source code
+2025/12/03 09:15:14 Using acb_vol_c521c0ba-621a-46a4-8045-43ae1a005b4e as the home volume
+2025/12/03 09:15:14 Setting up Docker configuration...
+2025/12/03 09:15:14 Successfully set up Docker configuration
+2025/12/03 09:15:14 Logging in to registry: acrqcadev2f37g0.azurecr.io
+2025/12/03 09:15:15 Successfully logged into acrqcadev2f37g0.azurecr.io
+2025/12/03 09:15:15 Executing step ID: build. Timeout(sec): 28800, Working directory: '', Network: ''
+2025/12/03 09:15:15 Scanning for dependencies...
+2025/12/03 09:15:15 Successfully scanned dependencies
+2025/12/03 09:15:15 Launching container with name: build
+Sending build context to Docker daemon  1.671MB
+Step 1/6 : FROM python:3.11-slim
+3.11-slim: Pulling from library/python
+0e4bc2bd6656: Pulling fs layer
+22b63e76fde1: Pulling fs layer
+b3dd773c3296: Pulling fs layer
+1771569cc129: Pulling fs layer
+1771569cc129: Waiting
+22b63e76fde1: Verifying Checksum
+22b63e76fde1: Download complete
+b3dd773c3296: Verifying Checksum
+b3dd773c3296: Download complete
+1771569cc129: Download complete
+0e4bc2bd6656: Verifying Checksum
+0e4bc2bd6656: Download complete
+0e4bc2bd6656: Pull complete
+22b63e76fde1: Pull complete
+b3dd773c3296: Pull complete
+1771569cc129: Pull complete
+Digest: sha256:193fdd0bbcb3d2ae612bd6cc3548d2f7c78d65b549fcaa8af75624c47474444d
+Status: Downloaded newer image for python:3.11-slim
+ ---> 040af88f5bce
+Step 2/6 : WORKDIR /app
+ ---> Running in 2571bc11ddb1
+Removing intermediate container 2571bc11ddb1
+ ---> 94701d3e6383
+Step 3/6 : RUN apt-get update && apt-get install -y --no-install-recommends     curl     && rm -rf /var/lib/apt/lists/*     && pip install --no-cache-dir --upgrade pip
+ ---> Running in b8ffd08d18b9
+Hit:1 http://deb.debian.org/debian trixie InRelease
+Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.3 kB]
+Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+Get:4 http://deb.debian.org/debian trixie/main amd64 Packages [9670 kB]
+Get:5 http://deb.debian.org/debian trixie-updates/main amd64 Packages [5412 B]
+Get:6 http://deb.debian.org/debian-security trixie-security/main amd64 Packages [80.7 kB]
+Fetched 9847 kB in 1s (12.1 MB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  libbrotli1 libcom-err2 libcurl4t64 libgnutls30t64 libgssapi-krb5-2 libidn2-0
+  libk5crypto3 libkeyutils1 libkrb5-3 libkrb5support0 libldap2 libnghttp2-14
+  libnghttp3-9 libp11-kit0 libpsl5t64 librtmp1 libsasl2-2 libsasl2-modules-db
+  libssh2-1t64 libtasn1-6 libunistring5
+Suggested packages:
+  gnutls-bin krb5-doc krb5-user
+Recommended packages:
+  bash-completion krb5-locales libldap-common publicsuffix libsasl2-modules
+The following NEW packages will be installed:
+  curl libbrotli1 libcom-err2 libcurl4t64 libgnutls30t64 libgssapi-krb5-2
+  libidn2-0 libk5crypto3 libkeyutils1 libkrb5-3 libkrb5support0 libldap2
+  libnghttp2-14 libnghttp3-9 libp11-kit0 libpsl5t64 librtmp1 libsasl2-2
+  libsasl2-modules-db libssh2-1t64 libtasn1-6 libunistring5
+0 upgraded, 22 newly installed, 0 to remove and 0 not upgraded.
+Need to get 4882 kB of archives.
+After this operation, 14.7 MB of additional disk space will be used.
+Get:1 http://deb.debian.org/debian trixie/main amd64 libbrotli1 amd64 1.1.0-2+b7 [307 kB]
+Get:2 http://deb.debian.org/debian trixie/main amd64 libkrb5support0 amd64 1.21.3-5 [33.0 kB]
+Get:3 http://deb.debian.org/debian trixie/main amd64 libcom-err2 amd64 1.47.2-3+b3 [25.0 kB]
+Get:4 http://deb.debian.org/debian trixie/main amd64 libk5crypto3 amd64 1.21.3-5 [81.5 kB]
+Get:5 http://deb.debian.org/debian trixie/main amd64 libkeyutils1 amd64 1.6.3-6 [9456 B]
+Get:6 http://deb.debian.org/debian trixie/main amd64 libkrb5-3 amd64 1.21.3-5 [326 kB]
+Get:7 http://deb.debian.org/debian trixie/main amd64 libgssapi-krb5-2 amd64 1.21.3-5 [138 kB]
+Get:8 http://deb.debian.org/debian trixie/main amd64 libunistring5 amd64 1.3-2 [477 kB]
+Get:9 http://deb.debian.org/debian trixie/main amd64 libidn2-0 amd64 2.3.8-2 [109 kB]
+Get:10 http://deb.debian.org/debian trixie/main amd64 libsasl2-modules-db amd64 2.1.28+dfsg1-9 [19.8 kB]
+Get:11 http://deb.debian.org/debian trixie/main amd64 libsasl2-2 amd64 2.1.28+dfsg1-9 [57.5 kB]
+Get:12 http://deb.debian.org/debian trixie/main amd64 libldap2 amd64 2.6.10+dfsg-1 [194 kB]
+Get:13 http://deb.debian.org/debian trixie/main amd64 libnghttp2-14 amd64 1.64.0-1.1 [76.0 kB]
+Get:14 http://deb.debian.org/debian trixie/main amd64 libnghttp3-9 amd64 1.8.0-1 [67.7 kB]
+Get:15 http://deb.debian.org/debian trixie/main amd64 libpsl5t64 amd64 0.21.2-1.1+b1 [57.2 kB]
+Get:16 http://deb.debian.org/debian trixie/main amd64 libp11-kit0 amd64 0.25.5-3 [425 kB]
+Get:17 http://deb.debian.org/debian trixie/main amd64 libtasn1-6 amd64 4.20.0-2 [49.9 kB]
+Get:18 http://deb.debian.org/debian trixie/main amd64 libgnutls30t64 amd64 3.8.9-3 [1465 kB]
+Get:19 http://deb.debian.org/debian trixie/main amd64 librtmp1 amd64 2.4+20151223.gitfa8646d.1-2+b5 [58.8 kB]
+Get:20 http://deb.debian.org/debian trixie/main amd64 libssh2-1t64 amd64 1.11.1-1 [245 kB]
+Get:21 http://deb.debian.org/debian trixie/main amd64 libcurl4t64 amd64 8.14.1-2+deb13u2 [391 kB]
+Get:22 http://deb.debian.org/debian trixie/main amd64 curl amd64 8.14.1-2+deb13u2 [270 kB]
+[91mdebconf: unable to initialize frontend: Dialog
+debconf: (TERM is not set, so the dialog frontend is not usable.)
+debconf: falling back to frontend: Readline
+[0m[91mdebconf: unable to initialize frontend: Readline
+debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/x86_64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, <STDIN> line 22.)
+debconf: falling back to frontend: Teletype
+[0m[91mdebconf: unable to initialize frontend: Teletype
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Noninteractive
+[0mFetched 4882 kB in 0s (52.5 MB/s)
+Selecting previously unselected package libbrotli1:amd64.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 5644 files and directories currently installed.)
+Preparing to unpack .../00-libbrotli1_1.1.0-2+b7_amd64.deb ...
+Unpacking libbrotli1:amd64 (1.1.0-2+b7) ...
+Selecting previously unselected package libkrb5support0:amd64.
+Preparing to unpack .../01-libkrb5support0_1.21.3-5_amd64.deb ...
+Unpacking libkrb5support0:amd64 (1.21.3-5) ...
+Selecting previously unselected package libcom-err2:amd64.
+Preparing to unpack .../02-libcom-err2_1.47.2-3+b3_amd64.deb ...
+Unpacking libcom-err2:amd64 (1.47.2-3+b3) ...
+Selecting previously unselected package libk5crypto3:amd64.
+Preparing to unpack .../03-libk5crypto3_1.21.3-5_amd64.deb ...
+Unpacking libk5crypto3:amd64 (1.21.3-5) ...
+Selecting previously unselected package libkeyutils1:amd64.
+Preparing to unpack .../04-libkeyutils1_1.6.3-6_amd64.deb ...
+Unpacking libkeyutils1:amd64 (1.6.3-6) ...
+Selecting previously unselected package libkrb5-3:amd64.
+Preparing to unpack .../05-libkrb5-3_1.21.3-5_amd64.deb ...
+Unpacking libkrb5-3:amd64 (1.21.3-5) ...
+Selecting previously unselected package libgssapi-krb5-2:amd64.
+Preparing to unpack .../06-libgssapi-krb5-2_1.21.3-5_amd64.deb ...
+Unpacking libgssapi-krb5-2:amd64 (1.21.3-5) ...
+Selecting previously unselected package libunistring5:amd64.
+Preparing to unpack .../07-libunistring5_1.3-2_amd64.deb ...
+Unpacking libunistring5:amd64 (1.3-2) ...
+Selecting previously unselected package libidn2-0:amd64.
+Preparing to unpack .../08-libidn2-0_2.3.8-2_amd64.deb ...
+Unpacking libidn2-0:amd64 (2.3.8-2) ...
+Selecting previously unselected package libsasl2-modules-db:amd64.
+Preparing to unpack .../09-libsasl2-modules-db_2.1.28+dfsg1-9_amd64.deb ...
+Unpacking libsasl2-modules-db:amd64 (2.1.28+dfsg1-9) ...
+Selecting previously unselected package libsasl2-2:amd64.
+Preparing to unpack .../10-libsasl2-2_2.1.28+dfsg1-9_amd64.deb ...
+Unpacking libsasl2-2:amd64 (2.1.28+dfsg1-9) ...
+Selecting previously unselected package libldap2:amd64.
+Preparing to unpack .../11-libldap2_2.6.10+dfsg-1_amd64.deb ...
+Unpacking libldap2:amd64 (2.6.10+dfsg-1) ...
+Selecting previously unselected package libnghttp2-14:amd64.
+Preparing to unpack .../12-libnghttp2-14_1.64.0-1.1_amd64.deb ...
+Unpacking libnghttp2-14:amd64 (1.64.0-1.1) ...
+Selecting previously unselected package libnghttp3-9:amd64.
+Preparing to unpack .../13-libnghttp3-9_1.8.0-1_amd64.deb ...
+Unpacking libnghttp3-9:amd64 (1.8.0-1) ...
+Selecting previously unselected package libpsl5t64:amd64.
+Preparing to unpack .../14-libpsl5t64_0.21.2-1.1+b1_amd64.deb ...
+Unpacking libpsl5t64:amd64 (0.21.2-1.1+b1) ...
+Selecting previously unselected package libp11-kit0:amd64.
+Preparing to unpack .../15-libp11-kit0_0.25.5-3_amd64.deb ...
+Unpacking libp11-kit0:amd64 (0.25.5-3) ...
+Selecting previously unselected package libtasn1-6:amd64.
+Preparing to unpack .../16-libtasn1-6_4.20.0-2_amd64.deb ...
+Unpacking libtasn1-6:amd64 (4.20.0-2) ...
+Selecting previously unselected package libgnutls30t64:amd64.
+Preparing to unpack .../17-libgnutls30t64_3.8.9-3_amd64.deb ...
+Unpacking libgnutls30t64:amd64 (3.8.9-3) ...
+Selecting previously unselected package librtmp1:amd64.
+Preparing to unpack .../18-librtmp1_2.4+20151223.gitfa8646d.1-2+b5_amd64.deb ...
+Unpacking librtmp1:amd64 (2.4+20151223.gitfa8646d.1-2+b5) ...
+Selecting previously unselected package libssh2-1t64:amd64.
+Preparing to unpack .../19-libssh2-1t64_1.11.1-1_amd64.deb ...
+Unpacking libssh2-1t64:amd64 (1.11.1-1) ...
+Selecting previously unselected package libcurl4t64:amd64.
+Preparing to unpack .../20-libcurl4t64_8.14.1-2+deb13u2_amd64.deb ...
+Unpacking libcurl4t64:amd64 (8.14.1-2+deb13u2) ...
+Selecting previously unselected package curl.
+Preparing to unpack .../21-curl_8.14.1-2+deb13u2_amd64.deb ...
+Unpacking curl (8.14.1-2+deb13u2) ...
+Setting up libkeyutils1:amd64 (1.6.3-6) ...
+Setting up libbrotli1:amd64 (1.1.0-2+b7) ...
+Setting up libnghttp2-14:amd64 (1.64.0-1.1) ...
+Setting up libcom-err2:amd64 (1.47.2-3+b3) ...
+Setting up libkrb5support0:amd64 (1.21.3-5) ...
+Setting up libsasl2-modules-db:amd64 (2.1.28+dfsg1-9) ...
+Setting up libp11-kit0:amd64 (0.25.5-3) ...
+Setting up libunistring5:amd64 (1.3-2) ...
+Setting up libk5crypto3:amd64 (1.21.3-5) ...
+Setting up libsasl2-2:amd64 (2.1.28+dfsg1-9) ...
+Setting up libnghttp3-9:amd64 (1.8.0-1) ...
+Setting up libtasn1-6:amd64 (4.20.0-2) ...
+Setting up libkrb5-3:amd64 (1.21.3-5) ...
+Setting up libssh2-1t64:amd64 (1.11.1-1) ...
+Setting up libldap2:amd64 (2.6.10+dfsg-1) ...
+Setting up libidn2-0:amd64 (2.3.8-2) ...
+Setting up libgssapi-krb5-2:amd64 (1.21.3-5) ...
+Setting up libgnutls30t64:amd64 (3.8.9-3) ...
+Setting up libpsl5t64:amd64 (0.21.2-1.1+b1) ...
+Setting up librtmp1:amd64 (2.4+20151223.gitfa8646d.1-2+b5) ...
+Setting up libcurl4t64:amd64 (8.14.1-2+deb13u2) ...
+Setting up curl (8.14.1-2+deb13u2) ...
+Processing triggers for libc-bin (2.41-12) ...
+Requirement already satisfied: pip in /usr/local/lib/python3.11/site-packages (24.0)
+Collecting pip
+  Downloading pip-25.3-py3-none-any.whl.metadata (4.7 kB)
+Downloading pip-25.3-py3-none-any.whl (1.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 60.1 MB/s eta 0:00:00
+Installing collected packages: pip
+  Attempting uninstall: pip
+    Found existing installation: pip 24.0
+    Uninstalling pip-24.0:
+      Successfully uninstalled pip-24.0
+Successfully installed pip-25.3
+[91mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+[0mRemoving intermediate container b8ffd08d18b9
+ ---> 336c598efd30
+Step 4/6 : COPY requirements.txt /app/requirements.txt
+ ---> c08bf1dc16bf
+Step 5/6 : RUN pip install --no-cache-dir -r requirements.txt
+ ---> Running in 1f0348710c06
+Collecting fastapi==0.104.1 (from -r requirements.txt (line 1))
+  Downloading fastapi-0.104.1-py3-none-any.whl.metadata (24 kB)
+Collecting uvicorn==0.24.0 (from uvicorn[standard]==0.24.0->-r requirements.txt (line 2))
+  Downloading uvicorn-0.24.0-py3-none-any.whl.metadata (6.4 kB)
+Collecting sqlalchemy==2.0.23 (from -r requirements.txt (line 3))
+  Downloading SQLAlchemy-2.0.23-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (9.6 kB)
+Collecting psycopg2-binary==2.9.9 (from -r requirements.txt (line 4))
+  Downloading psycopg2_binary-2.9.9-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.4 kB)
+Collecting asyncpg==0.29.0 (from -r requirements.txt (line 5))
+  Downloading asyncpg-0.29.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.4 kB)
+Collecting pydantic==2.5.0 (from -r requirements.txt (line 6))
+  Downloading pydantic-2.5.0-py3-none-any.whl.metadata (174 kB)
+Collecting pydantic-settings==2.1.0 (from -r requirements.txt (line 7))
+  Downloading pydantic_settings-2.1.0-py3-none-any.whl.metadata (2.9 kB)
+Collecting alembic==1.12.1 (from -r requirements.txt (line 8))
+  Downloading alembic-1.12.1-py3-none-any.whl.metadata (7.3 kB)
+Collecting python-multipart==0.0.6 (from -r requirements.txt (line 9))
+  Downloading python_multipart-0.0.6-py3-none-any.whl.metadata (2.5 kB)
+Collecting python-jose==3.3.0 (from python-jose[cryptography]==3.3.0->-r requirements.txt (line 10))
+  Downloading python_jose-3.3.0-py2.py3-none-any.whl.metadata (5.4 kB)
+Collecting passlib==1.7.4 (from passlib[bcrypt]==1.7.4->-r requirements.txt (line 11))
+  Downloading passlib-1.7.4-py2.py3-none-any.whl.metadata (1.7 kB)
+Collecting python-dateutil==2.8.2 (from -r requirements.txt (line 12))
+  Downloading python_dateutil-2.8.2-py2.py3-none-any.whl.metadata (8.2 kB)
+Collecting pytz==2024.1 (from -r requirements.txt (line 13))
+  Downloading pytz-2024.1-py2.py3-none-any.whl.metadata (22 kB)
+Collecting email-validator==2.1.0 (from -r requirements.txt (line 14))
+  Downloading email_validator-2.1.0-py3-none-any.whl.metadata (25 kB)
+Collecting openai>=1.50.0 (from -r requirements.txt (line 15))
+  Downloading openai-2.8.1-py3-none-any.whl.metadata (29 kB)
+Collecting groq>=0.4.0 (from -r requirements.txt (line 16))
+  Downloading groq-0.37.0-py3-none-any.whl.metadata (16 kB)
+Collecting anthropic>=0.5.0 (from -r requirements.txt (line 17))
+  Downloading anthropic-0.75.0-py3-none-any.whl.metadata (28 kB)
+Collecting numpy>=1.21.0 (from -r requirements.txt (line 21))
+  Downloading numpy-2.3.5-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (62 kB)
+  Downloading numpy-1.24.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (5.6 kB)
+Collecting scikit-learn==1.3.0 (from -r requirements.txt (line 23))
+  Downloading scikit_learn-1.3.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (11 kB)
+Collecting networkx==3.2.1 (from -r requirements.txt (line 24))
+  Downloading networkx-3.2.1-py3-none-any.whl.metadata (5.2 kB)
+Collecting requests==2.31.0 (from -r requirements.txt (line 25))
+  Downloading requests-2.31.0-py3-none-any.whl.metadata (4.6 kB)
+Collecting aiohttp==3.9.1 (from -r requirements.txt (line 26))
+  Downloading aiohttp-3.9.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (7.4 kB)
+Collecting aiofiles==23.2.1 (from -r requirements.txt (line 27))
+  Downloading aiofiles-23.2.1-py3-none-any.whl.metadata (9.7 kB)
+Collecting httpx>=0.25.0 (from -r requirements.txt (line 28))
+  Downloading httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+Collecting azure-storage-blob>=12.19.0 (from -r requirements.txt (line 29))
+  Downloading azure_storage_blob-12.27.1-py3-none-any.whl.metadata (26 kB)
+Collecting azure-identity>=1.15.0 (from -r requirements.txt (line 30))
+  Downloading azure_identity-1.25.1-py3-none-any.whl.metadata (88 kB)
+Collecting azure-search-documents>=11.4.0 (from -r requirements.txt (line 31))
+  Downloading azure_search_documents-11.6.0-py3-none-any.whl.metadata (23 kB)
+Collecting openpyxl>=3.1.2 (from -r requirements.txt (line 32))
+  Downloading openpyxl-3.1.5-py2.py3-none-any.whl.metadata (2.5 kB)
+Collecting sse-starlette==1.6.5 (from -r requirements.txt (line 33))
+  Downloading sse_starlette-1.6.5-py3-none-any.whl.metadata (6.7 kB)
+Collecting agent-framework-azure-ai==1.0.0b251120 (from -r requirements.txt (line 36))
+  Downloading agent_framework_azure_ai-1.0.0b251120-py3-none-any.whl.metadata (1.5 kB)
+Collecting PyMuPDF>=1.23.0 (from -r requirements.txt (line 39))
+  Downloading pymupdf-1.26.6-cp310-abi3-manylinux_2_28_x86_64.whl.metadata (3.4 kB)
+Collecting python-docx>=1.1.0 (from -r requirements.txt (line 40))
+  Downloading python_docx-1.2.0-py3-none-any.whl.metadata (2.0 kB)
+Collecting tiktoken>=0.5.0 (from -r requirements.txt (line 41))
+  Downloading tiktoken-0.12.0-cp311-cp311-manylinux_2_28_x86_64.whl.metadata (6.7 kB)
+Collecting anyio<4.0.0,>=3.7.1 (from fastapi==0.104.1->-r requirements.txt (line 1))
+  Downloading anyio-3.7.1-py3-none-any.whl.metadata (4.7 kB)
+Collecting starlette<0.28.0,>=0.27.0 (from fastapi==0.104.1->-r requirements.txt (line 1))
+  Downloading starlette-0.27.0-py3-none-any.whl.metadata (5.8 kB)
+Collecting typing-extensions>=4.8.0 (from fastapi==0.104.1->-r requirements.txt (line 1))
+  Downloading typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting annotated-types>=0.4.0 (from pydantic==2.5.0->-r requirements.txt (line 6))
+  Downloading annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+Collecting pydantic-core==2.14.1 (from pydantic==2.5.0->-r requirements.txt (line 6))
+  Downloading pydantic_core-2.14.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.5 kB)
+Collecting click>=7.0 (from uvicorn==0.24.0->uvicorn[standard]==0.24.0->-r requirements.txt (line 2))
+  Downloading click-8.3.1-py3-none-any.whl.metadata (2.6 kB)
+Collecting h11>=0.8 (from uvicorn==0.24.0->uvicorn[standard]==0.24.0->-r requirements.txt (line 2))
+  Downloading h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+Collecting greenlet!=0.4.17 (from sqlalchemy==2.0.23->-r requirements.txt (line 3))
+  Downloading greenlet-3.2.4-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (4.1 kB)
+Collecting async-timeout>=4.0.3 (from asyncpg==0.29.0->-r requirements.txt (line 5))
+  Downloading async_timeout-5.0.1-py3-none-any.whl.metadata (5.1 kB)
+Collecting python-dotenv>=0.21.0 (from pydantic-settings==2.1.0->-r requirements.txt (line 7))
+  Downloading python_dotenv-1.2.1-py3-none-any.whl.metadata (25 kB)
+Collecting Mako (from alembic==1.12.1->-r requirements.txt (line 8))
+  Downloading mako-1.3.10-py3-none-any.whl.metadata (2.9 kB)
+Collecting ecdsa!=0.15 (from python-jose==3.3.0->python-jose[cryptography]==3.3.0->-r requirements.txt (line 10))
+  Downloading ecdsa-0.19.1-py2.py3-none-any.whl.metadata (29 kB)
+Collecting rsa (from python-jose==3.3.0->python-jose[cryptography]==3.3.0->-r requirements.txt (line 10))
+  Downloading rsa-4.9.1-py3-none-any.whl.metadata (5.6 kB)
+Collecting pyasn1 (from python-jose==3.3.0->python-jose[cryptography]==3.3.0->-r requirements.txt (line 10))
+  Downloading pyasn1-0.6.1-py3-none-any.whl.metadata (8.4 kB)
+Collecting six>=1.5 (from python-dateutil==2.8.2->-r requirements.txt (line 12))
+  Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Collecting dnspython>=2.0.0 (from email-validator==2.1.0->-r requirements.txt (line 14))
+  Downloading dnspython-2.8.0-py3-none-any.whl.metadata (5.7 kB)
+Collecting idna>=2.0.0 (from email-validator==2.1.0->-r requirements.txt (line 14))
+  Downloading idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+Collecting scipy>=1.5.0 (from scikit-learn==1.3.0->-r requirements.txt (line 23))
+  Downloading scipy-1.16.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (62 kB)
+Collecting joblib>=1.1.1 (from scikit-learn==1.3.0->-r requirements.txt (line 23))
+  Downloading joblib-1.5.2-py3-none-any.whl.metadata (5.6 kB)
+Collecting threadpoolctl>=2.0.0 (from scikit-learn==1.3.0->-r requirements.txt (line 23))
+  Downloading threadpoolctl-3.6.0-py3-none-any.whl.metadata (13 kB)
+Collecting charset-normalizer<4,>=2 (from requests==2.31.0->-r requirements.txt (line 25))
+  Downloading charset_normalizer-3.4.4-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (37 kB)
+Collecting urllib3<3,>=1.21.1 (from requests==2.31.0->-r requirements.txt (line 25))
+  Downloading urllib3-2.5.0-py3-none-any.whl.metadata (6.5 kB)
+Collecting certifi>=2017.4.17 (from requests==2.31.0->-r requirements.txt (line 25))
+  Downloading certifi-2025.11.12-py3-none-any.whl.metadata (2.5 kB)
+Collecting attrs>=17.3.0 (from aiohttp==3.9.1->-r requirements.txt (line 26))
+  Downloading attrs-25.4.0-py3-none-any.whl.metadata (10 kB)
+Collecting multidict<7.0,>=4.5 (from aiohttp==3.9.1->-r requirements.txt (line 26))
+  Downloading multidict-6.7.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.3 kB)
+Collecting yarl<2.0,>=1.0 (from aiohttp==3.9.1->-r requirements.txt (line 26))
+  Downloading yarl-1.22.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (75 kB)
+Collecting frozenlist>=1.1.1 (from aiohttp==3.9.1->-r requirements.txt (line 26))
+  Downloading frozenlist-1.8.0-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (20 kB)
+Collecting aiosignal>=1.1.2 (from aiohttp==3.9.1->-r requirements.txt (line 26))
+  Downloading aiosignal-1.4.0-py3-none-any.whl.metadata (3.7 kB)
+Collecting agent-framework-core (from agent-framework-azure-ai==1.0.0b251120->-r requirements.txt (line 36))
+  Downloading agent_framework_core-1.0.0b251120-py3-none-any.whl.metadata (9.8 kB)
+Collecting azure-ai-projects>=2.0.0b2 (from agent-framework-azure-ai==1.0.0b251120->-r requirements.txt (line 36))
+  Downloading azure_ai_projects-2.0.0b2-py3-none-any.whl.metadata (63 kB)
+Collecting azure-ai-agents==1.2.0b5 (from agent-framework-azure-ai==1.0.0b251120->-r requirements.txt (line 36))
+  Downloading azure_ai_agents-1.2.0b5-py3-none-any.whl.metadata (74 kB)
+Collecting isodate>=0.6.1 (from azure-ai-agents==1.2.0b5->agent-framework-azure-ai==1.0.0b251120->-r requirements.txt (line 36))
+  Downloading isodate-0.7.2-py3-none-any.whl.metadata (11 kB)
+Collecting azure-core>=1.30.0 (from azure-ai-agents==1.2.0b5->agent-framework-azure-ai==1.0.0b251120->-r requirements.txt (line 36))
+  Downloading azure_core-1.36.0-py3-none-any.whl.metadata (47 kB)
+Collecting bcrypt>=3.1.0 (from passlib[bcrypt]==1.7.4->-r requirements.txt (line 11))
+  Downloading bcrypt-5.0.0-cp39-abi3-manylinux_2_34_x86_64.whl.metadata (10 kB)
+Collecting cryptography>=3.4.0 (from python-jose[cryptography]==3.3.0->-r requirements.txt (line 10))
+  Downloading cryptography-46.0.3-cp311-abi3-manylinux_2_34_x86_64.whl.metadata (5.7 kB)
+Collecting httptools>=0.5.0 (from uvicorn[standard]==0.24.0->-r requirements.txt (line 2))
+  Downloading httptools-0.7.1-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (3.5 kB)
+Collecting pyyaml>=5.1 (from uvicorn[standard]==0.24.0->-r requirements.txt (line 2))
+  Downloading pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.4 kB)
+Collecting uvloop!=0.15.0,!=0.15.1,>=0.14.0 (from uvicorn[standard]==0.24.0->-r requirements.txt (line 2))
+  Downloading uvloop-0.22.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (4.9 kB)
+Collecting watchfiles>=0.13 (from uvicorn[standard]==0.24.0->-r requirements.txt (line 2))
+  Downloading watchfiles-1.1.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+Collecting websockets>=10.4 (from uvicorn[standard]==0.24.0->-r requirements.txt (line 2))
+  Downloading websockets-15.0.1-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.8 kB)
+Collecting sniffio>=1.1 (from anyio<4.0.0,>=3.7.1->fastapi==0.104.1->-r requirements.txt (line 1))
+  Downloading sniffio-1.3.1-py3-none-any.whl.metadata (3.9 kB)
+Collecting propcache>=0.2.1 (from yarl<2.0,>=1.0->aiohttp==3.9.1->-r requirements.txt (line 26))
+  Downloading propcache-0.4.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (13 kB)
+Collecting distro<2,>=1.7.0 (from openai>=1.50.0->-r requirements.txt (line 15))
+  Downloading distro-1.9.0-py3-none-any.whl.metadata (6.8 kB)
+Collecting jiter<1,>=0.10.0 (from openai>=1.50.0->-r requirements.txt (line 15))
+  Downloading jiter-0.12.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (5.2 kB)
+Collecting tqdm>4 (from openai>=1.50.0->-r requirements.txt (line 15))
+  Downloading tqdm-4.67.1-py3-none-any.whl.metadata (57 kB)
+Collecting httpcore==1.* (from httpx>=0.25.0->-r requirements.txt (line 28))
+  Downloading httpcore-1.0.9-py3-none-any.whl.metadata (21 kB)
+Collecting docstring-parser<1,>=0.15 (from anthropic>=0.5.0->-r requirements.txt (line 17))
+  Downloading docstring_parser-0.17.0-py3-none-any.whl.metadata (3.5 kB)
+Collecting msal>=1.30.0 (from azure-identity>=1.15.0->-r requirements.txt (line 30))
+  Downloading msal-1.34.0-py3-none-any.whl.metadata (11 kB)
+Collecting msal-extensions>=1.2.0 (from azure-identity>=1.15.0->-r requirements.txt (line 30))
+  Downloading msal_extensions-1.3.1-py3-none-any.whl.metadata (7.8 kB)
+Collecting azure-common>=1.1 (from azure-search-documents>=11.4.0->-r requirements.txt (line 31))
+  Downloading azure_common-1.1.28-py2.py3-none-any.whl.metadata (5.0 kB)
+Collecting et-xmlfile (from openpyxl>=3.1.2->-r requirements.txt (line 32))
+  Downloading et_xmlfile-2.0.0-py3-none-any.whl.metadata (2.7 kB)
+Collecting lxml>=3.1.0 (from python-docx>=1.1.0->-r requirements.txt (line 40))
+  Downloading lxml-6.0.2-cp311-cp311-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (3.6 kB)
+Collecting regex>=2022.1.18 (from tiktoken>=0.5.0->-r requirements.txt (line 41))
+  Downloading regex-2025.11.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (40 kB)
+Collecting cffi>=2.0.0 (from cryptography>=3.4.0->python-jose[cryptography]==3.3.0->-r requirements.txt (line 10))
+  Downloading cffi-2.0.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.6 kB)
+Collecting pycparser (from cffi>=2.0.0->cryptography>=3.4.0->python-jose[cryptography]==3.3.0->-r requirements.txt (line 10))
+  Downloading pycparser-2.23-py3-none-any.whl.metadata (993 bytes)
+Collecting PyJWT<3,>=1.0.0 (from PyJWT[crypto]<3,>=1.0.0->msal>=1.30.0->azure-identity>=1.15.0->-r requirements.txt (line 30))
+  Downloading PyJWT-2.10.1-py3-none-any.whl.metadata (4.0 kB)
+INFO: pip is looking at multiple versions of scipy to determine which version is compatible with other requirements. This could take a while.
+Collecting scipy>=1.5.0 (from scikit-learn==1.3.0->-r requirements.txt (line 23))
+  Downloading scipy-1.16.2-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (62 kB)
+  Downloading scipy-1.16.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (61 kB)
+  Downloading scipy-1.16.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (61 kB)
+  Downloading scipy-1.15.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (61 kB)
+Collecting opentelemetry-api>=1.24 (from agent-framework-core->agent-framework-azure-ai==1.0.0b251120->-r requirements.txt (line 36))
+  Downloading opentelemetry_api-1.38.0-py3-none-any.whl.metadata (1.5 kB)
+Collecting opentelemetry-sdk>=1.24 (from agent-framework-core->agent-framework-azure-ai==1.0.0b251120->-r requirements.txt (line 36))
+  Downloading opentelemetry_sdk-1.38.0-py3-none-any.whl.metadata (1.5 kB)
+Collecting opentelemetry-exporter-otlp-proto-grpc>=1.36.0 (from agent-framework-core->agent-framework-azure-ai==1.0.0b251120->-r requirements.txt (line 36))
+  Downloading opentelemetry_exporter_otlp_proto_grpc-1.38.0-py3-none-any.whl.metadata (2.4 kB)
+Collecting opentelemetry-semantic-conventions-ai>=0.4.13 (from agent-framework-core->agent-framework-azure-ai==1.0.0b251120->-r requirements.txt (line 36))
+  Downloading opentelemetry_semantic_conventions_ai-0.4.13-py3-none-any.whl.metadata (1.1 kB)
+Collecting mcp>=1.13 (from mcp[ws]>=1.13->agent-framework-core->agent-framework-azure-ai==1.0.0b251120->-r requirements.txt (line 36))
+  Downloading mcp-1.23.1-py3-none-any.whl.metadata (88 kB)
+Collecting packaging>=24.1 (from agent-framework-core->agent-framework-azure-ai==1.0.0b251120->-r requirements.txt (line 36))
+  Downloading packaging-25.0-py3-none-any.whl.metadata (3.3 kB)
+INFO: pip is looking at multiple versions of mcp to determine which version is compatible with other requirements. This could take a while.
+Collecting mcp>=1.13 (from mcp[ws]>=1.13->agent-framework-core->agent-framework-azure-ai==1.0.0b251120->-r requirements.txt (line 36))
+  Downloading mcp-1.23.0-py3-none-any.whl.metadata (88 kB)
+  Downloading mcp-1.22.0-py3-none-any.whl.metadata (85 kB)
+  Downloading mcp-1.21.2-py3-none-any.whl.metadata (85 kB)
+  Downloading mcp-1.21.1-py3-none-any.whl.metadata (85 kB)
+  Downloading mcp-1.21.0-py3-none-any.whl.metadata (85 kB)
+  Downloading mcp-1.20.0-py3-none-any.whl.metadata (85 kB)
+  Downloading mcp-1.19.0-py3-none-any.whl.metadata (85 kB)
+INFO: pip is still looking at multiple versions of mcp to determine which version is compatible with other requirements. This could take a while.
+  Downloading mcp-1.18.0-py3-none-any.whl.metadata (80 kB)
+  Downloading mcp-1.17.0-py3-none-any.whl.metadata (80 kB)
+  Downloading mcp-1.16.0-py3-none-any.whl.metadata (80 kB)
+  Downloading mcp-1.15.0-py3-none-any.whl.metadata (80 kB)
+  Downloading mcp-1.14.1-py3-none-any.whl.metadata (75 kB)
+INFO: This is taking longer than usual. You might need to provide the dependency resolver with stricter constraints to reduce runtime. See https://pip.pypa.io/warnings/backtracking for guidance. If you want to abort this run, press Ctrl + C.
+  Downloading mcp-1.14.0-py3-none-any.whl.metadata (75 kB)
+  Downloading mcp-1.13.1-py3-none-any.whl.metadata (74 kB)
+  Downloading mcp-1.13.0-py3-none-any.whl.metadata (68 kB)
+Collecting agent-framework-core (from agent-framework-azure-ai==1.0.0b251120->-r requirements.txt (line 36))
+  Downloading agent_framework_core-1.0.0b251114-py3-none-any.whl.metadata (9.5 kB)
+  Downloading agent_framework_core-1.0.0b251112.post1-py3-none-any.whl.metadata (9.5 kB)
+  Downloading agent_framework_core-1.0.0b251112-py3-none-any.whl.metadata (9.5 kB)
+  Downloading agent_framework_core-1.0.0b251111-py3-none-any.whl.metadata (9.5 kB)
+  Downloading agent_framework_core-1.0.0b251108-py3-none-any.whl.metadata (9.5 kB)
+  Downloading agent_framework_core-1.0.0b251105-py3-none-any.whl.metadata (9.5 kB)
+  Downloading agent_framework_core-1.0.0b251104-py3-none-any.whl.metadata (9.4 kB)
+Collecting openai>=1.50.0 (from -r requirements.txt (line 15))
+  Downloading openai-1.109.1-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.109.0-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.108.2-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.108.1-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.108.0-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.107.3-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.107.2-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.107.1-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.107.0-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.106.1-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.106.0-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.105.0-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.104.2-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.104.1-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.104.0-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.103.0-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.102.0-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.101.0-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.100.2-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.100.1-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.100.0-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.99.9-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.99.8-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.99.7-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.99.6-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.99.5-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.99.4-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.99.3-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.99.2-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.99.1-py3-none-any.whl.metadata (29 kB)
+  Downloading openai-1.99.0-py3-none-any.whl.metadata (29 kB)
+Collecting agent-framework-core (from agent-framework-azure-ai==1.0.0b251120->-r requirements.txt (line 36))
+  Downloading agent_framework_core-1.0.0b251028-py3-none-any.whl.metadata (9.5 kB)
+Collecting azure-monitor-opentelemetry>=1.7.0 (from agent-framework-core->agent-framework-azure-ai==1.0.0b251120->-r requirements.txt (line 36))
+  Downloading azure_monitor_opentelemetry-1.8.2-py3-none-any.whl.metadata (23 kB)
+Collecting azure-monitor-opentelemetry-exporter>=1.0.0b41 (from agent-framework-core->agent-framework-azure-ai==1.0.0b251120->-r requirements.txt (line 36))
+  Downloading azure_monitor_opentelemetry_exporter-1.0.0b45-py2.py3-none-any.whl.metadata (33 kB)
+INFO: pip is looking at multiple versions of agent-framework-core to determine which version is compatible with other requirements. This could take a while.
+Collecting agent-framework-core (from agent-framework-azure-ai==1.0.0b251120->-r requirements.txt (line 36))
+  Downloading agent_framework_core-1.0.0b251016-py3-none-any.whl.metadata (9.5 kB)
+  Downloading agent_framework_core-1.0.0b251007-py3-none-any.whl.metadata (9.5 kB)
+  Downloading agent_framework_core-1.0.0b251001-py3-none-any.whl.metadata (9.1 kB)
+INFO: pip is still looking at multiple versions of agent-framework-core to determine which version is compatible with other requirements. This could take a while.
+Collecting websockets>=10.4 (from uvicorn[standard]==0.24.0->-r requirements.txt (line 2))
+  Downloading websockets-15.0-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.8 kB)
+  Downloading websockets-14.2-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.8 kB)
+INFO: This is taking longer than usual. You might need to provide the dependency resolver with stricter constraints to reduce runtime. See https://pip.pypa.io/warnings/backtracking for guidance. If you want to abort this run, press Ctrl + C.
+  Downloading websockets-14.1-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.7 kB)
+  Downloading websockets-14.0-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.7 kB)
+  Downloading websockets-13.1-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.8 kB)
+  Downloading websockets-13.0.1-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.7 kB)
+  Downloading websockets-13.0-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.7 kB)
+  Downloading websockets-12.0-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.6 kB)
+Collecting watchfiles>=0.13 (from uvicorn[standard]==0.24.0->-r requirements.txt (line 2))
+  Downloading watchfiles-1.1.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+  Downloading watchfiles-1.0.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+  Downloading watchfiles-1.0.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+  Downloading watchfiles-1.0.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+  Downloading watchfiles-1.0.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+  Downloading watchfiles-1.0.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+  Downloading watchfiles-1.0.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+  Downloading watchfiles-0.24.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+  Downloading watchfiles-0.23.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+Collecting uvloop!=0.15.0,!=0.15.1,>=0.14.0 (from uvicorn[standard]==0.24.0->-r requirements.txt (line 2))
+  Downloading uvloop-0.21.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+
+  Downloading uvloop-0.20.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+  Downloading uvloop-0.19.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+  Downloading uvloop-0.18.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+  Downloading uvloop-0.17.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.7 kB)
+  Downloading uvloop-0.16.0.tar.gz (2.1 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 162.3 MB/s  0:00:00
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Downloading uvloop-0.15.3.tar.gz (2.1 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 220.8 MB/s  0:00:00
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Downloading uvloop-0.15.2.tar.gz (2.1 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 28.0 MB/s  0:00:00
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Downloading uvloop-0.14.0.tar.gz (2.0 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 203.7 MB/s  0:00:00
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting tqdm>4 (from openai>=1.50.0->-r requirements.txt (line 15))
+  Downloading tqdm-4.67.0-py3-none-any.whl.metadata (57 kB)
+  Downloading tqdm-4.66.6-py3-none-any.whl.metadata (57 kB)
+  Downloading tqdm-4.66.5-py3-none-any.whl.metadata (57 kB)
+  Downloading tqdm-4.66.4-py3-none-any.whl.metadata (57 kB)
+  Downloading tqdm-4.66.3-py3-none-any.whl.metadata (57 kB)
+  Downloading tqdm-4.66.2-py3-none-any.whl.metadata (57 kB)
+  Downloading tqdm-4.66.1-py3-none-any.whl.metadata (57 kB)
+  Downloading tqdm-4.66.0-py3-none-any.whl.metadata (57 kB)
+  Downloading tqdm-4.65.2-py3-none-any.whl.metadata (56 kB)
+Collecting threadpoolctl>=2.0.0 (from scikit-learn==1.3.0->-r requirements.txt (line 23))
+  Downloading threadpoolctl-3.5.0-py3-none-any.whl.metadata (13 kB)
+
+  Downloading threadpoolctl-3.4.0-py3-none-any.whl.metadata (13 kB)
+  Downloading threadpoolctl-3.3.0-py3-none-any.whl.metadata (13 kB)
+  Downloading threadpoolctl-3.2.0-py3-none-any.whl.metadata (10.0 kB)
+  Downloading threadpoolctl-3.1.0-py3-none-any.whl.metadata (9.2 kB)
+  Downloading threadpoolctl-3.0.0-py3-none-any.whl.metadata (8.8 kB)
+  Downloading threadpoolctl-2.2.0-py3-none-any.whl.metadata (6.6 kB)
+  Downloading threadpoolctl-2.1.0-py3-none-any.whl.metadata (6.6 kB)
+  Downloading threadpoolctl-2.0.0-py3-none-any.whl.metadata (4.6 kB)
+Collecting sniffio>=1.1 (from anyio<4.0.0,>=3.7.1->fastapi==0.104.1->-r requirements.txt (line 1))
+  Downloading sniffio-1.3.0-py3-none-any.whl.metadata (3.6 kB)
+
+  Downloading sniffio-1.2.0-py3-none-any.whl.metadata (3.6 kB)
+  Downloading sniffio-1.1.0-py3-none-any.whl.metadata (3.6 kB)
+Collecting six>=1.5 (from python-dateutil==2.8.2->-r requirements.txt (line 12))
+  Downloading six-1.16.0-py2.py3-none-any.whl.metadata (1.8 kB)
+
+  Downloading six-1.15.0-py2.py3-none-any.whl.metadata (1.8 kB)
+  Downloading six-1.14.0-py2.py3-none-any.whl.metadata (1.8 kB)
+[91merror: resolution-too-deep
+
+× Dependency resolution exceeded maximum depth
+╰─> Pip cannot resolve the current dependencies as the dependency graph is too complex for pip to solve efficiently.
+
+hint: Try adding lower bounds to constrain your dependencies, for example: 'package>=2.0.0' instead of just 'package'.
+
+Link: https://pip.pypa.io/en/stable/topics/dependency-resolution/#handling-resolution-too-deep-errors
+[0mThe command '/bin/sh -c pip install --no-cache-dir -r requirements.txt' returned a non-zero code: 1
+2025/12/03 10:01:48 Container failed during run: build. No retries remaining.
+failed to run step ID: build: exit status 1
+
+Run ID: cc7d failed after 46m36s. Error: failed during run, err: exit status 1

@@ -1,0 +1,350 @@
+﻿2025/12/03 09:15:13 Downloading source code...
+
+2025/12/03 09:15:14 Finished downloading source code
+
+2025/12/03 09:15:14 Using acb_vol_c521c0ba-621a-46a4-8045-43ae1a005b4e as the home volume
+2025/12/03 09:15:14 Setting up Docker configuration...
+2025/12/03 09:15:14 Successfully set up Docker configuration
+2025/12/03 09:15:14 Logging in to registry: acrqcadev2f37g0.azurecr.io
+2025/12/03 09:15:15 Successfully logged into acrqcadev2f37g0.azurecr.io
+2025/12/03 09:15:15 Executing step ID: build. Timeout(sec): 28800, Working directory: '', Network: ''
+2025/12/03 09:15:15 Scanning for dependencies...
+2025/12/03 09:15:15 Successfully scanned dependencies
+2025/12/03 09:15:15 Launching container with name: build
+Sending build context to Docker daemon  1.671MB
+
+
+
+Step 1/6 : FROM python:3.11-slim
+3.11-slim: Pulling from library/python
+0e4bc2bd6656: Pulling fs layer
+22b63e76fde1: Pulling fs layer
+b3dd773c3296: Pulling fs layer
+1771569cc129: Pulling fs layer
+1771569cc129: Waiting
+22b63e76fde1: Verifying Checksum
+22b63e76fde1: Download complete
+b3dd773c3296: Verifying Checksum
+b3dd773c3296: Download complete
+1771569cc129: Download complete
+
+0e4bc2bd6656: Verifying Checksum
+0e4bc2bd6656: Download complete
+0e4bc2bd6656: Pull complete
+22b63e76fde1: Pull complete
+b3dd773c3296: Pull complete
+
+1771569cc129: Pull complete
+Digest: sha256:193fdd0bbcb3d2ae612bd6cc3548d2f7c78d65b549fcaa8af75624c47474444d
+Status: Downloaded newer image for python:3.11-slim
+ ---> 040af88f5bce
+Step 2/6 : WORKDIR /app
+ ---> Running in 2571bc11ddb1
+Removing intermediate container 2571bc11ddb1
+ ---> 94701d3e6383
+Step 3/6 : RUN apt-get update && apt-get install -y --no-install-recommends     curl     && rm -rf /var/lib/apt/lists/*     && pip install --no-cache-dir --upgrade pip
+ ---> Running in b8ffd08d18b9
+Hit:1 http://deb.debian.org/debian trixie InRelease
+Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.3 kB]
+Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+Get:4 http://deb.debian.org/debian trixie/main amd64 Packages [9670 kB]
+Get:5 http://deb.debian.org/debian trixie-updates/main amd64 Packages [5412 B]
+Get:6 http://deb.debian.org/debian-security trixie-security/main amd64 Packages [80.7 kB]
+Fetched 9847 kB in 1s (12.1 MB/s)
+Reading package lists...
+
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  libbrotli1 libcom-err2 libcurl4t64 libgnutls30t64 libgssapi-krb5-2 libidn2-0
+  libk5crypto3 libkeyutils1 libkrb5-3 libkrb5support0 libldap2 libnghttp2-14
+  libnghttp3-9 libp11-kit0 libpsl5t64 librtmp1 libsasl2-2 libsasl2-modules-db
+  libssh2-1t64 libtasn1-6 libunistring5
+Suggested packages:
+  gnutls-bin krb5-doc krb5-user
+Recommended packages:
+  bash-completion krb5-locales libldap-common publicsuffix libsasl2-modules
+The following NEW packages will be installed:
+  curl libbrotli1 libcom-err2 libcurl4t64 libgnutls30t64 libgssapi-krb5-2
+  libidn2-0 libk5crypto3 libkeyutils1 libkrb5-3 libkrb5support0 libldap2
+  libnghttp2-14 libnghttp3-9 libp11-kit0 libpsl5t64 librtmp1 libsasl2-2
+  libsasl2-modules-db libssh2-1t64 libtasn1-6 libunistring5
+0 upgraded, 22 newly installed, 0 to remove and 0 not upgraded.
+Need to get 4882 kB of archives.
+After this operation, 14.7 MB of additional disk space will be used.
+Get:1 http://deb.debian.org/debian trixie/main amd64 libbrotli1 amd64 1.1.0-2+b7 [307 kB]
+Get:2 http://deb.debian.org/debian trixie/main amd64 libkrb5support0 amd64 1.21.3-5 [33.0 kB]
+Get:3 http://deb.debian.org/debian trixie/main amd64 libcom-err2 amd64 1.47.2-3+b3 [25.0 kB]
+Get:4 http://deb.debian.org/debian trixie/main amd64 libk5crypto3 amd64 1.21.3-5 [81.5 kB]
+Get:5 http://deb.debian.org/debian trixie/main amd64 libkeyutils1 amd64 1.6.3-6 [9456 B]
+Get:6 http://deb.debian.org/debian trixie/main amd64 libkrb5-3 amd64 1.21.3-5 [326 kB]
+Get:7 http://deb.debian.org/debian trixie/main amd64 libgssapi-krb5-2 amd64 1.21.3-5 [138 kB]
+Get:8 http://deb.debian.org/debian trixie/main amd64 libunistring5 amd64 1.3-2 [477 kB]
+Get:9 http://deb.debian.org/debian trixie/main amd64 libidn2-0 amd64 2.3.8-2 [109 kB]
+Get:10 http://deb.debian.org/debian trixie/main amd64 libsasl2-modules-db amd64 2.1.28+dfsg1-9 [19.8 kB]
+Get:11 http://deb.debian.org/debian trixie/main amd64 libsasl2-2 amd64 2.1.28+dfsg1-9 [57.5 kB]
+Get:12 http://deb.debian.org/debian trixie/main amd64 libldap2 amd64 2.6.10+dfsg-1 [194 kB]
+Get:13 http://deb.debian.org/debian trixie/main amd64 libnghttp2-14 amd64 1.64.0-1.1 [76.0 kB]
+Get:14 http://deb.debian.org/debian trixie/main amd64 libnghttp3-9 amd64 1.8.0-1 [67.7 kB]
+Get:15 http://deb.debian.org/debian trixie/main amd64 libpsl5t64 amd64 0.21.2-1.1+b1 [57.2 kB]
+Get:16 http://deb.debian.org/debian trixie/main amd64 libp11-kit0 amd64 0.25.5-3 [425 kB]
+Get:17 http://deb.debian.org/debian trixie/main amd64 libtasn1-6 amd64 4.20.0-2 [49.9 kB]
+Get:18 http://deb.debian.org/debian trixie/main amd64 libgnutls30t64 amd64 3.8.9-3 [1465 kB]
+Get:19 http://deb.debian.org/debian trixie/main amd64 librtmp1 amd64 2.4+20151223.gitfa8646d.1-2+b5 [58.8 kB]
+Get:20 http://deb.debian.org/debian trixie/main amd64 libssh2-1t64 amd64 1.11.1-1 [245 kB]
+Get:21 http://deb.debian.org/debian trixie/main amd64 libcurl4t64 amd64 8.14.1-2+deb13u2 [391 kB]
+Get:22 http://deb.debian.org/debian trixie/main amd64 curl amd64 8.14.1-2+deb13u2 [270 kB]
+debconf: unable to initialize frontend: Dialog
+debconf: (TERM is not set, so the dialog frontend is not usable.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/x86_64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, <STDIN> line 22.)
+debconf: falling back to frontend: Teletype
+debconf: unable to initialize frontend: Teletype
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Noninteractive
+Fetched 4882 kB in 0s (52.5 MB/s)
+Selecting previously unselected package libbrotli1:amd64.
+
+(Reading database ... 
+(Reading database ... 5%
+(Reading database ... 10%
+(Reading database ... 15%
+(Reading database ... 20%
+(Reading database ... 25%
+(Reading database ... 30%
+(Reading database ... 35%
+(Reading database ... 40%
+(Reading database ... 45%
+(Reading database ... 50%
+(Reading database ... 55%
+(Reading database ... 60%
+(Reading database ... 65%
+(Reading database ... 70%
+(Reading database ... 75%
+(Reading database ... 80%
+(Reading database ... 85%
+(Reading database ... 90%
+(Reading database ... 95%
+(Reading database ... 100%
+(Reading database ... 5644 files and directories currently installed.)
+
+Preparing to unpack .../00-libbrotli1_1.1.0-2+b7_amd64.deb ...
+
+Unpacking libbrotli1:amd64 (1.1.0-2+b7) ...
+
+Selecting previously unselected package libkrb5support0:amd64.
+
+Preparing to unpack .../01-libkrb5support0_1.21.3-5_amd64.deb ...
+
+Unpacking libkrb5support0:amd64 (1.21.3-5) ...
+
+Selecting previously unselected package libcom-err2:amd64.
+
+Preparing to unpack .../02-libcom-err2_1.47.2-3+b3_amd64.deb ...
+
+Unpacking libcom-err2:amd64 (1.47.2-3+b3) ...
+
+Selecting previously unselected package libk5crypto3:amd64.
+
+Preparing to unpack .../03-libk5crypto3_1.21.3-5_amd64.deb ...
+
+Unpacking libk5crypto3:amd64 (1.21.3-5) ...
+
+Selecting previously unselected package libkeyutils1:amd64.
+
+Preparing to unpack .../04-libkeyutils1_1.6.3-6_amd64.deb ...
+
+Unpacking libkeyutils1:amd64 (1.6.3-6) ...
+
+Selecting previously unselected package libkrb5-3:amd64.
+
+Preparing to unpack .../05-libkrb5-3_1.21.3-5_amd64.deb ...
+
+Unpacking libkrb5-3:amd64 (1.21.3-5) ...
+
+Selecting previously unselected package libgssapi-krb5-2:amd64.
+
+Preparing to unpack .../06-libgssapi-krb5-2_1.21.3-5_amd64.deb ...
+
+Unpacking libgssapi-krb5-2:amd64 (1.21.3-5) ...
+
+Selecting previously unselected package libunistring5:amd64.
+
+
+Preparing to unpack .../07-libunistring5_1.3-2_amd64.deb ...
+
+Unpacking libunistring5:amd64 (1.3-2) ...
+
+Selecting previously unselected package libidn2-0:amd64.
+
+Preparing to unpack .../08-libidn2-0_2.3.8-2_amd64.deb ...
+
+Unpacking libidn2-0:amd64 (2.3.8-2) ...
+
+Selecting previously unselected package libsasl2-modules-db:amd64.
+
+Preparing to unpack .../09-libsasl2-modules-db_2.1.28+dfsg1-9_amd64.deb ...
+
+Unpacking libsasl2-modules-db:amd64 (2.1.28+dfsg1-9) ...
+
+Selecting previously unselected package libsasl2-2:amd64.
+
+Preparing to unpack .../10-libsasl2-2_2.1.28+dfsg1-9_amd64.deb ...
+
+Unpacking libsasl2-2:amd64 (2.1.28+dfsg1-9) ...
+
+Selecting previously unselected package libldap2:amd64.
+
+Preparing to unpack .../11-libldap2_2.6.10+dfsg-1_amd64.deb ...
+
+Unpacking libldap2:amd64 (2.6.10+dfsg-1) ...
+
+Selecting previously unselected package libnghttp2-14:amd64.
+
+Preparing to unpack .../12-libnghttp2-14_1.64.0-1.1_amd64.deb ...
+
+Unpacking libnghttp2-14:amd64 (1.64.0-1.1) ...
+
+Selecting previously unselected package libnghttp3-9:amd64.
+
+Preparing to unpack .../13-libnghttp3-9_1.8.0-1_amd64.deb ...
+
+Unpacking libnghttp3-9:amd64 (1.8.0-1) ...
+
+Selecting previously unselected package libpsl5t64:amd64.
+
+Preparing to unpack .../14-libpsl5t64_0.21.2-1.1+b1_amd64.deb ...
+
+Unpacking libpsl5t64:amd64 (0.21.2-1.1+b1) ...
+
+Selecting previously unselected package libp11-kit0:amd64.
+
+Preparing to unpack .../15-libp11-kit0_0.25.5-3_amd64.deb ...
+
+Unpacking libp11-kit0:amd64 (0.25.5-3) ...
+
+Selecting previously unselected package libtasn1-6:amd64.
+
+Preparing to unpack .../16-libtasn1-6_4.20.0-2_amd64.deb ...
+
+Unpacking libtasn1-6:amd64 (4.20.0-2) ...
+
+Selecting previously unselected package libgnutls30t64:amd64.
+
+Preparing to unpack .../17-libgnutls30t64_3.8.9-3_amd64.deb ...
+
+Unpacking libgnutls30t64:amd64 (3.8.9-3) ...
+
+Selecting previously unselected package librtmp1:amd64.
+
+Preparing to unpack .../18-librtmp1_2.4+20151223.gitfa8646d.1-2+b5_amd64.deb ...
+
+Unpacking librtmp1:amd64 (2.4+20151223.gitfa8646d.1-2+b5) ...
+
+Selecting previously unselected package libssh2-1t64:amd64.
+
+Preparing to unpack .../19-libssh2-1t64_1.11.1-1_amd64.deb ...
+
+Unpacking libssh2-1t64:amd64 (1.11.1-1) ...
+
+Selecting previously unselected package libcurl4t64:amd64.
+
+Preparing to unpack .../20-libcurl4t64_8.14.1-2+deb13u2_amd64.deb ...
+
+Unpacking libcurl4t64:amd64 (8.14.1-2+deb13u2) ...
+
+Selecting previously unselected package curl.
+
+Preparing to unpack .../21-curl_8.14.1-2+deb13u2_amd64.deb ...
+
+Unpacking curl (8.14.1-2+deb13u2) ...
+
+Setting up libkeyutils1:amd64 (1.6.3-6) ...
+
+Setting up libbrotli1:amd64 (1.1.0-2+b7) ...
+
+Setting up libnghttp2-14:amd64 (1.64.0-1.1) ...
+
+Setting up libcom-err2:amd64 (1.47.2-3+b3) ...
+
+Setting up libkrb5support0:amd64 (1.21.3-5) ...
+
+Setting up libsasl2-modules-db:amd64 (2.1.28+dfsg1-9) ...
+
+Setting up libp11-kit0:amd64 (0.25.5-3) ...
+
+Setting up libunistring5:amd64 (1.3-2) ...
+
+Setting up libk5crypto3:amd64 (1.21.3-5) ...
+
+Setting up libsasl2-2:amd64 (2.1.28+dfsg1-9) ...
+
+Setting up libnghttp3-9:amd64 (1.8.0-1) ...
+
+Setting up libtasn1-6:amd64 (4.20.0-2) ...
+
+Setting up libkrb5-3:amd64 (1.21.3-5) ...
+
+Setting up libssh2-1t64:amd64 (1.11.1-1) ...
+
+Setting up libldap2:amd64 (2.6.10+dfsg-1) ...
+
+Setting up libidn2-0:amd64 (2.3.8-2) ...
+
+Setting up libgssapi-krb5-2:amd64 (1.21.3-5) ...
+
+Setting up libgnutls30t64:amd64 (3.8.9-3) ...
+
+Setting up libpsl5t64:amd64 (0.21.2-1.1+b1) ...
+
+Setting up librtmp1:amd64 (2.4+20151223.gitfa8646d.1-2+b5) ...
+
+Setting up libcurl4t64:amd64 (8.14.1-2+deb13u2) ...
+
+Setting up curl (8.14.1-2+deb13u2) ...
+
+Processing triggers for libc-bin (2.41-12) ...
+
+Requirement already satisfied: pip in /usr/local/lib/python3.11/site-packages (24.0)
+
+az : ERROR: The command failed with an unexpected error. Here is the traceback:
+At line:1 char:1
++ az acr task logs --registry acrqcadev2f37g0 --run-id cc7d --output no ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: The comm... the traceback::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ERROR: 'charmap' codec can't encode characters in position 126-165: character maps to <undefined>
+Traceback (most recent call last):
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\knack/cli.py", line 233, in 
+invoke
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/core/commands/__init
+__.py", line 666, in execute
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/core/commands/__init
+__.py", line 734, in _run_jobs_serially
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/core/commands/__init
+__.py", line 703, in _run_job
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/core/commands/__init
+__.py", line 336, in __call__
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/core/commands/comman
+d_operation.py", line 120, in handler
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/command_modules/acr/
+task.py", line 1126, in acr_task_logs
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/command_modules/acr/
+_stream_utils.py", line 56, in stream_logs
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/command_modules/acr/
+_stream_utils.py", line 126, in _stream_logs
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\colorama/ansitowin32.py", 
+line 47, in write
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\colorama/ansitowin32.py", 
+line 177, in write
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\colorama/ansitowin32.py", 
+line 202, in write_and_convert
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\colorama/ansitowin32.py", 
+line 210, in write_plain_text
+  File "encodings\cp1252.py", line 19, in encode
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 126-165: character maps to 
+<undefined>
+To check existing issues, please visit: https://github.com/Azure/azure-cli/issues

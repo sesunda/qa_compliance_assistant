@@ -1,24 +1,16 @@
-# Fast application Dockerfile using pre-built base image
-FROM acrqcadev2f37g0.azurecr.io/ca-api-qca-dev:base
+# Fast build Dockerfile - uses pre-built base image
+# Builds in ~2-3 minutes in ACR
+
+FROM acrqcadev2f37g0.azurecr.io/qca-base:v1
 
 WORKDIR /app
 
-# Copy application code (changes frequently - fast layer)
-COPY api/ /app/api/
-
-# Copy startup script
-COPY api/startup.sh /app/startup.sh
-RUN chmod +x /app/startup.sh
-
-# Set PYTHONPATH
-ENV PYTHONPATH=/app
-
-# Expose port
-EXPOSE 8000
+# Copy application code (only this changes frequently)
+COPY api/ .
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
 
-ENTRYPOINT ["/bin/bash"]
-CMD ["/app/startup.sh"]
+# Run the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

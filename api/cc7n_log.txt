@@ -1,0 +1,16 @@
+2025/12/03 14:19:52 Alias support enabled for version >= 1.1.0, please see https://aka.ms/acr/tasks/task-aliases for more information.
+2025/12/03 14:19:52 Creating Docker network: acb_default_network, driver: 'bridge'
+2025/12/03 14:19:52 Successfully set up Docker network: acb_default_network
+2025/12/03 14:19:52 Setting up Docker configuration...
+2025/12/03 14:19:53 Successfully set up Docker configuration
+2025/12/03 14:19:53 Logging in to registry: acrqcadev2f37g0.azurecr.io
+2025/12/03 14:19:53 Successfully logged into acrqcadev2f37g0.azurecr.io
+2025/12/03 14:19:53 Executing step ID: acb_step_0. Timeout(sec): 600, Working directory: '', Network: 'acb_default_network'
+2025/12/03 14:19:53 Launching container with name: acb_step_0
+WARNING: Unable to get AAD authorization tokens with message: Please run 'az login' to setup account.
+WARNING: Unable to get admin user credentials with message: Please run 'az login' to setup account.
+ERROR: Unable to authenticate using AAD or admin login credentials. Please specify both username and password in non-interactive mode.
+2025/12/03 14:19:58 Container failed during run: acb_step_0. No retries remaining.
+failed to run step ID: acb_step_0: exit status 1
+
+Run ID: cc7n failed after 7s. Error: failed during run, err: exit status 1

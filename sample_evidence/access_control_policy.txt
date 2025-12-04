@@ -1,0 +1,426 @@
+ACCESS CONTROL POLICY
+
+VERSION: 3.1
+EFFECTIVE DATE: January 1, 2025
+LAST REVIEWED: December 2024
+
+=================================================================
+1. PURPOSE AND SCOPE
+=================================================================
+
+This Access Control Policy establishes requirements for managing user 
+access to information systems and data. This policy applies to all 
+employees, contractors, third-party users, and any individual with 
+access to organization systems.
+
+The purpose of this policy is to:
+- Ensure only authorized individuals access information systems
+- Implement principle of least privilege
+- Protect sensitive and confidential information
+- Comply with regulatory requirements (SOC 2, ISO 27001, NIST 800-53)
+- Reduce risk of unauthorized access and data breaches
+
+=================================================================
+2. USER ACCESS MANAGEMENT
+=================================================================
+
+2.1 Account Provisioning
+
+NEW EMPLOYEE/CONTRACTOR ACCESS
+- Access request must be approved by direct manager
+- Human Resources must verify employment/contract status
+- Access provisioned within 24 hours of approval
+- New user receives security awareness training before access granted
+- Default access follows role-based access control (RBAC) templates
+
+ACCESS REQUEST PROCESS
+1. Submit access request via IT Service Management system
+2. Manager approval required (within 2 business days)
+3. Data owner approval for sensitive data access
+4. Security team review for privileged access
+5. Access granted and logged in access management system
+
+2.2 Role-Based Access Control (RBAC)
+
+STANDARD ACCESS ROLES
+- Employee: Basic productivity tools, email, intranet
+- Developer: Development environments, version control, testing systems
+- Analyst: Business intelligence tools, reporting systems, data analytics
+- Manager: Team management tools, approval workflows, reporting dashboards
+- Admin: System administration, user management, configuration access
+
+ROLE ASSIGNMENT CRITERIA
+- Based on job function and business need
+- Follow principle of least privilege
+- Documented in job descriptions
+- Reviewed during onboarding
+- Updated when role changes
+
+2.3 Principle of Least Privilege
+
+REQUIREMENTS
+- Users granted minimum access required for job function
+- Access to sensitive data requires explicit business justification
+- Temporary access automatically revoked after specified period
+- "Break-glass" procedures for emergency access
+- Regular access reviews to remove unnecessary permissions
+
+2.4 Access Reviews
+
+QUARTERLY ACCESS REVIEWS
+- All user access reviewed every 90 days
+- Manager validates team member access requirements
+- Data owners review access to sensitive systems
+- Privileged access reviewed by security team
+- Findings documented and remediated within 30 days
+
+REVIEW CRITERIA
+- Is user still employed/contracted?
+- Does access align with current role?
+- Is access still required for job duties?
+- Has user transferred departments?
+- Any unused access for 60+ days?
+
+=================================================================
+3. AUTHENTICATION REQUIREMENTS
+=================================================================
+
+3.1 Multi-Factor Authentication (MFA)
+
+MFA REQUIRED FOR
+- All remote access (VPN, cloud applications)
+- Access to production systems
+- Administrative/privileged accounts
+- Financial systems
+- Customer data access
+- Third-party contractor access
+
+MFA METHODS APPROVED
+- Hardware security keys (FIDO2) - PREFERRED
+- Authenticator apps (Microsoft Authenticator, Google Authenticator)
+- SMS codes (fallback only, not for privileged access)
+- Biometric authentication (for mobile devices)
+
+MFA ENROLLMENT
+- Mandatory during account provisioning
+- Minimum 2 authentication methods registered
+- Backup codes provided and securely stored
+- Re-enrollment required if device lost/stolen
+
+3.2 Password Requirements
+
+PASSWORD COMPLEXITY
+- Minimum 12 characters (16+ for privileged accounts)
+- Must include: uppercase, lowercase, numbers, special characters
+- Cannot contain username or common dictionary words
+- Cannot reuse last 10 passwords
+- System enforces complexity via Active Directory policy
+
+PASSWORD ROTATION
+- Standard accounts: Every 90 days
+- Privileged accounts: Every 60 days
+- Service accounts: Every 180 days (with change management approval)
+- Password expires force immediate change upon next login
+
+PASSWORD PROTECTION
+- Never share passwords with anyone (including IT staff)
+- Never write down passwords
+- Use approved password manager (LastPass Enterprise)
+- Different passwords for different systems
+- Report suspected password compromise immediately
+
+3.3 Account Lockout
+
+LOCKOUT POLICY
+- Account locked after 5 failed login attempts
+- 30-minute lockout duration (or manual unlock by IT)
+- Lockout threshold resets after successful login
+- Security team notified of repeated lockout events
+- Potential brute force attacks trigger additional investigation
+
+3.4 Session Management
+
+SESSION TIMEOUT
+- Inactive sessions terminated after 15 minutes
+- User must re-authenticate to resume work
+- Open documents/applications saved automatically
+- Remote desktop sessions: 10-minute timeout
+- Web application sessions: 30-minute timeout
+
+CONCURRENT SESSIONS
+- Maximum 3 concurrent sessions per user
+- Session anomalies flagged for security review
+- Geographically dispersed simultaneous logins blocked
+- Privileged accounts: Single session only
+
+=================================================================
+4. PRIVILEGED ACCESS MANAGEMENT
+=================================================================
+
+4.1 Privileged Account Requirements
+
+SEPARATE ADMIN ACCOUNTS
+- Standard account for daily work (e.g., jsmith@company.com)
+- Separate admin account for privileged tasks (e.g., jsmith-admin@company.com)
+- Admin accounts CANNOT be used for email, web browsing, or daily tasks
+- Admin credentials stored in privileged access management (PAM) system
+
+PRIVILEGED ACCOUNT TYPES
+- Domain Administrator (Active Directory)
+- Database Administrator (production databases)
+- Cloud Administrator (AWS, Azure, GCP)
+- Security Administrator (firewalls, SIEM, security tools)
+- Application Administrator (business-critical applications)
+
+4.2 Just-in-Time (JIT) Access
+
+JIT PRINCIPLES
+- Privileged access granted only when needed
+- Time-limited access (typically 1-8 hours)
+- Approval workflow for access elevation
+- Automatic revocation after time period
+- All privileged sessions recorded and logged
+
+JIT REQUEST PROCESS
+1. User requests privileged access via PAM system
+2. Specifies reason and duration needed
+3. Manager approval required
+4. Security team approval for production access
+5. Access granted for specified time
+6. Notification sent when access expires
+
+4.3 Privileged Session Monitoring
+
+ALL PRIVILEGED ACTIONS
+- Logged to centralized logging system (SIEM)
+- Session recording for critical systems
+- Real-time alerts for high-risk activities
+- Weekly review of privileged access logs
+- Suspicious activity investigated within 24 hours
+
+HIGH-RISK ACTIVITIES MONITORED
+- User account creation/deletion
+- Permission/role changes
+- Firewall rule modifications
+- Database schema changes
+- Audit log access or deletion
+- System configuration changes
+
+4.4 Privileged Access Bastion Hosts
+
+JUMP SERVER REQUIREMENTS
+- All privileged access through dedicated bastion hosts
+- Bastion hosts hardened and regularly patched
+- No internet access from bastion hosts
+- MFA required for bastion host access
+- All traffic logged and monitored
+
+=================================================================
+5. REMOTE ACCESS
+=================================================================
+
+5.1 VPN Requirements
+
+APPROVED VPN ACCESS
+- Company-managed VPN client only
+- MFA required for VPN connection
+- Split tunneling disabled (all traffic through VPN)
+- Connection logged and monitored
+- Auto-disconnect after 12 hours
+
+VPN USAGE RESTRICTIONS
+- VPN access from approved countries only
+- Simultaneous VPN + public Wi-Fi connections blocked
+- Known malicious IP addresses blacklisted
+- Connection from high-risk locations flagged
+
+5.2 Remote Desktop Protocol (RDP)
+
+RDP SECURITY CONTROLS
+- RDP only via VPN, never directly exposed to internet
+- Network Level Authentication (NLA) enforced
+- RDP access limited to specific user groups
+- Two-factor authentication required
+- RDP gateway with MFA for external access
+
+5.3 Cloud Application Access
+
+SINGLE SIGN-ON (SSO)
+- All SaaS applications integrated with SSO
+- Conditional access policies enforced
+- Device compliance check before access
+- Geographic restrictions for sensitive applications
+
+CONDITIONAL ACCESS POLICIES
+- Compliant device required
+- MFA required for external access
+- Block access from high-risk countries
+- Require corporate network for financial systems
+- Real-time risk assessment
+
+=================================================================
+6. ACCESS REVOCATION
+=================================================================
+
+6.1 Employment Termination
+
+IMMEDIATE ACTIONS (Within 1 hour)
+- Disable all user accounts (AD, email, VPN, applications)
+- Revoke physical access badges
+- Remote wipe corporate mobile devices
+- Revoke access to cloud applications
+- Disable VPN and remote access
+
+WITHIN 24 HOURS
+- Remove from all distribution lists and shared folders
+- Transfer ownership of files and documents
+- Reassign active tasks and projects
+- Archive user mailbox for 1 year
+- Document all access revocation actions
+
+WITHIN 1 WEEK
+- Remove from third-party systems
+- Cancel software licenses
+- Delete test/development accounts
+- Complete access revocation checklist
+
+6.2 Role Changes and Transfers
+
+DEPARTMENT TRANSFER
+- Review and adjust access based on new role
+- Remove access specific to previous department
+- Grant access required for new role
+- Document access changes
+- Manager approval for new access
+
+LEAVE OF ABSENCE
+- Disable accounts during extended leave (30+ days)
+- Maintain account for return
+- Revoke remote access
+- Keep mailbox active for critical communications
+
+6.3 Third-Party/Contractor Access
+
+CONTRACTOR ACCESS TERMINATION
+- Access reviewed monthly
+- Automatic revocation on contract end date
+- Immediate revocation if contract terminated early
+- Return of all company assets and credentials
+- Certification of data deletion/return
+
+=================================================================
+7. THIRD-PARTY ACCESS
+=================================================================
+
+7.1 Vendor Access Requirements
+
+VENDOR ACCESS APPROVAL
+- Vendor risk assessment completed
+- Non-disclosure agreement (NDA) signed
+- Data processing agreement executed
+- Business justification documented
+- Security questionnaire completed
+
+ACCESS RESTRICTIONS
+- Separate vendor accounts (no shared credentials)
+- Access limited to specific systems/data needed
+- Time-limited access reviewed monthly
+- All vendor activity logged
+- MFA required for all vendor access
+
+7.2 Privileged Third-Party Access
+
+VENDOR PRIVILEGED ACCESS
+- Dedicated vendor admin accounts
+- Access through jump server only
+- Session recording mandatory
+- Supervised access for high-risk activities
+- 48-hour advance notice required
+
+=================================================================
+8. ACCOUNTABILITY AND ENFORCEMENT
+=================================================================
+
+8.1 User Responsibilities
+
+ALL USERS MUST
+- Protect credentials and never share
+- Report lost/stolen devices immediately
+- Log out when leaving workstation
+- Report suspicious activity
+- Complete annual security training
+- Comply with all access control policies
+
+8.2 Monitoring and Auditing
+
+CONTINUOUS MONITORING
+- Failed login attempts
+- Account lockouts
+- Privilege escalation
+- After-hours access
+- Geographic anomalies
+- Unusual data access patterns
+
+AUDIT LOGGING
+- All access attempts (successful and failed)
+- Permission changes
+- Password resets
+- MFA events
+- Logs retained for 1 year minimum
+
+8.3 Policy Violations
+
+VIOLATION CONSEQUENCES
+- First offense: Warning and mandatory training
+- Second offense: Formal written warning
+- Third offense: Suspension pending investigation
+- Severe violations: Immediate termination
+- Criminal activity: Law enforcement notification
+
+EXAMPLES OF SEVERE VIOLATIONS
+- Sharing credentials
+- Unauthorized data access or exfiltration
+- Bypassing security controls
+- Privilege abuse
+- Unauthorized system access
+
+=================================================================
+9. EXCEPTIONS AND WAIVERS
+=================================================================
+
+EXCEPTION PROCESS
+- Documented business justification required
+- Security risk assessment completed
+- Compensating controls identified
+- CISO approval required
+- Exception reviewed every 90 days
+- Automatic expiration after 1 year
+
+=================================================================
+10. COMPLIANCE AND STANDARDS
+=================================================================
+
+This policy aligns with:
+- NIST 800-53 Access Control (AC) family
+- ISO/IEC 27001:2013 A.9 Access Control
+- SOC 2 CC6.1 - CC6.3
+- PCI DSS Requirement 7 & 8
+- HIPAA Security Rule 164.308(a)(3) & (4)
+- CIS Controls 4, 5, 6
+
+=================================================================
+DOCUMENT CONTROL
+=================================================================
+
+Document Owner: Chief Information Security Officer
+Approved By: Security Committee, Information Security Steering Committee
+Review Frequency: Annual
+Next Review Date: December 2025
+Classification: Internal Use Only
+Distribution: All Employees
+
+Version History:
+- v3.1 (Jan 2025): Added JIT access requirements
+- v3.0 (Jan 2024): Updated MFA requirements
+- v2.0 (Jan 2023): Added privileged access management section
+- v1.0 (Jan 2022): Initial policy
