@@ -490,6 +490,73 @@ class EvidenceIndexer:
         except Exception as e:
             logger.error(f"❌ Failed to delete evidence chunks: {e}")
             return False
+    
+    async def backfill_evidence(self, db: Session) -> Dict[str, Any]:
+        """
+        Backfill all existing evidence from database to Azure Search
+        
+        Args:
+            db: Database session
+            
+        Returns:
+            Dict with backfill results
+        """
+        if not self.azure_search_enabled:
+            logger.info("Azure Search disabled, skipping backfill")
+            return {"success": False, "message": "Azure Search not enabled"}
+        
+        try:
+            from api.src.models import Evidence
+            
+            # Get all evidence with uploaded files
+            evidence_list = db.query(Evidence).filter(
+                Evidence.file_name.isnot(None)
+            ).all()
+            
+            logger.info(f"🔄 Backfilling {len(evidence_list)} evidence items to Azure Search...")
+            
+            indexed = 0
+            failed = 0
+            errors = []
+            
+            for evidence in evidence_list:
+                try:
+                    # Index this evidence
+                    await self.index_evidence(
+                        evidence_id=evidence.id,
+                        file_content=evidence.file_content if hasattr(evidence, 'file_content') else None,
+                        file_name=evidence.file_name,
+                        db=db
+                    )
+                    indexed += 1
+                    logger.info(f"✅ Indexed evidence {evidence.id}: {evidence.file_name}")
+                    
+                except Exception as e:
+                    failed += 1
+                    error_msg = f"Evidence {evidence.id}: {str(e)}"
+                    errors.append(error_msg)
+                    logger.error(f"❌ Failed to index evidence {evidence.id}: {e}")
+            
+            result = {
+                "success": True,
+                "total": len(evidence_list),
+                "indexed": indexed,
+                "failed": failed,
+                "errors": errors[:10]  # Limit to first 10 errors
+            }
+            
+            logger.info(f"✅ Backfill complete: {indexed}/{len(evidence_list)} evidence indexed")
+            return result
+            
+        except Exception as e:
+            logger.error(f"❌ Backfill failed: {e}", exc_info=True)
+            return {
+                "success": False,
+                "total": 0,
+                "indexed": 0,
+                "failed": 0,
+                "error": str(e)
+            }
 
 
 # Global instance
