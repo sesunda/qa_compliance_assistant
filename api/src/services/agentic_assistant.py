@@ -2155,16 +2155,22 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                     
                     if settings.AZURE_SEARCH_ENABLED:
                         indexer = EvidenceIndexer()
+                        # Build evidence metadata dict
+                        evidence_metadata = {
+                            "control_id": control.id,
+                            "project_id": control.project_id,
+                            "agency_id": agency_id or control.agency_id,
+                            "title": title,
+                            "file_name": file_path.split('/')[-1] if '/' in file_path else file_path.split('\\')[-1],
+                            "evidence_type": evidence_type
+                        }
                         # Run indexing in background (don't block response)
                         import asyncio
                         asyncio.create_task(indexer.index_evidence(
                             evidence_id=evidence.id,
                             file_path=file_path,
-                            control_id=control.id,
-                            project_id=control.project_id,
-                            agency_id=agency_id or control.agency_id,
-                            title=title,
-                            file_name=file_path.split('/')[-1] if '/' in file_path else file_path.split('\\')[-1]
+                            evidence_metadata=evidence_metadata,
+                            db=db
                         ))
                         logger.info(f"📚 Queued evidence {evidence.id} for content indexing")
                 except Exception as indexing_error:

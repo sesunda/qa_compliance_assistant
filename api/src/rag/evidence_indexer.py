@@ -522,27 +522,50 @@ class EvidenceIndexer:
             
             for evidence in evidence_list:
                 try:
-                    # Need to load file content from storage
-                    file_content = None
-                    if evidence.file_path:
-                        # Read file from storage
-                        from api.src.file_utils import read_file_from_storage
-                        file_content = await read_file_from_storage(evidence.file_path)
-                    
-                    if file_content:
-                        # Index this evidence
-                        await self.index_evidence(
-                            evidence_id=evidence.id,
-                            file_content=file_content,
-                            file_name=evidence.original_filename,
-                            db=db
-                        )
-                        indexed += 1
-                        logger.info(f"✅ Indexed evidence {evidence.id}: {evidence.original_filename}")
-                    else:
+                    # Need to load file from storage
+                    if not evidence.file_path:
                         failed += 1
-                        errors.append(f"Evidence {evidence.id}: No file content found")
-                        logger.warning(f"⚠️ Skipped evidence {evidence.id}: No file content")
+                        errors.append(f"Evidence {evidence.id}: No file_path")
+                        logger.warning(f"⚠️ Skipped evidence {evidence.id}: No file_path")
+                        continue
+                    
+                    # Build file path using evidence storage service
+                    from api.src.services.evidence_storage import evidence_storage_service
+                    
+                    file_path = evidence_storage_service.resolve_file_path(evidence.file_path)
+                    
+                    # Check if file exists
+                    import os
+                    if not os.path.exists(file_path):
+                        failed += 1
+                        errors.append(f"Evidence {evidence.id}: File not found at {file_path}")
+                        logger.warning(f"⚠️ Skipped evidence {evidence.id}: File not found")
+                        continue
+                    
+                    # Index this evidence
+                    evidence_metadata = {
+                        "control_id": evidence.control_id,
+                        "project_id": getattr(evidence, 'project_id', None),
+                        "agency_id": evidence.agency_id,
+                        "title": evidence.title,
+                        "file_name": evidence.original_filename,
+                        "evidence_type": evidence.evidence_type
+                    }
+                    
+                    await self.index_evidence(
+                        evidence_id=evidence.id,
+                        file_path=file_path,
+                        evidence_metadata=evidence_metadata,
+                        db=db
+                    )
+                    indexed += 1
+                    logger.info(f"✅ Indexed evidence {evidence.id}: {evidence.original_filename}")
+                    
+                except FileNotFoundError as e:
+                    failed += 1
+                    error_msg = f"Evidence {evidence.id}: File not found"
+                    errors.append(error_msg)
+                    logger.error(f"❌ File not found for evidence {evidence.id}: {e}")
                     
                 except Exception as e:
                     failed += 1
