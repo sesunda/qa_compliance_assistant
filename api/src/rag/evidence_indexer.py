@@ -510,7 +510,8 @@ class EvidenceIndexer:
             
             # Get all evidence with uploaded files
             evidence_list = db.query(Evidence).filter(
-                Evidence.file_name.isnot(None)
+                Evidence.original_filename.isnot(None),
+                Evidence.file_path.isnot(None)
             ).all()
             
             logger.info(f"🔄 Backfilling {len(evidence_list)} evidence items to Azure Search...")
@@ -521,15 +522,27 @@ class EvidenceIndexer:
             
             for evidence in evidence_list:
                 try:
-                    # Index this evidence
-                    await self.index_evidence(
-                        evidence_id=evidence.id,
-                        file_content=evidence.file_content if hasattr(evidence, 'file_content') else None,
-                        file_name=evidence.file_name,
-                        db=db
-                    )
-                    indexed += 1
-                    logger.info(f"✅ Indexed evidence {evidence.id}: {evidence.file_name}")
+                    # Need to load file content from storage
+                    file_content = None
+                    if evidence.file_path:
+                        # Read file from storage
+                        from api.src.file_utils import read_file_from_storage
+                        file_content = await read_file_from_storage(evidence.file_path)
+                    
+                    if file_content:
+                        # Index this evidence
+                        await self.index_evidence(
+                            evidence_id=evidence.id,
+                            file_content=file_content,
+                            file_name=evidence.original_filename,
+                            db=db
+                        )
+                        indexed += 1
+                        logger.info(f"✅ Indexed evidence {evidence.id}: {evidence.original_filename}")
+                    else:
+                        failed += 1
+                        errors.append(f"Evidence {evidence.id}: No file content found")
+                        logger.warning(f"⚠️ Skipped evidence {evidence.id}: No file content")
                     
                 except Exception as e:
                     failed += 1
