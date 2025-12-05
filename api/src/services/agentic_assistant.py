@@ -14,6 +14,7 @@ import logging
 
 from api.src.services.conversation_manager import ConversationManager
 from api.src.services.ai_task_orchestrator import ai_task_orchestrator
+from api.src.services.evidence_storage import evidence_storage_service
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -329,7 +330,7 @@ class AgenticAssistant:
                 "type": "function",
                 "function": {
                     "name": "get_evidence_by_control",
-                    "description": "Retrieve all evidence documents for a specific control. Returns evidence ID, title, file name, type, upload date, and status. Use when user asks: 'show evidence for control X', 'what evidence do we have for control Y', 'list all evidence for control Z'. This is for LISTING only - for AI analysis use analyze_evidence_for_control instead.",
+                    "description": "Retrieve all evidence documents for a specific control. Returns evidence ID, title, file name, type, upload date, status, and download link. Use when user asks: 'show evidence for control X', 'what evidence do we have for control Y', 'list all evidence for control Z'. This is for LISTING only - for AI analysis use analyze_evidence_for_control instead.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -346,7 +347,7 @@ class AgenticAssistant:
                 "type": "function",
                 "function": {
                     "name": "get_recent_evidence",
-                    "description": "Retrieve recently uploaded evidence documents. Returns evidence ID, title, control ID, file name, upload date. Use when user asks: 'show my recent uploads', 'what did I just upload', 'list recent evidence'.",
+                    "description": "Retrieve recently uploaded evidence documents. Returns evidence ID, title, control ID, file name, upload date, and download link. Use when user asks: 'show my recent uploads', 'what did I just upload', 'list recent evidence'.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -739,6 +740,12 @@ EVIDENCE BUSINESS RULES:
 - Evidence CANNOT be reassigned to a different Control or Project
 - Analyst can submit MULTIPLE evidences per Control until audit closes
 - If user asks to "move" or "reassign" evidence: Explain it's not allowed, guide them to upload NEW evidence for the target Control instead
+
+EVIDENCE PRESENTATION RULES:
+- When showing evidence details, ALWAYS include the download link if available
+- Format download links as: "You can download this file: [download_url]"
+- If download_url field is provided in tool results, present it to the user
+- Example: "Evidence 24: New Evidence for Control 3 (access_control_policy.txt, Procedure, Pending). You can download this file: /api/v1/evidence/24/download"
 
 TOOL SELECTION RULES:
 - When user asks "What are the requirements for Control X?" or "Tell me about Control X" → USE search_documents tool
@@ -2226,6 +2233,14 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                 # Format evidence data
                 evidence_data = []
                 for ev in evidence_list:
+                    # Generate download URL if file exists
+                    download_url = None
+                    if ev.file_path:
+                        try:
+                            download_url = f"/api/v1/evidence/{ev.id}/download"
+                        except Exception as e:
+                            logger.warning(f"Could not generate download URL for evidence {ev.id}: {e}")
+                    
                     evidence_data.append({
                         "id": ev.id,
                         "title": ev.title,
@@ -2233,7 +2248,8 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                         "evidence_type": ev.evidence_type,
                         "uploaded_at": ev.uploaded_at.isoformat() if ev.uploaded_at else None,
                         "verification_status": ev.verification_status,
-                        "description": ev.description
+                        "description": ev.description,
+                        "download_url": download_url
                     })
                 
                 logger.info(f"✅ Found {len(evidence_data)} evidence items for control {control_id}")
@@ -2276,6 +2292,14 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                 # Format evidence data
                 evidence_data = []
                 for ev in evidence_list:
+                    # Generate download URL if file exists
+                    download_url = None
+                    if ev.file_path:
+                        try:
+                            download_url = f"/api/v1/evidence/{ev.id}/download"
+                        except Exception as e:
+                            logger.warning(f"Could not generate download URL for evidence {ev.id}: {e}")
+                    
                     evidence_data.append({
                         "id": ev.id,
                         "title": ev.title,
@@ -2283,7 +2307,8 @@ You are currently assisting {current_user.get('username', 'the user')} from {age
                         "file_name": ev.file_path.split("/")[-1] if ev.file_path else None,
                         "evidence_type": ev.evidence_type,
                         "uploaded_at": ev.uploaded_at.isoformat() if ev.uploaded_at else None,
-                        "verification_status": ev.verification_status
+                        "verification_status": ev.verification_status,
+                        "download_url": download_url
                     })
                 
                 logger.info(f"✅ Found {len(evidence_data)} recent evidence items")
