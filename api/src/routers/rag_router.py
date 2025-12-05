@@ -15,6 +15,33 @@ from ..rag.control_indexer import ControlIndexer
 router = APIRouter(prefix="/api/v1/rag", tags=["rag"])
 logger = logging.getLogger(__name__)
 
+@router.get("/debug/evidence/{evidence_id}")
+async def debug_evidence_path(evidence_id: int, db: Session = Depends(get_db)) -> Dict[str, Any]:
+    """Debug endpoint to show what file_path is stored for an evidence"""
+    from ..models import Evidence
+    from ..services.evidence_storage import evidence_storage_service
+    
+    evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
+    if not evidence:
+        raise HTTPException(status_code=404, detail=f"Evidence {evidence_id} not found")
+    
+    # Check if blob exists
+    blob_exists = False
+    try:
+        file_content = evidence_storage_service.download_file(evidence.file_path)
+        blob_exists = True
+    except Exception as e:
+        pass
+    
+    return {
+        "evidence_id": evidence.id,
+        "control_id": evidence.control_id,
+        "file_path_in_db": evidence.file_path,
+        "blob_exists": blob_exists,
+        "original_filename": evidence.original_filename,
+        "created_at": str(evidence.created_at)
+    }
+
 @router.post("/backfill")
 async def backfill_all(db: Session = Depends(get_db)) -> Dict[str, Any]:
     """
