@@ -25,21 +25,64 @@ async def debug_evidence_path(evidence_id: int, db: Session = Depends(get_db)) -
     if not evidence:
         raise HTTPException(status_code=404, detail=f"Evidence {evidence_id} not found")
     
-    # Check if blob exists
-    blob_exists = False
+    # Check if blob exists with current path
+    current_blob_exists = False
     try:
         file_content = evidence_storage_service.download_file(evidence.file_path)
-        blob_exists = True
+        current_blob_exists = True
     except Exception as e:
         pass
+    
+    # Try alternative path with control_id=0
+    alt_path = None
+    alt_blob_exists = False
+    if not current_blob_exists and '/' in evidence.file_path:
+        parts = evidence.file_path.split('/')
+        if len(parts) == 3:
+            alt_path = f"{parts[0]}/0/{parts[2]}"
+            try:
+                file_content = evidence_storage_service.download_file(alt_path)
+                alt_blob_exists = True
+            except Exception as e:
+                pass
     
     return {
         "evidence_id": evidence.id,
         "control_id": evidence.control_id,
         "file_path_in_db": evidence.file_path,
-        "blob_exists": blob_exists,
+        "current_blob_exists": current_blob_exists,
+        "alternative_path": alt_path,
+        "alternative_blob_exists": alt_blob_exists,
         "original_filename": evidence.original_filename,
-        "created_at": str(evidence.created_at)
+        "created_at": str(evidence.created_at),
+        "fix_needed": not current_blob_exists and alt_blob_exists
+    }
+
+@router.post("/fix/evidence/{evidence_id}/path")
+async def fix_evidence_path(evidence_id: int, new_path: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
+    """Fix the file_path for an evidence record"""
+    from ..models import Evidence
+    from ..services.evidence_storage import evidence_storage_service
+    
+    evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
+    if not evidence:
+        raise HTTPException(status_code=404, detail=f"Evidence {evidence_id} not found")
+    
+    # Verify new path exists
+    try:
+        evidence_storage_service.download_file(new_path)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"New path doesn't exist: {e}")
+    
+    old_path = evidence.file_path
+    evidence.file_path = new_path
+    db.commit()
+    
+    return {
+        "evidence_id": evidence.id,
+        "old_path": old_path,
+        "new_path": new_path,
+        "status": "fixed"
     }
 
 @router.post("/backfill")
