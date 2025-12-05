@@ -85,6 +85,34 @@ async def backfill_controls_only(db: Session = Depends(get_db)) -> Dict[str, Any
         raise HTTPException(status_code=500, detail=f"Controls backfill failed: {str(e)}")
 
 
+@router.post("/fix/evidence/{evidence_id}/filepath")
+async def fix_evidence_filepath(
+    evidence_id: int, 
+    new_filepath: str,
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Fix evidence file_path in database (admin endpoint for fixing mismatched paths)
+    """
+    from ..models import Evidence
+    
+    evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
+    if not evidence:
+        raise HTTPException(status_code=404, detail=f"Evidence {evidence_id} not found")
+    
+    old_path = evidence.file_path
+    evidence.file_path = new_filepath
+    db.commit()
+    
+    logger.info(f"✅ Updated Evidence {evidence_id} file_path: {old_path} → {new_filepath}")
+    return {
+        "evidence_id": evidence_id,
+        "old_filepath": old_path,
+        "new_filepath": new_filepath,
+        "status": "updated"
+    }
+
+
 @router.post("/reindex/evidence/{evidence_id}")
 async def reindex_evidence_by_id(evidence_id: int, db: Session = Depends(get_db)) -> Dict[str, Any]:
     """
@@ -93,6 +121,8 @@ async def reindex_evidence_by_id(evidence_id: int, db: Session = Depends(get_db)
     try:
         from ..models import Evidence
         from ..services.evidence_storage import evidence_storage_service
+        from azure.storage.blob import BlobServiceClient
+        from ..config import settings
         import os
         import tempfile
         
@@ -106,11 +136,38 @@ async def reindex_evidence_by_id(evidence_id: int, db: Session = Depends(get_db)
         if not evidence.file_path:
             raise HTTPException(status_code=400, detail=f"Evidence {evidence_id} has no file_path")
         
-        # Download file content from storage (works for both local and Azure)
+        logger.info(f"📁 Evidence {evidence_id} file_path from database: {evidence.file_path}")
+        
+        # SPECIAL FIX: If download fails, try to find the blob with control_id=0
+        # This fixes Evidence 21-24 which were uploaded with temp control_id=0
+        file_content = None
+        original_path = evidence.file_path
+        
         try:
             file_content = evidence_storage_service.download_file(evidence.file_path)
         except FileNotFoundError as e:
-            raise HTTPException(status_code=404, detail=str(e))
+            logger.warning(f"⚠️  Failed to download '{evidence.file_path}', trying alternative paths...")
+            
+            # Try with control_id=0 (temp upload path)
+            if evidence_storage_service.backend == "azure" and "/" in evidence.file_path:
+                parts = evidence.file_path.split("/")
+                if len(parts) == 3:  # agency_id/control_id/filename
+                    alt_path = f"{parts[0]}/0/{parts[2]}"  # Replace control_id with 0
+                    logger.info(f"🔍 Trying alternative path: {alt_path}")
+                    try:
+                        file_content = evidence_storage_service.download_file(alt_path)
+                        logger.info(f"✅ Found file at alternative path: {alt_path}")
+                        # Update database with correct path
+                        evidence.file_path = alt_path
+                        db.commit()
+                        db.refresh(evidence)
+                        logger.info(f"📝 Updated database: {original_path} → {alt_path}")
+                    except FileNotFoundError:
+                        pass
+            
+            if file_content is None:
+                logger.error(f"❌ Failed to download file_path '{original_path}': {e}")
+                raise HTTPException(status_code=404, detail=f"Failed to download '{original_path}': {str(e)}")
         
         # Write to temporary file for processing
         _, file_ext = os.path.splitext(evidence.file_path)

@@ -161,7 +161,7 @@ app.include_router(control_catalog.router)
 app.include_router(rag_router.router)
 
 # Import and include routers
-from api.src.routers import auth, rag, agent_tasks, agencies, conversations, assessments, findings, analytics, agentic_chat, templates, task_stream
+from api.src.routers import auth, rag, agent_tasks, agencies, conversations, assessments, findings, analytics, agentic_chat, templates, task_stream, admin
 app.include_router(auth.router)
 app.include_router(rag.router)
 app.include_router(agent_tasks.router)
@@ -173,6 +173,7 @@ app.include_router(analytics.router)
 app.include_router(agentic_chat.router)
 app.include_router(templates.router)
 app.include_router(task_stream.router)
+app.include_router(admin.router)
 
 
 @app.get("/")
